@@ -33,7 +33,7 @@
     <string name="nav_header_subtitle">Xin chào bạn!</string>
     <string name="menu_home">Trang chủ</string>
     <string name="menu_cart">Giỏ hàng</string>
-    <string name="menu_myorder">Đơn hàng của tôi</string>
+    <string name="menu_myorder">Đơn hàng</string>
     <string name="menu_logout">Đăng xuất</string>
     <string name="menu_replace_password">Đổi mật khẩu</string>
 

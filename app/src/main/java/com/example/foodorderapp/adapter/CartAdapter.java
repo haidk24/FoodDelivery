@@ -1,5 +1,6 @@
 package com.example.foodorderapp.adapter;
 
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,7 +8,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.AppCompatButton;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -15,11 +15,12 @@ import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
 
 import java.util.List;
+import java.util.Locale;
 
 public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder> {
 
     private List<Food> mListFoodCart;
-    private IClickCartListener iClickCartListener;
+    private final IClickCartListener iClickCartListener;
 
     public interface IClickCartListener {
         void onClickMinusFood(Food food, int position);
@@ -30,6 +31,11 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
     public CartAdapter(List<Food> mListFoodCart, IClickCartListener listener) {
         this.mListFoodCart = mListFoodCart;
         this.iClickCartListener = listener;
+    }
+
+    public void updateList(List<Food> newList) {
+        this.mListFoodCart = newList;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -45,37 +51,71 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
         if (food == null) {
             return;
         }
-        Glide.with(holder.imgFood.getContext()).load(food.getImageUrl()).into(holder.imgFood);
+
+        Glide.with(holder.imgFood.getContext())
+                .load(food.getImageUrl())
+                .placeholder(R.drawable.banh)
+                .error(R.drawable.banh)
+                .into(holder.imgFood);
+
         holder.tvFoodName.setText(food.getName());
-        holder.tvPrice.setText(String.format("%s VNĐ", food.getNewPrice()));
+
+        if (!TextUtils.isEmpty(food.getDescription())) {
+            holder.tvFoodDesc.setVisibility(View.VISIBLE);
+            holder.tvFoodDesc.setText(food.getDescription());
+        } else {
+            holder.tvFoodDesc.setVisibility(View.GONE);
+        }
+
+        holder.tvPrice.setText(String.format(Locale.getDefault(), "%,.0f đ", food.getNewPrice()));
         holder.tvCount.setText(String.valueOf(food.getCount()));
 
-        holder.tvMinus.setOnClickListener(v -> iClickCartListener.onClickMinusFood(food, holder.getAdapterPosition()));
-        holder.tvPlus.setOnClickListener(v -> iClickCartListener.onClickPlusFood(food, holder.getAdapterPosition()));
-        holder.btnDelete.setOnClickListener(v -> iClickCartListener.onClickDeleteFood(food, holder.getAdapterPosition()));
+        holder.layoutMinus.setOnClickListener(v -> {
+            int currentPos = holder.getBindingAdapterPosition();
+            if (currentPos != RecyclerView.NO_POSITION) {
+                iClickCartListener.onClickMinusFood(food, currentPos);
+            }
+        });
+
+        holder.layoutPlus.setOnClickListener(v -> {
+            int currentPos = holder.getBindingAdapterPosition();
+            if (currentPos != RecyclerView.NO_POSITION) {
+                iClickCartListener.onClickPlusFood(food, currentPos);
+            }
+        });
+
+        holder.btnDelete.setOnClickListener(v -> {
+            int currentPos = holder.getBindingAdapterPosition();
+            if (currentPos != RecyclerView.NO_POSITION) {
+                iClickCartListener.onClickDeleteFood(food, currentPos);
+            }
+        });
     }
 
     @Override
     public int getItemCount() {
-        if (mListFoodCart != null) {
-            return mListFoodCart.size();
-        }
-        return 0;
+        return mListFoodCart != null ? mListFoodCart.size() : 0;
     }
 
-    public class CartViewHolder extends RecyclerView.ViewHolder {
-        private ImageView imgFood;
-        private TextView tvFoodName, tvPrice, tvCount, tvMinus, tvPlus;
-        private AppCompatButton btnDelete;
+    public static class CartViewHolder extends RecyclerView.ViewHolder {
+        private final ImageView imgFood;
+        private final TextView tvFoodName;
+        private final TextView tvFoodDesc;
+        private final TextView tvPrice;
+        private final TextView tvCount;
+        private final View layoutMinus;
+        private final View layoutPlus;
+        private final View btnDelete;
 
         public CartViewHolder(@NonNull View itemView) {
             super(itemView);
             imgFood = itemView.findViewById(R.id.img_food);
             tvFoodName = itemView.findViewById(R.id.tv_food_name);
+            tvFoodDesc = itemView.findViewById(R.id.tv_food_desc);
             tvPrice = itemView.findViewById(R.id.tv_price);
             tvCount = itemView.findViewById(R.id.tv_count);
-            tvMinus = itemView.findViewById(R.id.tv_minus);
-            tvPlus = itemView.findViewById(R.id.tv_plus);
+            layoutMinus = itemView.findViewById(R.id.layout_minus);
+            layoutPlus = itemView.findViewById(R.id.layout_plus);
             btnDelete = itemView.findViewById(R.id.btn_delete);
         }
     }

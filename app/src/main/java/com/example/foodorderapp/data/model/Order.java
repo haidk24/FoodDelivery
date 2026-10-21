@@ -15,6 +15,7 @@ public class Order {
     private List<CartItem> items; // Kiểu array[map]
     private double totalAmount;
     private String status;
+    private String note;
 
     public String getCustomerId() {
         return customerId;
@@ -86,6 +87,14 @@ public class Order {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
     }
 
     public String getPaymentMethod() {

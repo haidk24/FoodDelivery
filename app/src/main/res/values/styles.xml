@@ -2,21 +2,29 @@
 <resources>
 
     <style name="Widget.FoodOrder.Toolbar" parent="Widget.Material3.Toolbar">
-        <item name="android:background">@color/colorPrimary</item>
-        <item name="titleTextColor">@color/toolbar_title</item>
+        <item name="android:background">@color/colorBackground</item>
+        <item name="titleTextColor">@color/colorTextPrimary</item>
     </style>
 
+    <!-- Bottom Navigation without ugly purple indicator pill, matching Stitch -->
     <style name="Widget.FoodOrder.BottomNavigation" parent="Widget.Material3.BottomNavigationView">
         <item name="android:background">@color/colorBottomNav</item>
         <item name="itemIconTint">@color/selector_nav_item</item>
         <item name="itemTextColor">@color/selector_nav_item</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.FoodOrder.NoIndicator</item>
+        <item name="elevation">8dp</item>
+        <item name="itemRippleColor">@color/nav_item_checked_bg</item>
+    </style>
+
+    <style name="Widget.FoodOrder.NoIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@android:color/transparent</item>
     </style>
 
     <style name="Widget.FoodOrder.ElevatedCard" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardCornerRadius">@dimen/radius_md</item>
-        <item name="cardBackgroundColor">@color/surface_elevated</item>
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardBackgroundColor">@color/white</item>
         <item name="strokeColor">@color/border_color</item>
-        <item name="strokeWidth">1dp</item>
+        <item name="strokeWidth">0dp</item>
     </style>
 
     <style name="Widget.FoodOrder.PrimaryButton" parent="Widget.Material3.Button">
@@ -43,5 +51,26 @@
         <item name="hintTextColor">@color/colorTextSecondary</item>
     </style>
 
-</resources>
+    <!-- ===== Stitch Category Chip ===== -->
+    <!-- Active: #FA5A2A bg + white text | Inactive: #F0F3FF bg + #5B4139 text -->
+    <style name="Widget.FoodOrder.CategoryChip" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/selector_chip_bg</item>
+        <item name="android:textColor">@color/selector_chip_text</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipCornerRadius">18dp</item>
+        <item name="chipIconVisible">false</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:paddingStart">4dp</item>
+        <item name="android:paddingEnd">4dp</item>
+    </style>
 
+    <!-- ===== Stitch Card (20dp radius, subtle shadow) ===== -->
+    <style name="Widget.FoodOrder.WarmCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">20dp</item>
+        <item name="cardBackgroundColor">@color/white</item>
+        <item name="cardElevation">2dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+</resources>

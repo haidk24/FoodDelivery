@@ -17,6 +17,10 @@
             android:icon="@drawable/ic_order"
             android:title="@string/menu_myorder" />
         <item
+            android:id="@+id/nav_profile"
+            android:icon="@drawable/ic_person"
+            android:title="Thông tin tài khoản" />
+        <item
             android:id="@+id/nav_replacepassword"
             android:icon="@drawable/ic_replace_password"
             android:title="@string/menu_replace_password" />
