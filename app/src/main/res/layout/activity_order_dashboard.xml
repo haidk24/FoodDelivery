@@ -2,7 +2,6 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F9F9FF"
@@ -44,7 +43,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text=""
-                        tools:text="Tên nhà hàng"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="#111C2D" />
@@ -72,7 +70,7 @@
                             android:id="@+id/tv_restaurant_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Mở cửa"
+                            android:text=""
                             android:textColor="#16A34A"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -106,6 +104,7 @@
 
                 <View
                     android:id="@+id/view_notification_dot"
+                    android:visibility="gone"
                     android:layout_width="8dp"
                     android:layout_height="8dp"
                     android:layout_gravity="top|end"
@@ -192,23 +191,6 @@
                     android:focusable="true" />
             </LinearLayout>
 
-            <!-- Sound Alert Toggle Button -->
-            <FrameLayout
-                android:id="@+id/btn_sound_alert"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_round_sound_button"
-                android:clickable="true"
-                android:focusable="true">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_volume_up"
-                    app:tint="#C2410C" />
-            </FrameLayout>
 
             <!-- Tune Filter Button -->
             <FrameLayout
@@ -374,28 +356,6 @@
                     android:textColor="#0F172A" />
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="end">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Doanh thu tạm tính"
-                    android:textSize="11sp"
-                    android:textColor="#64748B" />
-
-                <TextView
-                    android:id="@+id/tv_urgent_revenue_amount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0 đ"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:textColor="#AC2D00" />
-            </LinearLayout>
         </LinearLayout>
 
         <!-- ════════════════════════════════════════════════════════════ -->
@@ -430,6 +390,7 @@
                     app:tint="#CBD5E1" />
 
                 <TextView
+                    android:id="@+id/tv_empty_orders_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
@@ -439,6 +400,7 @@
                     android:textColor="#1E293B" />
 
                 <TextView
+                    android:id="@+id/tv_empty_orders_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
@@ -455,65 +417,6 @@
                 android:indeterminateTint="#C2410C"
                 android:visibility="gone" />
         </FrameLayout>
-
-        <!-- ════════════════════════════════════════════════════════════ -->
-        <!-- 6. Bottom Direct Kitchen Printer Banner                       -->
-        <!-- ════════════════════════════════════════════════════════════ -->
-        <LinearLayout
-            android:id="@+id/layout_kitchen_settings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/bg_kitchen_printer_banner"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <FrameLayout
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_round_sound_button"
-                android:layout_marginEnd="10dp">
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_restaurant"
-                    app:tint="#C2410C" />
-            </FrameLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Cài đặt bếp trực tiếp"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:textColor="#0F172A" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Tự động in hóa đơn khi có đơn mới"
-                    android:textSize="11sp"
-                    android:textColor="#64748B" />
-            </LinearLayout>
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/switch_kitchen_printer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                app:thumbTint="@color/switch_thumb_selector"
-                app:trackTint="@color/switch_track_selector" />
-        </LinearLayout>
 
     </LinearLayout>
 

@@ -15,27 +15,23 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.foodorderapp.R;
-import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.ui.adapter.RestaurantOrderAdapter;
-import com.google.android.material.badge.BadgeDrawable;
+import com.example.foodorderapp.utils.RestaurantOrderBadge;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.ListenerRegistration;
 
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class OrderDashboardActivity extends AppCompatActivity {
 
@@ -52,7 +48,6 @@ public class OrderDashboardActivity extends AppCompatActivity {
     // Search & Filter Buttons
     private EditText etSearchOrder;
     private ImageView btnClearSearch;
-    private View btnSoundAlert;
     private View btnFilterTune;
 
     // Status Chips
@@ -62,7 +57,6 @@ public class OrderDashboardActivity extends AppCompatActivity {
 
     // Alert Banner
     private TextView tvUrgentOrdersCount;
-    private TextView tvUrgentRevenueAmount;
 
     // RecyclerView & Empty
     private RecyclerView rvOrders;
@@ -71,14 +65,13 @@ public class OrderDashboardActivity extends AppCompatActivity {
     private RestaurantOrderAdapter orderAdapter;
     private final List<Order> orderList = new ArrayList<>();
 
-    // Kitchen switch
-    private SwitchCompat switchKitchenPrinter;
-
     // Bottom Navigation
     private BottomNavigationView bottomNavigationView;
-
-    private final NumberFormat currencyFormat = NumberFormat.getInstance(new Locale("vi", "VN"));
-    private boolean isSoundAlertOn = true;
+    private RestaurantOrderBadge orderBadge;
+    private ListenerRegistration ordersRegistration;
+    private ListenerRegistration restaurantRegistration;
+    private int selectedDaysFilter = 0;
+    private String selectedPaymentFilter = "Tất cả";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,7 +86,6 @@ public class OrderDashboardActivity extends AppCompatActivity {
         setupSearchAndFilters();
         setupRecyclerView();
         setupBottomNavigation();
-        setupKitchenPrinter();
 
         resolveRestaurantAndListenOrders();
     }
@@ -107,7 +99,6 @@ public class OrderDashboardActivity extends AppCompatActivity {
 
         etSearchOrder          = findViewById(R.id.et_search_order);
         btnClearSearch         = findViewById(R.id.btn_clear_search);
-        btnSoundAlert          = findViewById(R.id.btn_sound_alert);
         btnFilterTune          = findViewById(R.id.btn_filter_tune);
 
         chipAll                = findViewById(R.id.chip_all);
@@ -117,22 +108,20 @@ public class OrderDashboardActivity extends AppCompatActivity {
         chipCompleted          = findViewById(R.id.chip_completed);
 
         tvUrgentOrdersCount    = findViewById(R.id.tv_urgent_orders_count);
-        tvUrgentRevenueAmount  = findViewById(R.id.tv_urgent_revenue_amount);
 
         rvOrders               = findViewById(R.id.rvOrders);
         layoutEmptyOrders      = findViewById(R.id.layout_empty_orders);
         progressBar            = findViewById(R.id.progress_bar);
 
-        switchKitchenPrinter   = findViewById(R.id.switch_kitchen_printer);
         bottomNavigationView   = findViewById(R.id.bottomNavigationView);
     }
 
     private void setupTopBar() {
-        if (btnNotifications != null) {
-            btnNotifications.setOnClickListener(v ->
-                    Toast.makeText(this, "Có 2 đơn hàng mới cần chuẩn bị!", Toast.LENGTH_SHORT).show()
-            );
-        }
+        if (btnNotifications != null) btnNotifications.setOnClickListener(v -> {
+            selectedStatus = "Chờ xác nhận";
+            updateStatusChipStyles();
+            if (orderAdapter != null) orderAdapter.filter(currentSearchQuery, selectedStatus);
+        });
 
         if (btnProfile != null) {
             btnProfile.setOnClickListener(v -> showProfileDialog());
@@ -147,18 +136,17 @@ public class OrderDashboardActivity extends AppCompatActivity {
         if (tvRestaurantStatus == null) return;
         boolean isOpen = "Mở cửa".equalsIgnoreCase(tvRestaurantStatus.getText().toString());
         String newStatus = isOpen ? "Tạm đóng" : "Mở cửa";
-        tvRestaurantStatus.setText(newStatus);
-        Toast.makeText(this, "Trạng thái quán: " + newStatus, Toast.LENGTH_SHORT).show();
-
         if (currentRestaurantId != null && !currentRestaurantId.isEmpty()) {
             db.collection("restaurants").document(currentRestaurantId)
-                    .update("status", isOpen ? "closed" : "active");
+                    .update("status", isOpen ? "closed" : "active")
+                    .addOnSuccessListener(unused -> Toast.makeText(this, "Trạng thái quán: " + newStatus, Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(this, "Không cập nhật được trạng thái quán", Toast.LENGTH_SHORT).show());
         }
     }
 
     private void showProfileDialog() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        String email = user != null ? user.getEmail() : "chuban@gmail.com";
+        String email = user != null && user.getEmail() != null ? user.getEmail() : "Chưa có email";
 
         new AlertDialog.Builder(this)
                 .setTitle("Tài khoản Chủ quán")
@@ -197,18 +185,7 @@ public class OrderDashboardActivity extends AppCompatActivity {
             });
         }
 
-        if (btnSoundAlert != null) {
-            btnSoundAlert.setOnClickListener(v -> {
-                isSoundAlertOn = !isSoundAlertOn;
-                Toast.makeText(this, isSoundAlertOn ? "Đã bật chuông báo đơn mới 🔔" : "Đã tắt chuông báo đơn", Toast.LENGTH_SHORT).show();
-            });
-        }
-
-        if (btnFilterTune != null) {
-            btnFilterTune.setOnClickListener(v ->
-                    Toast.makeText(this, "Bộ lọc thời gian và phương thức thanh toán", Toast.LENGTH_SHORT).show()
-            );
-        }
+        if (btnFilterTune != null) btnFilterTune.setOnClickListener(v -> showAdvancedFilters());
 
         // Chip click listeners
         setupStatusChip(chipAll, "Tất cả");
@@ -227,6 +204,29 @@ public class OrderDashboardActivity extends AppCompatActivity {
                 orderAdapter.filter(currentSearchQuery, selectedStatus);
             }
         });
+    }
+
+    private void showAdvancedFilters() {
+        String[] ranges = {"Tất cả thời gian", "Hôm nay", "7 ngày", "30 ngày"};
+        int selected = selectedDaysFilter == 1 ? 1 : selectedDaysFilter == 7 ? 2
+                : selectedDaysFilter == 30 ? 3 : 0;
+        new AlertDialog.Builder(this).setTitle("Lọc theo thời gian")
+                .setSingleChoiceItems(ranges, selected, (dialog, which) -> {
+                    selectedDaysFilter = new int[]{0, 1, 7, 30}[which];
+                    dialog.dismiss();
+                    orderAdapter.setAdvancedFilters(selectedDaysFilter, selectedPaymentFilter);
+                    orderAdapter.filter(currentSearchQuery, selectedStatus);
+                    String[] payments = {"Tất cả", "COD", "Khác COD"};
+                    int paymentSelected = "COD".equals(selectedPaymentFilter) ? 1
+                            : "Khác COD".equals(selectedPaymentFilter) ? 2 : 0;
+                    new AlertDialog.Builder(this).setTitle("Phương thức thanh toán")
+                            .setSingleChoiceItems(payments, paymentSelected, (paymentDialog, paymentIndex) -> {
+                                selectedPaymentFilter = payments[paymentIndex];
+                                paymentDialog.dismiss();
+                                orderAdapter.setAdvancedFilters(selectedDaysFilter, selectedPaymentFilter);
+                                orderAdapter.filter(currentSearchQuery, selectedStatus);
+                            }).setNegativeButton("Đóng", null).show();
+                }).setNegativeButton("Đóng", null).show();
     }
 
     private void updateStatusChipStyles() {
@@ -267,7 +267,7 @@ public class OrderDashboardActivity extends AppCompatActivity {
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
         orderAdapter = new RestaurantOrderAdapter(this, orderList);
 
-        orderAdapter.setSummaryListener((total, pending, preparing, delivering, completed, urgentRevenue) -> {
+        orderAdapter.setSummaryListener((total, pending, preparing, delivering, completed) -> {
             if (chipAll != null) chipAll.setText("Tất cả (" + total + ")");
             if (chipPending != null) chipPending.setText("Chờ xác nhận " + pending);
             if (chipPreparing != null) chipPreparing.setText("Đang chuẩn bị (" + preparing + ")");
@@ -276,9 +276,6 @@ public class OrderDashboardActivity extends AppCompatActivity {
 
             if (tvUrgentOrdersCount != null) {
                 tvUrgentOrdersCount.setText(pending + " đơn mới");
-            }
-            if (tvUrgentRevenueAmount != null) {
-                tvUrgentRevenueAmount.setText(currencyFormat.format(urgentRevenue) + " đ");
             }
 
             if (layoutEmptyOrders != null) {
@@ -289,24 +286,12 @@ public class OrderDashboardActivity extends AppCompatActivity {
         rvOrders.setAdapter(orderAdapter);
     }
 
-    private void setupKitchenPrinter() {
-        if (switchKitchenPrinter != null) {
-            switchKitchenPrinter.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                Toast.makeText(this, isChecked ? "Đã bật tự động in hóa đơn bếp" : "Đã tắt tự động in", Toast.LENGTH_SHORT).show();
-            });
-        }
-    }
-
     private void setupBottomNavigation() {
         if (bottomNavigationView == null) return;
 
         bottomNavigationView.setSelectedItemId(R.id.nav_order);
 
-        try {
-            BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.nav_order);
-            badge.setNumber(2);
-            badge.setVisible(true);
-        } catch (Exception ignored) {}
+        orderBadge = new RestaurantOrderBadge(bottomNavigationView);
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -336,7 +321,7 @@ public class OrderDashboardActivity extends AppCompatActivity {
 
         FirebaseUser authUser = FirebaseAuth.getInstance().getCurrentUser();
         if (authUser == null) {
-            setupDemoFallbackOrders();
+            showOrdersUnavailable("Vui lòng đăng nhập để xem đơn hàng");
             return;
         }
 
@@ -353,22 +338,27 @@ public class OrderDashboardActivity extends AppCompatActivity {
                     db.collection("restaurants").whereEqualTo("ownerId", uid).limit(1).get()
                             .addOnSuccessListener(snapshot -> {
                                 if (snapshot.isEmpty()) {
-                                    setupDemoFallbackOrders();
+                                    showOrdersUnavailable("Không tìm thấy nhà hàng của tài khoản này");
                                     return;
                                 }
                                 currentRestaurantId = snapshot.getDocuments().get(0).getId();
                                 loadRestaurantDetailsAndOrders();
                             })
-                            .addOnFailureListener(e -> setupDemoFallbackOrders());
+                            .addOnFailureListener(e -> showOrdersUnavailable("Không tải được nhà hàng"));
                 })
-                .addOnFailureListener(e -> setupDemoFallbackOrders());
+                .addOnFailureListener(e -> showOrdersUnavailable("Không tải được tài khoản"));
     }
 
     private void loadRestaurantDetailsAndOrders() {
+        if (orderBadge != null) orderBadge.listen(currentRestaurantId);
         if (currentRestaurantId != null && !currentRestaurantId.isEmpty()) {
-            db.collection("restaurants").document(currentRestaurantId).get()
-                    .addOnSuccessListener(doc -> {
+        if (restaurantRegistration != null) restaurantRegistration.remove();
+        restaurantRegistration = db.collection("restaurants").document(currentRestaurantId)
+                    .addSnapshotListener((doc, error) -> {
+                        if (error != null) return;
                         if (doc != null && doc.exists()) {
+                            if (tvRestaurantStatus != null) tvRestaurantStatus.setText(
+                                    "active".equals(doc.getString("status")) ? "Mở cửa" : "Tạm đóng");
                             String name = doc.getString("name");
                             if (name != null && !name.trim().isEmpty() && tvRestaurantName != null) {
                                 tvRestaurantName.setText(name);
@@ -381,25 +371,30 @@ public class OrderDashboardActivity extends AppCompatActivity {
     }
 
     private void listenOrdersFromFirestore() {
-        Query query;
-        if (currentRestaurantId != null && !currentRestaurantId.isEmpty()) {
-            query = db.collection("orders").whereEqualTo("restaurantId", currentRestaurantId);
-        } else {
-            query = db.collection("orders");
+        if (currentRestaurantId == null || currentRestaurantId.isEmpty()) {
+            showOrdersUnavailable("Không tìm thấy nhà hàng");
+            return;
         }
-
-        query.addSnapshotListener((value, error) -> {
+        if (ordersRegistration != null) ordersRegistration.remove();
+        ordersRegistration = db.collection("restaurants").document(currentRestaurantId)
+                .collection("orders").addSnapshotListener((value, error) -> {
             if (progressBar != null) progressBar.setVisibility(View.GONE);
 
             if (error != null) {
+                showOrdersUnavailable("Không tải được đơn hàng: " + error.getMessage());
                 return;
             }
 
             if (value != null) {
+                ((TextView) findViewById(R.id.tv_empty_orders_title)).setText("Chưa có đơn hàng nào");
+                ((TextView) findViewById(R.id.tv_empty_orders_subtitle)).setText("Các đơn hàng mới sẽ xuất hiện tại đây");
                 orderList.clear();
                 for (QueryDocumentSnapshot doc : value) {
                     Order order = doc.toObject(Order.class);
                     order.setOrderId(doc.getId());
+                    if (order.getRestaurantId() == null || order.getRestaurantId().isEmpty()) {
+                        order.setRestaurantId(currentRestaurantId);
+                    }
                     orderList.add(order);
                 }
 
@@ -414,115 +409,26 @@ public class OrderDashboardActivity extends AppCompatActivity {
                 });
 
                 orderAdapter.updateData(orderList);
+                orderAdapter.filter(currentSearchQuery, selectedStatus);
             }
         });
     }
 
-    private void appendDemoOrdersIfMissing(List<Order> list) {
-        // Disabled: strictly real-time Firebase data, no mock data
-    }
-
-    private List<Order> createMockOrders() {
-        List<Order> mocks = new ArrayList<>();
-
-        // Order 1: Chờ xác nhận
-        Order o1 = new Order();
-        o1.setOrderId("SAYMDfDKIZrz691A");
-        o1.setCustomerName("Thái Võ");
-        o1.setCustomerPhone("0966464945");
-        o1.setCustomerAddress("Số 12 Cầu Giấy, Hà Nội");
-        o1.setStatus("Chờ xác nhận");
-        o1.setTotalAmount(115000);
-        o1.setPaymentMethod("Tiền mặt COD");
-        o1.setCreatedAt(new Date(System.currentTimeMillis() - 1000 * 60 * 15)); // 15 mins ago
-
-        List<CartItem> items1 = new ArrayList<>();
-        CartItem item1a = new CartItem();
-        item1a.setName("Gỏi cuốn tôm thịt");
-        item1a.setQuantity(1);
-        item1a.setPrice(75000);
-        items1.add(item1a);
-
-        CartItem item1b = new CartItem();
-        item1b.setName("Bún chả Hà Nội");
-        item1b.setQuantity(1);
-        item1b.setPrice(40000);
-        items1.add(item1b);
-        o1.setItems(items1);
-        mocks.add(o1);
-
-        // Order 2: Đang chuẩn bị
-        Order o2 = new Order();
-        o2.setOrderId("MsR1LJ1X8dJWa27B");
-        o2.setCustomerName("Vũ Thanh Hải");
-        o2.setCustomerPhone("0948478788");
-        o2.setCustomerAddress("Tòa CT2 Nam Từ Liêm, Hà Nội");
-        o2.setStatus("Đang chuẩn bị");
-        o2.setTotalAmount(190000);
-        o2.setPaymentMethod("Tiền mặt COD");
-        o2.setCreatedAt(new Date(System.currentTimeMillis() - 1000 * 60 * 45)); // 45 mins ago
-
-        List<CartItem> items2 = new ArrayList<>();
-        CartItem item2a = new CartItem();
-        item2a.setName("Phở bò đặc biệt");
-        item2a.setQuantity(2);
-        item2a.setPrice(90000);
-        items2.add(item2a);
-
-        CartItem item2b = new CartItem();
-        item2b.setName("Trà chanh hoa cúc");
-        item2b.setQuantity(1);
-        item2b.setPrice(10000);
-        items2.add(item2b);
-        o2.setItems(items2);
-        mocks.add(o2);
-
-        // Order 3: Đang giao hàng
-        Order o3 = new Order();
-        o3.setOrderId("LzAHN6zmP3z804K");
-        o3.setCustomerName("Lê Hoàng Mai");
-        o3.setCustomerPhone("0912345678");
-        o3.setCustomerAddress("Ngõ 165 Cầu Giấy, Hà Nội");
-        o3.setStatus("Đang giao hàng");
-        o3.setTotalAmount(85000);
-        o3.setPaymentMethod("Tiền mặt COD");
-        o3.setCreatedAt(new Date(System.currentTimeMillis() - 1000 * 60 * 95));
-
-        List<CartItem> items3 = new ArrayList<>();
-        CartItem item3a = new CartItem();
-        item3a.setName("Cơm rang dưa bò giòn");
-        item3a.setQuantity(1);
-        item3a.setPrice(85000);
-        items3.add(item3a);
-        o3.setItems(items3);
-        mocks.add(o3);
-
-        // Order 4: Đã hoàn thành
-        Order o4 = new Order();
-        o4.setOrderId("K19Nx84JDq90A7");
-        o4.setCustomerName("Trần Văn Nam");
-        o4.setCustomerPhone("0988776655");
-        o4.setCustomerAddress("P402 Chung Cư mini Dịch Vọng, Cầu Giấy");
-        o4.setStatus("Đã hoàn thành");
-        o4.setTotalAmount(140000);
-        o4.setPaymentMethod("Tiền mặt COD");
-        o4.setCreatedAt(new Date(System.currentTimeMillis() - 1000 * 60 * 180));
-
-        List<CartItem> items4 = new ArrayList<>();
-        CartItem item4a = new CartItem();
-        item4a.setName("Bún đậu mắm tôm thập cẩm");
-        item4a.setQuantity(2);
-        item4a.setPrice(70000);
-        items4.add(item4a);
-        o4.setItems(items4);
-        mocks.add(o4);
-
-        return mocks;
-    }
-
-    private void setupDemoFallbackOrders() {
+    private void showOrdersUnavailable(String message) {
         if (progressBar != null) progressBar.setVisibility(View.GONE);
         orderList.clear();
-        orderAdapter.updateData(orderList);
+        if (orderAdapter != null) orderAdapter.updateData(orderList);
+        ((TextView) findViewById(R.id.tv_empty_orders_title)).setText("Không tải được đơn hàng");
+        ((TextView) findViewById(R.id.tv_empty_orders_subtitle)).setText(message);
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
+
+    @Override
+    protected void onDestroy() {
+        if (ordersRegistration != null) ordersRegistration.remove();
+        if (restaurantRegistration != null) restaurantRegistration.remove();
+        if (orderBadge != null) orderBadge.stop();
+        super.onDestroy();
+    }
+
 }

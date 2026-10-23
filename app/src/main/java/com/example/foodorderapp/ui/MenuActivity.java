@@ -23,13 +23,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.ui.adapter.FoodAdapter;
-import com.google.android.material.badge.BadgeDrawable;
+import com.example.foodorderapp.utils.RestaurantOrderBadge;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +60,7 @@ public class MenuActivity extends AppCompatActivity {
     private TextView chipAll, chipMain, chipAppetizer, chipDrink, chipDessert;
     private String selectedCategory = "Tất cả";
     private String currentSearchQuery = "";
+    private String availabilityFilter = "Tất cả";
 
     // Empty state & Loading
     private ProgressBar progressBar;
@@ -67,6 +68,9 @@ public class MenuActivity extends AppCompatActivity {
 
     // Bottom Navigation
     private BottomNavigationView bottomNavigationView;
+    private RestaurantOrderBadge orderBadge;
+    private ListenerRegistration restaurantRegistration;
+    private ListenerRegistration foodsRegistration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,6 +119,7 @@ public class MenuActivity extends AppCompatActivity {
         btnNotifications     = findViewById(R.id.btn_notifications);
         btnProfile           = findViewById(R.id.btn_profile);
         viewNotificationDot  = findViewById(R.id.view_notification_dot);
+        if (viewNotificationDot != null) viewNotificationDot.setVisibility(View.GONE);
 
         // Header Counters & Tune
         tvCountActive        = findViewById(R.id.tv_count_active);
@@ -143,11 +148,11 @@ public class MenuActivity extends AppCompatActivity {
     }
 
     private void setupTopBar() {
-        if (btnNotifications != null) {
-            btnNotifications.setOnClickListener(v ->
-                    Toast.makeText(this, "Bạn có 2 đơn hàng mới cần xử lý!", Toast.LENGTH_SHORT).show()
-            );
-        }
+        if (btnNotifications != null) btnNotifications.setOnClickListener(v -> {
+            Intent intent = new Intent(this, OrderDashboardActivity.class);
+            intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
+            startActivity(intent);
+        });
 
         if (btnProfile != null) {
             btnProfile.setOnClickListener(v -> showProfileDialog());
@@ -162,18 +167,17 @@ public class MenuActivity extends AppCompatActivity {
         if (tvRestaurantStatus == null) return;
         boolean isCurrentlyOpen = "Mở cửa".equalsIgnoreCase(tvRestaurantStatus.getText().toString());
         String newStatus = isCurrentlyOpen ? "Tạm đóng" : "Mở cửa";
-        tvRestaurantStatus.setText(newStatus);
-        Toast.makeText(this, "Trạng thái quán: " + newStatus, Toast.LENGTH_SHORT).show();
-
         if (!currentRestaurantId.isEmpty()) {
             db.collection("restaurants").document(currentRestaurantId)
-                    .update("status", isCurrentlyOpen ? "closed" : "active");
+                    .update("status", isCurrentlyOpen ? "closed" : "active")
+                    .addOnSuccessListener(unused -> Toast.makeText(this, "Trạng thái quán: " + newStatus, Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(this, "Không cập nhật được trạng thái quán", Toast.LENGTH_SHORT).show());
         }
     }
 
     private void showProfileDialog() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        String email = user != null ? user.getEmail() : "chuban@gmail.com";
+        String email = user != null && user.getEmail() != null ? user.getEmail() : "Chưa có email";
 
         new AlertDialog.Builder(this)
                 .setTitle("Tài khoản Chủ quán")
@@ -208,11 +212,18 @@ public class MenuActivity extends AppCompatActivity {
             });
         }
 
-        if (btnFilterTune != null) {
-            btnFilterTune.setOnClickListener(v ->
-                    Toast.makeText(this, "Bộ lọc nâng cao theo giá và trạng thái", Toast.LENGTH_SHORT).show()
-            );
-        }
+        if (btnFilterTune != null) btnFilterTune.setOnClickListener(v -> {
+            String[] choices = {"Tất cả", "Đang bán", "Tạm ẩn"};
+            int selected = "Đang bán".equals(availabilityFilter) ? 1
+                    : "Tạm ẩn".equals(availabilityFilter) ? 2 : 0;
+            new AlertDialog.Builder(this).setTitle("Lọc theo trạng thái món")
+                    .setSingleChoiceItems(choices, selected, (dialog, which) -> {
+                        availabilityFilter = choices[which];
+                        foodAdapter.setAvailabilityFilter(availabilityFilter);
+                        foodAdapter.filter(currentSearchQuery, selectedCategory);
+                        dialog.dismiss();
+                    }).setNegativeButton("Đóng", null).show();
+        });
 
         // Category click listeners
         setupCategoryChip(chipAll, "Tất cả");
@@ -234,11 +245,11 @@ public class MenuActivity extends AppCompatActivity {
     }
 
     private void updateCategoryChipStyles() {
-        resetChip(chipAll, "Tất cả (26)");
-        resetChip(chipMain, "Món chính (14)");
-        resetChip(chipAppetizer, "Khai vị (6)");
-        resetChip(chipDrink, "Đồ uống (4)");
-        resetChip(chipDessert, "Tráng miệng (2)");
+        resetChip(chipAll);
+        resetChip(chipMain);
+        resetChip(chipAppetizer);
+        resetChip(chipDrink);
+        resetChip(chipDessert);
 
         if ("Tất cả".equalsIgnoreCase(selectedCategory)) {
             setActiveChip(chipAll);
@@ -260,7 +271,7 @@ public class MenuActivity extends AppCompatActivity {
         chip.setTypeface(null, Typeface.BOLD);
     }
 
-    private void resetChip(TextView chip, String label) {
+    private void resetChip(TextView chip) {
         if (chip == null) return;
         chip.setBackgroundResource(R.drawable.bg_chip_category_unselected);
         chip.setTextColor(0xFF334155);
@@ -306,11 +317,7 @@ public class MenuActivity extends AppCompatActivity {
 
         bottomNavigationView.setSelectedItemId(R.id.nav_menu);
 
-        try {
-            BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.nav_order);
-            badge.setNumber(2);
-            badge.setVisible(true);
-        } catch (Exception ignored) {}
+        orderBadge = new RestaurantOrderBadge(bottomNavigationView);
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -350,7 +357,7 @@ public class MenuActivity extends AppCompatActivity {
         db.collection("users").document(uid).get()
                 .addOnSuccessListener(document -> {
                     String role = document.getString("role");
-                    if (!"restaurant".equalsIgnoreCase(role) && !getIntent().getBooleanExtra("preview_mode", false)) {
+                    if (!"restaurant".equalsIgnoreCase(role)) {
                         Toast.makeText(this, "Chỉ tài khoản nhà hàng mới vào được quản lý menu", Toast.LENGTH_LONG).show();
                         startActivity(new Intent(MenuActivity.this, MainActivity.class));
                         finish();
@@ -400,11 +407,16 @@ public class MenuActivity extends AppCompatActivity {
 
     private void loadRestaurantDetailsAndMenu() {
         foodAdapter.setRestaurantId(currentRestaurantId);
+        if (orderBadge != null) orderBadge.listen(currentRestaurantId);
 
         // Load restaurant name
-        db.collection("restaurants").document(currentRestaurantId).get()
-                .addOnSuccessListener(doc -> {
+        if (restaurantRegistration != null) restaurantRegistration.remove();
+        restaurantRegistration = db.collection("restaurants").document(currentRestaurantId)
+                .addSnapshotListener((doc, error) -> {
+                    if (error != null) return;
                     if (doc != null && doc.exists()) {
+                        if (tvRestaurantStatus != null) tvRestaurantStatus.setText(
+                                "active".equals(doc.getString("status")) ? "Mở cửa" : "Tạm đóng");
                         String name = doc.getString("name");
                         if (name != null && !name.trim().isEmpty() && tvRestaurantName != null) {
                             currentRestaurantName = name;
@@ -422,7 +434,8 @@ public class MenuActivity extends AppCompatActivity {
     }
 
     private void loadMenuFromFirebase() {
-        db.collection("restaurants")
+        if (foodsRegistration != null) foodsRegistration.remove();
+        foodsRegistration = db.collection("restaurants")
                 .document(currentRestaurantId)
                 .collection("foods")
                 .addSnapshotListener((value, error) -> {
@@ -458,6 +471,7 @@ public class MenuActivity extends AppCompatActivity {
                         if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
                     }
                     foodAdapter.updateData(foodList);
+                    foodAdapter.filter(currentSearchQuery, selectedCategory);
                 });
     }
 
@@ -469,5 +483,13 @@ public class MenuActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (restaurantRegistration != null) restaurantRegistration.remove();
+        if (foodsRegistration != null) foodsRegistration.remove();
+        if (orderBadge != null) orderBadge.stop();
+        super.onDestroy();
     }
 }

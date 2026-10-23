@@ -2,7 +2,6 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F9F9FF"
@@ -44,7 +43,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text=""
-                        tools:text="Tên nhà hàng"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="#111C2D" />
@@ -72,7 +70,7 @@
                             android:id="@+id/tv_restaurant_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Mở cửa"
+                            android:text=""
                             android:textColor="#16A34A"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -106,6 +104,7 @@
 
                 <View
                     android:id="@+id/view_notification_dot"
+                    android:visibility="gone"
                     android:layout_width="8dp"
                     android:layout_height="8dp"
                     android:layout_gravity="top|end"
@@ -256,7 +255,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="DOANH THU HOÀN TẤT (7 NGÀY)"
+                            android:text="DOANH THU HOÀN TẤT"
                             android:textColor="#FED7AA"
                             android:textSize="11sp"
                             android:textStyle="bold"
@@ -269,7 +268,8 @@
                             android:backgroundTint="#33FFFFFF"
                             android:paddingHorizontal="8dp"
                             android:paddingVertical="2dp"
-                            android:text="📈 +14.2%"
+                            android:visibility="gone"
+                            android:text=""
                             android:textColor="@color/white"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -280,7 +280,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="8.450.000 đ"
+                        android:text="0 đ"
                         android:textColor="@color/white"
                         android:textSize="30sp"
                         android:textStyle="bold" />
@@ -303,7 +303,7 @@
                             android:id="@+id/tv_hero_subtext"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Tổng tiền đơn giao thành công (COD) • 112 đơn"
+                            android:text="0 đơn hoàn tất"
                             android:textColor="#FFEDD5"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -355,7 +355,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:text="115 đơn"
+                            android:text="0 đơn"
                             android:textColor="#0F172A"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -364,7 +364,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="📈 +8.5% kỳ trước"
+                            android:visibility="gone"
+                            android:text=""
                             android:textColor="#16A34A"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -407,7 +408,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:text="8.45M đ"
+                            android:text="0 đ"
                             android:textColor="#C2410C"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -417,7 +418,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="TB: 73.400đ/đơn"
+                            android:text="TB: 0 đ/đơn"
                             android:textColor="#64748B"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -472,7 +473,7 @@
                                 android:id="@+id/tv_stat_success_count"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="112"
+                                android:text="0"
                                 android:textColor="#0F172A"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
@@ -485,7 +486,7 @@
                                 android:background="@drawable/bg_badge_delivering"
                                 android:paddingHorizontal="6dp"
                                 android:paddingVertical="2dp"
-                                android:text="97.4%"
+                                android:text="0%"
                                 android:textColor="#16A34A"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
@@ -495,7 +496,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="Tỷ lệ xuất sắc"
+                            android:text="Tỷ lệ hoàn tất"
                             android:textColor="#64748B"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -543,7 +544,7 @@
                                 android:id="@+id/tv_stat_cancelled_count"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="3"
+                                android:text="0"
                                 android:textColor="#EF4444"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
@@ -556,7 +557,7 @@
                                 android:background="@drawable/bg_round_sound_button"
                                 android:paddingHorizontal="6dp"
                                 android:paddingVertical="2dp"
-                                android:text="2.6%"
+                                android:text="0%"
                                 android:textColor="#EF4444"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
@@ -566,7 +567,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="Khách đổi món"
+                            android:text="Tỷ lệ hủy"
                             android:textColor="#64748B"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -608,7 +609,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="7 ngày qua (đỉnh điểm cuối tuần)"
+                                android:id="@+id/tv_chart_period"
+                                android:text=""
                                 android:textColor="#64748B"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -619,184 +621,22 @@
                             android:background="@drawable/bg_pill_discount_orange"
                             android:paddingHorizontal="8dp"
                             android:paddingVertical="3dp"
-                            android:text="Đỉnh: 1.85M"
+                            android:id="@+id/tv_chart_peak"
+                            android:text=""
                             android:textColor="#D97706"
                             android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Chart Bars Area -->
+                    <!-- Chart bars are populated from Firestore orders. -->
                     <LinearLayout
+                        android:id="@+id/layout_revenue_chart"
                         android:layout_width="match_parent"
                         android:layout_height="140dp"
                         android:layout_marginTop="20dp"
                         android:orientation="horizontal"
                         android:gravity="bottom"
-                        android:baselineAligned="false">
-
-                        <!-- T2 -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:gravity="bottom|center_horizontal"
-                            android:orientation="vertical">
-
-                            <View
-                                android:layout_width="22dp"
-                                android:layout_height="55dp"
-                                android:background="@drawable/bg_bar_peach" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="T2"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <!-- T3 -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:gravity="bottom|center_horizontal"
-                            android:orientation="vertical">
-
-                            <View
-                                android:layout_width="22dp"
-                                android:layout_height="42dp"
-                                android:background="@drawable/bg_bar_peach" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="T3"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <!-- T4 -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:gravity="bottom|center_horizontal"
-                            android:orientation="vertical">
-
-                            <View
-                                android:layout_width="22dp"
-                                android:layout_height="62dp"
-                                android:background="@drawable/bg_bar_peach" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="T4"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <!-- T5 -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:gravity="bottom|center_horizontal"
-                            android:orientation="vertical">
-
-                            <View
-                                android:layout_width="22dp"
-                                android:layout_height="50dp"
-                                android:background="@drawable/bg_bar_peach" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="T5"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <!-- T6 -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:gravity="bottom|center_horizontal"
-                            android:orientation="vertical">
-
-                            <View
-                                android:layout_width="22dp"
-                                android:layout_height="78dp"
-                                android:background="@drawable/bg_bar_peach" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="T6"
-                                android:textColor="#94A3B8"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <!-- T7 (Highlight Peak) -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:gravity="bottom|center_horizontal"
-                            android:orientation="vertical">
-
-                            <View
-                                android:layout_width="4dp"
-                                android:layout_height="4dp"
-                                android:layout_marginBottom="4dp"
-                                android:background="@drawable/bg_badge_dot"
-                                android:backgroundTint="#F59E0B" />
-
-                            <View
-                                android:layout_width="22dp"
-                                android:layout_height="100dp"
-                                android:background="@drawable/bg_bar_highlight_t7" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="T7"
-                                android:textColor="#962808"
-                                android:textStyle="bold"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <!-- CN -->
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_weight="1"
-                            android:gravity="bottom|center_horizontal"
-                            android:orientation="vertical">
-
-                            <View
-                                android:layout_width="22dp"
-                                android:layout_height="84dp"
-                                android:background="@drawable/bg_bar_sunday" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="CN"
-                                android:textColor="#C2410C"
-                                android:textStyle="bold"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-                    </LinearLayout>
+                        android:baselineAligned="false" />
 
                     <!-- Divider -->
                     <View
@@ -817,7 +657,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="● Cao điểm: Thứ 7 (1.850.000 đ)"
+                            android:id="@+id/tv_chart_peak_detail"
+                            android:text=""
                             android:textColor="#C2410C"
                             android:textSize="11sp"
                             android:textStyle="bold" />
@@ -825,7 +666,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="27 đơn hoàn tất"
+                            android:id="@+id/tv_chart_completed"
+                            android:text=""
                             android:textColor="#64748B"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -874,6 +716,7 @@
                             <View
                                 android:layout_width="84dp"
                                 android:layout_height="84dp"
+                                android:visibility="gone"
                                 android:background="@drawable/bg_donut_outer" />
 
                             <LinearLayout
@@ -885,7 +728,8 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="100%"
+                                    android:id="@+id/tv_payment_cod_pct"
+                                    android:text="0%"
                                     android:textColor="#0F172A"
                                     android:textSize="14sp"
                                     android:textStyle="bold" />
@@ -934,7 +778,8 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="8.45M"
+                                    android:id="@+id/tv_payment_cod_amount"
+                                    android:text="0 đ"
                                     android:textColor="#0F172A"
                                     android:textSize="12sp"
                                     android:textStyle="bold" />
@@ -945,7 +790,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="14dp"
                                 android:layout_marginTop="1dp"
-                                android:text="112 đơn hoàn tất"
+                                android:id="@+id/tv_payment_cod_count"
+                                android:text="0 đơn"
                                 android:textColor="#64748B"
                                 android:textSize="10sp" />
 
@@ -968,13 +814,14 @@
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
                                     android:layout_weight="1"
-                                    android:text="Chuyển khoản / Ví điện tử"
+                            android:text="Khác COD / chưa rõ"
                                     android:textColor="#64748B"
                                     android:textSize="11sp" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
+                                    android:id="@+id/tv_payment_other_amount"
                                     android:text="0 đ"
                                     android:textColor="#64748B"
                                     android:textSize="11sp" />
@@ -985,6 +832,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="14dp"
                                 android:layout_marginTop="1dp"
+                                android:id="@+id/tv_payment_other_count"
                                 android:text="0 đơn"
                                 android:textColor="#94A3B8"
                                 android:textSize="10sp" />
@@ -993,6 +841,7 @@
 
                     <!-- Notice Banner -->
                     <LinearLayout
+                        android:visibility="gone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
@@ -1070,8 +919,9 @@
                             android:focusable="true" />
                     </LinearLayout>
 
-                    <!-- Top 1: Bún chả Hà Nội -->
+                    <!-- Top 1 -->
                     <LinearLayout
+                        android:id="@+id/layout_best_seller_1"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
@@ -1107,7 +957,8 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Bún chả Hà Nội"
+                                android:id="@+id/tv_best_seller_name_1"
+                                android:text=""
                                 android:textColor="#0F172A"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -1116,7 +967,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="48 phần đã bán"
+                                android:id="@+id/tv_best_seller_quantity_1"
+                                android:text=""
                                 android:textColor="#64748B"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -1130,7 +982,8 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="1.920.000 đ"
+                                android:id="@+id/tv_best_seller_amount_1"
+                                android:text=""
                                 android:textColor="#AC2D00"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -1139,7 +992,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="40.000 đ/phần"
+                                android:id="@+id/tv_best_seller_price_1"
+                                android:text=""
                                 android:textColor="#94A3B8"
                                 android:textSize="10sp" />
                         </LinearLayout>
@@ -1152,8 +1006,9 @@
                         android:layout_marginVertical="10dp"
                         android:background="#F8FAFC" />
 
-                    <!-- Top 2: Gỏi cuốn tôm thịt -->
+                    <!-- Top 2 -->
                     <LinearLayout
+                        android:id="@+id/layout_best_seller_2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
@@ -1188,7 +1043,8 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Gỏi cuốn tôm thịt"
+                                android:id="@+id/tv_best_seller_name_2"
+                                android:text=""
                                 android:textColor="#0F172A"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -1197,7 +1053,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="36 phần đã bán"
+                                android:id="@+id/tv_best_seller_quantity_2"
+                                android:text=""
                                 android:textColor="#64748B"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -1211,7 +1068,8 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="2.700.000 đ"
+                                android:id="@+id/tv_best_seller_amount_2"
+                                android:text=""
                                 android:textColor="#AC2D00"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -1220,7 +1078,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="75.000 đ/phần"
+                                android:id="@+id/tv_best_seller_price_2"
+                                android:text=""
                                 android:textColor="#94A3B8"
                                 android:textSize="10sp" />
                         </LinearLayout>
@@ -1233,8 +1092,9 @@
                         android:layout_marginVertical="10dp"
                         android:background="#F8FAFC" />
 
-                    <!-- Top 3: Phở bò đặc biệt -->
+                    <!-- Top 3 -->
                     <LinearLayout
+                        android:id="@+id/layout_best_seller_3"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
@@ -1269,7 +1129,8 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Phở bò đặc biệt"
+                                android:id="@+id/tv_best_seller_name_3"
+                                android:text=""
                                 android:textColor="#0F172A"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -1278,7 +1139,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="28 phần đã bán"
+                                android:id="@+id/tv_best_seller_quantity_3"
+                                android:text=""
                                 android:textColor="#64748B"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -1292,7 +1154,8 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="2.520.000 đ"
+                                android:id="@+id/tv_best_seller_amount_3"
+                                android:text=""
                                 android:textColor="#AC2D00"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -1301,71 +1164,12 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="90.000 đ/phần"
+                                android:id="@+id/tv_best_seller_price_3"
+                                android:text=""
                                 android:textColor="#94A3B8"
                                 android:textSize="10sp" />
                         </LinearLayout>
                     </LinearLayout>
-                </LinearLayout>
-
-                <!-- ════════════════════════════════════════════════════════ -->
-                <!-- F. POS Sync Banner                                       -->
-                <!-- ════════════════════════════════════════════════════════ -->
-                <LinearLayout
-                    android:id="@+id/layout_pos_sync"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/bg_kitchen_printer_banner"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="12dp">
-
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/bg_badge_delivering"
-                        android:layout_marginEnd="10dp">
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_restaurant"
-                            app:tint="#16A34A" />
-                    </FrameLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Đồng bộ dữ liệu POS"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            android:textColor="#0F172A" />
-
-                        <TextView
-                            android:id="@+id/tv_pos_sync_time"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Cập nhật lúc 21:56 hôm nay"
-                            android:textSize="11sp"
-                            android:textColor="#64748B" />
-                    </LinearLayout>
-
-                    <ImageView
-                        android:id="@+id/btn_pos_refresh"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_refresh"
-                        app:tint="#334155"
-                        android:clickable="true"
-                        android:focusable="true" />
                 </LinearLayout>
 
             </LinearLayout>

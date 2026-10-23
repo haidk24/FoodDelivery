@@ -41,6 +41,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     private String restaurantId;
     private final NumberFormat currencyFormat = NumberFormat.getInstance(new Locale("vi", "VN"));
     private OnFoodCountChangedListener countListener;
+    private String availabilityFilter = "Tất cả";
 
     public interface OnFoodCountChangedListener {
         void onCountChanged(int activeCount, int hiddenCount, int totalCount, int mainCount, int appCount, int drinkCount, int dessertCount);
@@ -58,6 +59,10 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
 
     public void setRestaurantId(String restaurantId) {
         this.restaurantId = restaurantId == null ? "" : restaurantId;
+    }
+
+    public void setAvailabilityFilter(String filter) {
+        availabilityFilter = filter;
     }
 
     public void setCountListener(OnFoodCountChangedListener listener) {
@@ -103,7 +108,9 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
             boolean matchesCategory = isAllCategory
                     || (f.getCategory() != null && f.getCategory().equalsIgnoreCase(category));
 
-            if (matchesQuery && matchesCategory) {
+            boolean matchesAvailability = "Tất cả".equals(availabilityFilter)
+                    || ("Đang bán".equals(availabilityFilter) == f.isAvailable());
+            if (matchesQuery && matchesCategory && matchesAvailability) {
                 displayedList.add(f);
             }
         }

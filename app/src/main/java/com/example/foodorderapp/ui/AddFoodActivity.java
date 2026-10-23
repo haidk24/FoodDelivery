@@ -148,7 +148,8 @@ public class AddFoodActivity extends AppCompatActivity {
         if (btnProfile != null) {
             btnProfile.setOnClickListener(v -> {
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                String email = user != null ? user.getEmail() : "chuban@gmail.com";
+                String email = user != null && user.getEmail() != null
+                        ? user.getEmail() : "Chưa có email";
                 new AlertDialog.Builder(this)
                         .setTitle("Tài khoản Chủ quán")
                         .setMessage("Email: " + email)
@@ -279,7 +280,8 @@ public class AddFoodActivity extends AppCompatActivity {
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
-            currentRestaurantId = "default_restaurant";
+            currentRestaurantId = "";
+            Toast.makeText(this, "Vui lòng đăng nhập lại để thêm món", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -294,12 +296,19 @@ public class AddFoodActivity extends AppCompatActivity {
                             if (!snap.isEmpty()) {
                                 currentRestaurantId = snap.getDocuments().get(0).getId();
                             } else {
-                                currentRestaurantId = "default_restaurant";
+                                currentRestaurantId = "";
+                                Toast.makeText(this, "Không tìm thấy nhà hàng của tài khoản này", Toast.LENGTH_LONG).show();
                             }
                         })
-                        .addOnFailureListener(e -> currentRestaurantId = "default_restaurant");
+                        .addOnFailureListener(e -> {
+                            currentRestaurantId = "";
+                            Toast.makeText(this, "Không tải được thông tin nhà hàng", Toast.LENGTH_LONG).show();
+                        });
             }
-        }).addOnFailureListener(e -> currentRestaurantId = "default_restaurant");
+        }).addOnFailureListener(e -> {
+            currentRestaurantId = "";
+            Toast.makeText(this, "Không tải được tài khoản nhà hàng", Toast.LENGTH_LONG).show();
+        });
     }
 
     private void processForm() {
@@ -364,9 +373,7 @@ public class AddFoodActivity extends AppCompatActivity {
                 }
             }).start();
         } else {
-            // Default placeholder image if no image picked
-            String defaultImg = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80";
-            saveDataToFirestore(name, finalOldPrice, finalNewPrice, finalDiscount, finalDescription, defaultImg, finalIsAvailable);
+            saveDataToFirestore(name, finalOldPrice, finalNewPrice, finalDiscount, finalDescription, "", finalIsAvailable);
         }
     }
 
@@ -375,7 +382,9 @@ public class AddFoodActivity extends AppCompatActivity {
         setSavingState(true, "Đang lưu lên thực đơn...");
 
         if (currentRestaurantId == null || currentRestaurantId.isEmpty()) {
-            currentRestaurantId = "default_restaurant";
+            Toast.makeText(this, "Không xác định được nhà hàng. Vui lòng thử lại.", Toast.LENGTH_LONG).show();
+            setSavingState(false, "LƯU MÓN ĂN");
+            return;
         }
 
         DocumentReference newFoodRef = db.collection("restaurants")

@@ -40,7 +40,6 @@ public class EditFoodActivity extends AppCompatActivity {
 
     // Top Bar
     private View btnBack;
-    private View btnMoreOptions;
     private View btnProfile;
 
     // Header Delete
@@ -133,7 +132,6 @@ public class EditFoodActivity extends AppCompatActivity {
 
     private void initViews() {
         btnBack                = findViewById(R.id.btnBack);
-        btnMoreOptions         = findViewById(R.id.btnMoreOptions);
         btnProfile             = findViewById(R.id.btnProfile);
         btnDeleteFood          = findViewById(R.id.btnDeleteFood);
 
@@ -173,31 +171,20 @@ public class EditFoodActivity extends AppCompatActivity {
         currentFoodId = getIntent().getStringExtra("EXTRA_FOOD_ID");
 
         String name = getIntent().getStringExtra("EXTRA_NAME");
-        double oldPrice = getIntent().getDoubleExtra("EXTRA_OLD_PRICE",
-                getIntent().getDoubleExtra("EXTRA_PRICE", 100000));
-        double newPrice = getIntent().getDoubleExtra("EXTRA_NEW_PRICE",
-                getIntent().getDoubleExtra("EXTRA_PRICE", 75000));
-        int discount = getIntent().getIntExtra("EXTRA_DISCOUNT", 25);
+        double basePrice = getIntent().getDoubleExtra("EXTRA_PRICE", 0);
+        double oldPrice = getIntent().getDoubleExtra("EXTRA_OLD_PRICE", basePrice);
+        double newPrice = getIntent().getDoubleExtra("EXTRA_NEW_PRICE", basePrice);
         String desc = getIntent().getStringExtra("EXTRA_DESC");
         oldImageUrl = getIntent().getStringExtra("EXTRA_IMAGE_URL");
         String category = getIntent().getStringExtra("EXTRA_CATEGORY");
         boolean isAvailable = getIntent().getBooleanExtra("EXTRA_IS_AVAILABLE", true);
 
-        // Populate Fields with fallback to Stitch mock sample
-        if (name != null && !name.isEmpty()) {
-            edtFoodName.setText(name);
-        } else {
-            edtFoodName.setText("Gỏi cuốn tôm thịt");
-        }
+        edtFoodName.setText(name == null ? "" : name);
 
-        edtFoodNewPrice.setText(String.valueOf((long) newPrice));
-        edtFoodOldPrice.setText(String.valueOf((long) oldPrice));
+        edtFoodNewPrice.setText(newPrice > 0 ? String.valueOf((long) newPrice) : "");
+        edtFoodOldPrice.setText(oldPrice > 0 ? String.valueOf((long) oldPrice) : "");
 
-        if (desc != null && !desc.isEmpty()) {
-            edtFoodDescription.setText(desc);
-        } else {
-            edtFoodDescription.setText("Tôm sú tươi mọng nước kết hợp thịt ba chỉ luộc giòn rụm, cuốn cùng bún tươi và rau sống thanh mát chấm xốt tương bơ đậu phộng đặc trưng.");
-        }
+        edtFoodDescription.setText(desc == null ? "" : desc);
 
         if (category != null && !category.isEmpty()) {
             selectedCategory = category;
@@ -213,9 +200,8 @@ public class EditFoodActivity extends AppCompatActivity {
         if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
             showImagePreview(oldImageUrl);
         } else {
-            // Default sample image for Gỏi cuốn tôm thịt
-            String sampleImg = "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80";
-            showImagePreview(sampleImg);
+            imgFoodPreview.setImageResource(R.drawable.ic_add_a_photo);
+            imgFoodPreview.setScaleType(ImageView.ScaleType.CENTER);
         }
 
         calculateAndDisplayDiscount();
@@ -228,22 +214,11 @@ public class EditFoodActivity extends AppCompatActivity {
             btnBack.setOnClickListener(v -> showExitConfirmDialog());
         }
 
-        if (btnMoreOptions != null) {
-            btnMoreOptions.setOnClickListener(v -> {
-                String[] options = new String[]{"Xem trên ứng dụng khách", "Chia sẻ liên kết món", "Đặt lại thông tin ban đầu"};
-                new AlertDialog.Builder(this)
-                        .setTitle("Tùy chọn món ăn")
-                        .setItems(options, (dialog, which) -> {
-                            Toast.makeText(this, options[which], Toast.LENGTH_SHORT).show();
-                        })
-                        .show();
-            });
-        }
-
         if (btnProfile != null) {
             btnProfile.setOnClickListener(v -> {
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                String email = user != null ? user.getEmail() : "chuban@gmail.com";
+                String email = user != null && user.getEmail() != null
+                        ? user.getEmail() : "Chưa có email";
                 new AlertDialog.Builder(this)
                         .setTitle("Tài khoản Chủ quán")
                         .setMessage("Email: " + email)
@@ -269,9 +244,7 @@ public class EditFoodActivity extends AppCompatActivity {
 
     private void executeDeleteFood() {
         if (currentRestaurantId == null || currentRestaurantId.isEmpty() || currentFoodId == null || currentFoodId.isEmpty()) {
-            Toast.makeText(this, "Đã xoá món ăn khỏi thực đơn!", Toast.LENGTH_SHORT).show();
-            setResult(RESULT_OK);
-            finish();
+            Toast.makeText(this, "Không xác định được món cần xóa", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -465,7 +438,8 @@ public class EditFoodActivity extends AppCompatActivity {
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
-            currentRestaurantId = "default_restaurant";
+            currentRestaurantId = "";
+            Toast.makeText(this, "Vui lòng đăng nhập lại để sửa món", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -480,12 +454,19 @@ public class EditFoodActivity extends AppCompatActivity {
                             if (!snap.isEmpty()) {
                                 currentRestaurantId = snap.getDocuments().get(0).getId();
                             } else {
-                                currentRestaurantId = "default_restaurant";
+                                currentRestaurantId = "";
+                                Toast.makeText(this, "Không tìm thấy nhà hàng của tài khoản này", Toast.LENGTH_LONG).show();
                             }
                         })
-                        .addOnFailureListener(e -> currentRestaurantId = "default_restaurant");
+                        .addOnFailureListener(e -> {
+                            currentRestaurantId = "";
+                            Toast.makeText(this, "Không tải được thông tin nhà hàng", Toast.LENGTH_LONG).show();
+                        });
             }
-        }).addOnFailureListener(e -> currentRestaurantId = "default_restaurant");
+        }).addOnFailureListener(e -> {
+            currentRestaurantId = "";
+            Toast.makeText(this, "Không tải được tài khoản nhà hàng", Toast.LENGTH_LONG).show();
+        });
     }
 
     private void processForm() {
@@ -557,13 +538,14 @@ public class EditFoodActivity extends AppCompatActivity {
         setSavingState(true, "Đang lưu thay đổi...");
 
         if (currentRestaurantId == null || currentRestaurantId.isEmpty()) {
-            currentRestaurantId = "default_restaurant";
+            Toast.makeText(this, "Không xác định được nhà hàng. Vui lòng thử lại.", Toast.LENGTH_LONG).show();
+            setSavingState(false, "Lưu thay đổi");
+            return;
         }
 
         if (currentFoodId == null || currentFoodId.isEmpty()) {
-            Toast.makeText(this, "Đã lưu cập nhật món ăn!", Toast.LENGTH_SHORT).show();
-            setResult(RESULT_OK);
-            finish();
+            Toast.makeText(this, "Không xác định được món cần cập nhật", Toast.LENGTH_LONG).show();
+            setSavingState(false, "Lưu thay đổi");
             return;
         }
 
@@ -615,6 +597,7 @@ public class EditFoodActivity extends AppCompatActivity {
         if (imageValue == null || imageValue.isEmpty()) {
             return;
         }
+        imgFoodPreview.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
         if (imageValue.startsWith("data:image")) {
             int commaIndex = imageValue.indexOf(',');

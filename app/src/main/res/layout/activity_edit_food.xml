@@ -2,7 +2,6 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F9F9FF"
@@ -44,22 +43,6 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="#111C2D" />
-
-        <FrameLayout
-            android:id="@+id/btnMoreOptions"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="8dp"
-            android:clickable="true"
-            android:focusable="true">
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_more_vert"
-                app:tint="#1E293B" />
-        </FrameLayout>
 
         <FrameLayout
             android:id="@+id/btnProfile"
@@ -188,8 +171,8 @@
                             android:id="@+id/imgFoodPreview"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:scaleType="centerCrop"
-                            android:src="@drawable/banh"
+                            android:scaleType="center"
+                            android:src="@drawable/ic_add_a_photo"
                             android:background="#F1F5FD" />
 
                         <!-- Bottom-Left Status Badge Pill -->
@@ -317,7 +300,7 @@
                             android:id="@+id/tvNameCharCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="18/60"
+                            android:text="0/60"
                             android:textSize="12sp"
                             android:textColor="#64748B" />
                     </LinearLayout>
@@ -335,7 +318,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:background="@null"
-                            android:text="Gỏi cuốn tôm thịt"
+                            android:text=""
+                            android:hint="Tên món ăn"
                             android:textColor="#0F172A"
                             android:textSize="15sp"
                             android:textStyle="bold"
@@ -399,7 +383,8 @@
                                     android:layout_height="match_parent"
                                     android:layout_weight="1"
                                     android:background="@null"
-                                    android:text="75.000"
+                                    android:text=""
+                                    android:hint="0"
                                     android:textSize="16sp"
                                     android:textStyle="bold"
                                     android:textColor="#AC2D00"
@@ -455,7 +440,8 @@
                                     android:layout_height="match_parent"
                                     android:layout_weight="1"
                                     android:background="@null"
-                                    android:text="100.000"
+                                    android:text=""
+                                    android:hint="0"
                                     android:textSize="16sp"
                                     android:textStyle="bold"
                                     android:textColor="#0F172A"
@@ -527,7 +513,7 @@
                                 android:textColor="#64748B" />
                         </LinearLayout>
 
-                        <!-- Discount Badge (e.g. ↘ 25%) -->
+                        <!-- Discount Badge -->
                         <TextView
                             android:id="@+id/tvDiscountBadge"
                             android:layout_width="wrap_content"
@@ -535,7 +521,8 @@
                             android:background="@drawable/bg_badge_discount_red"
                             android:paddingHorizontal="10dp"
                             android:paddingVertical="4dp"
-                            android:text="↘ 25%"
+                            android:text=""
+                            android:visibility="gone"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:textColor="@color/white" />
@@ -643,7 +630,7 @@
                             android:id="@+id/tvDescCharCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="142/200"
+                            android:text="0/200"
                             android:textSize="12sp"
                             android:textColor="#64748B" />
                     </LinearLayout>
@@ -664,7 +651,8 @@
                             android:maxLines="7"
                             android:gravity="top|start"
                             android:background="@null"
-                            android:text="Tôm sú tươi mọng nước kết hợp thịt ba chỉ luộc giòn rụm, cuốn cùng bún tươi và rau sống thanh mát chấm xốt tương bơ đậu phộng đặc trưng."
+                            android:text=""
+                            android:hint="Mô tả món ăn"
                             android:textColor="#334155"
                             android:textSize="13sp"
                             android:lineSpacingExtra="3dp" />

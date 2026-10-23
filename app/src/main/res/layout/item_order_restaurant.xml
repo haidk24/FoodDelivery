@@ -2,7 +2,6 @@
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
@@ -52,7 +51,7 @@
                             android:id="@+id/tv_order_id"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="#SAYMDfDKIZrz6..."
+                            android:text=""
                             android:textSize="15sp"
                             android:textStyle="bold"
                             android:textColor="#0F172A"
@@ -88,7 +87,7 @@
                             android:id="@+id/tv_order_time"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="15:49 - Hôm nay"
+                            android:text=""
                             android:textSize="11sp"
                             android:textColor="#64748B" />
                     </LinearLayout>
@@ -134,7 +133,7 @@
                         android:id="@+id/tv_customer_name_phone"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Thái Võ • 0966464945"
+                        android:text=""
                         android:textSize="13sp"
                         android:textStyle="bold"
                         android:textColor="#0F172A" />
@@ -144,7 +143,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Số 12 Cầu Giấy, Hà Nội"
+                        android:text=""
                         android:textSize="11sp"
                         android:textColor="#64748B"
                         android:maxLines="2"
@@ -205,12 +204,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="🌿 Đang nấu"
+                    android:text=""
                     android:textSize="11sp"
                     android:textColor="#0D9488"
                     android:textStyle="bold"
-                    android:visibility="gone"
-                    tools:visibility="visible" />
+                    android:visibility="gone" />
 
                 <View
                     android:layout_width="0dp"
@@ -221,7 +219,7 @@
                     android:id="@+id/tv_total_price_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tổng thu: "
+                    android:text="Tổng đơn: "
                     android:textSize="12sp"
                     android:textColor="#64748B" />
 
@@ -229,7 +227,7 @@
                     android:id="@+id/tv_total_price_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="115.000 đ"
+                    android:text="0 đ"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#AC2D00" />

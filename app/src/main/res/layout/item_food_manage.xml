@@ -2,7 +2,6 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
@@ -43,8 +42,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:scaleType="centerCrop"
-                        android:background="#F1F5F9"
-                        tools:src="@tools:sample/avatars" />
+                        android:background="#F1F5F9" />
                 </androidx.cardview.widget.CardView>
 
                 <!-- Status Badge Overlay (MỞ BÁN / Tạm ẩn) -->
@@ -87,8 +85,7 @@
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:maxLines="1"
-                        android:ellipsize="end"
-                        tools:text="Gỏi cuốn tôm thịt" />
+                        android:ellipsize="end" />
 
                     <TextView
                         android:id="@+id/tvHiddenTag"
@@ -98,8 +95,7 @@
                         android:text="(Ẩn)"
                         android:textColor="#94A3B8"
                         android:textSize="12sp"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
+                        android:visibility="gone" />
 
                     <FrameLayout
                         android:id="@+id/btnOptions"
@@ -127,8 +123,7 @@
                     android:textColor="#64748B"
                     android:textSize="12sp"
                     android:maxLines="2"
-                    android:ellipsize="end"
-                    tools:text="Tôm tươi mọng nước, ba chỉ luộc mềm cuốn bánh tráng chấm tương bơ lạc..." />
+                    android:ellipsize="end" />
 
                 <!-- Hidden Warning Alert Banner -->
                 <LinearLayout
@@ -141,8 +136,7 @@
                     android:gravity="center_vertical"
                     android:paddingHorizontal="6dp"
                     android:paddingVertical="3dp"
-                    android:visibility="gone"
-                    tools:visibility="visible">
+                    android:visibility="gone">
 
                     <ImageView
                         android:layout_width="12dp"
@@ -176,8 +170,7 @@
                         android:textSize="15sp"
                         android:textStyle="bold"
                         android:maxLines="1"
-                        android:singleLine="true"
-                        tools:text="75.000 đ" />
+                        android:singleLine="true" />
 
                     <TextView
                         android:id="@+id/tvFoodOldPrice"
@@ -187,8 +180,7 @@
                         android:textColor="#94A3B8"
                         android:textSize="12sp"
                         android:maxLines="1"
-                        android:singleLine="true"
-                        tools:text="100.000 đ" />
+                        android:singleLine="true" />
 
                     <TextView
                         android:id="@+id/tvFoodDiscount"
@@ -202,8 +194,7 @@
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:maxLines="1"
-                        android:singleLine="true"
-                        tools:text="-25%" />
+                        android:singleLine="true" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -240,8 +231,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:textColor="#334155"
-                android:textSize="12sp"
-                tools:text="Đang phục vụ" />
+                android:textSize="12sp" />
 
             <!-- Right Actions Container -->
             <LinearLayout
@@ -293,8 +283,7 @@
                     android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true"
-                    android:visibility="gone"
-                    tools:visibility="visible">
+                    android:visibility="gone">
 
                     <ImageView
                         android:layout_width="14dp"
