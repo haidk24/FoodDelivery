@@ -1,82 +1,366 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="12dp"
-    android:gravity="center_vertical"
-    android:background="?attr/selectableItemBackground">
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@color/white"
+    app:strokeColor="#E2E8F0"
+    app:strokeWidth="1dp">
 
-    <!-- Avatar initials -->
-    <TextView
-        android:id="@+id/tv_initials"
-        android:layout_width="42dp"
-        android:layout_height="42dp"
-        android:background="@drawable/bg_avatar"
-        android:gravity="center"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:textColor="#0C447C"
-        android:layout_marginEnd="12dp"/>
-
-    <!-- Tên + email + role -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="14dp">
 
-        <TextView
-            android:id="@+id/tv_user_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="#1C1C1E"/>
-
-        <TextView
-            android:id="@+id/tv_user_email"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textColor="#8A8A8E"
-            android:layout_marginTop="1dp"/>
-
+        <!-- Top Row: Avatar | Name + Role + Email + Stats | Status + Menu -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="3dp"
-            android:gravity="center_vertical">
+            android:gravity="top">
 
-            <TextView
-                android:id="@+id/tv_user_role"
+            <!-- Avatar Frame -->
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp">
+
+                <!-- Circle Avatar -->
+                <TextView
+                    android:id="@+id/tv_avatar_initials"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_circle_avatar_blue"
+                    android:gravity="center"
+                    android:text="TV"
+                    android:textColor="#1D4ED8"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <!-- Mini Store Badge for Restaurant Owner -->
+                <FrameLayout
+                    android:id="@+id/layout_store_badge"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="bottom|end"
+                    android:background="@drawable/bg_circle_store_badge"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_storefront"
+                        app:tint="@color/white" />
+                </FrameLayout>
+            </FrameLayout>
+
+            <!-- Middle Info Column -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical">
+
+                <!-- Name & Role Tag -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_user_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Thái Võ"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/colorTextPrimary"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
+
+                    <TextView
+                        android:id="@+id/tv_role_tag"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_tag_role_customer"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2dp"
+                        android:text="Khách"
+                        android:textSize="11sp"
+                        android:textColor="#475569" />
+                </LinearLayout>
+
+                <!-- Email -->
+                <TextView
+                    android:id="@+id/tv_user_email"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="vohuuthai1508@gmail.com"
+                    android:textSize="12sp"
+                    android:textColor="#64748B"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Sub-info: Stats or Store info or Violation -->
+                <LinearLayout
+                    android:id="@+id/layout_stats_row"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tv_stats_orders"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 đơn hoàn tất"
+                        android:textSize="11.5sp"
+                        android:textColor="#334155" />
+
+                    <TextView
+                        android:id="@+id/tv_stats_dot"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="  •  "
+                        android:textSize="11.5sp"
+                        android:textColor="#94A3B8" />
+
+                    <TextView
+                        android:id="@+id/tv_stats_secondary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Gia nhập 3 ngày trước"
+                        android:textSize="11.5sp"
+                        android:textColor="#334155" />
+                </LinearLayout>
+
+                <!-- Restaurant Name row (when restaurant owner) -->
+                <LinearLayout
+                    android:id="@+id/layout_store_name_row"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:src="@drawable/ic_storefront"
+                        app:tint="#962808" />
+
+                    <TextView
+                        android:id="@+id/tv_store_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="Mạnh Tiến Quán (Quận 1)"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="#962808" />
+                </LinearLayout>
+
+                <!-- Violation reason (when banned) -->
+                <LinearLayout
+                    android:id="@+id/layout_violation_row"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_campaign"
+                        app:tint="#DC2626" />
+
+                    <TextView
+                        android:id="@+id/tv_violation_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="Hủy 4 đơn liên tiếp không lý do"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold"
+                        android:textColor="#DC2626" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Right: Status pill + 3-dots Menu Button -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="11sp"
-                android:textColor="#636366"/>
+                android:orientation="vertical"
+                android:gravity="end">
 
-            <TextView android:text="  ·  "
-                android:textSize="11sp" android:textColor="#636366"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                <TextView
+                    android:id="@+id/tv_status_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_status_active_pill"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="• Hoạt động"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#15803D" />
 
-            <TextView
-                android:id="@+id/tv_order_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="11sp"
-                android:textColor="#636366"/>
+                <ImageView
+                    android:id="@+id/btn_more_menu"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginTop="6dp"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_more_vert"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:tint="#64748B" />
+            </LinearLayout>
         </LinearLayout>
+
+        <!-- Bottom Box Inside Card -->
+        <LinearLayout
+            android:id="@+id/layout_bottom_box"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_bottom_info_box"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp">
+
+            <!-- Left Info Icon + Text -->
+            <LinearLayout
+                android:id="@+id/layout_bottom_left"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- Optional Small Tag (e.g. 'Đang mở') -->
+                <TextView
+                    android:id="@+id/tv_bottom_tag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_tag_restaurant_open"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="Đang mở"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold"
+                    android:textColor="#166534"
+                    android:visibility="gone" />
+
+                <!-- Left Icon -->
+                <ImageView
+                    android:id="@+id/img_bottom_icon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginEnd="6dp"
+                    android:src="@drawable/ic_verified_user"
+                    app:tint="#16A34A" />
+
+                <!-- Left Text -->
+                <TextView
+                    android:id="@+id/tv_bottom_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Đã xác minh số điện thoại"
+                    android:textSize="12sp"
+                    android:textColor="#334155" />
+            </LinearLayout>
+
+            <!-- Right Action: Either link text ("Chi tiết >", "Xem đơn >") OR Button ("Phân quyền", "Mở khóa") -->
+
+            <!-- 1. Text Link Action (Chi tiết > / Xem đơn >) -->
+            <TextView
+                android:id="@+id/tv_bottom_link"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chi tiết ›"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#962808"
+                android:padding="4dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- 2. Role Setting Button (Phân quyền) -->
+            <LinearLayout
+                android:id="@+id/btn_role_setting"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/bg_btn_role_setting"
+                android:paddingHorizontal="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:src="@drawable/ic_tune"
+                    app:tint="#1D4ED8" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="Phân quyền"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold"
+                    android:textColor="#1D4ED8" />
+            </LinearLayout>
+
+            <!-- 3. Unlock Button (Mở khóa) -->
+            <LinearLayout
+                android:id="@+id/btn_unlock"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/bg_btn_unlock_green"
+                android:paddingHorizontal="12dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:src="@drawable/ic_lock"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="Mở khóa"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white" />
+            </LinearLayout>
+        </LinearLayout>
+
     </LinearLayout>
-
-    <!-- Trạng thái -->
-    <TextView
-        android:id="@+id/tv_user_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textStyle="bold"/>
-
-</LinearLayout>
+</androidx.cardview.widget.CardView>

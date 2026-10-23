@@ -26,6 +26,7 @@ import com.example.foodorderapp.data.database.FoodDatabase;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.data.model.Restaurant;
 import com.example.foodorderapp.ui.MainActivity;
 import com.example.foodorderapp.ui.OrderItemsActivity;
 import com.example.foodorderapp.ui.OrderTrackingActivity;
@@ -155,10 +156,10 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             db.collection("restaurants").document(resId).get()
                     .addOnSuccessListener(doc -> {
                         if (doc != null && doc.exists()) {
-                            String name = doc.getString("name");
-                            String address = doc.getString("address");
+                            Restaurant r = doc.toObject(Restaurant.class);
+                            String name = r != null && !TextUtils.isEmpty(r.getName()) ? r.getName() : doc.getString("name");
                             String n = !TextUtils.isEmpty(name) ? name : "Quán ăn";
-                            String a = !TextUtils.isEmpty(address) ? address : "Hoàn Kiếm, Hà Nội";
+                            String a = r != null ? r.getAddressText() : "Chưa cập nhật";
                             restaurantCache.put(resId, new String[]{n, a});
                             holder.tvRestaurantName.setText(n);
                             holder.tvRestaurantAddress.setText(a);
@@ -227,7 +228,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
     }
 
     private void bindStatusAndActions(OrderViewHolder holder, Order order) {
-        String status = order.getStatus() == null ? "pending" : order.getStatus().trim().toLowerCase(Locale.ROOT);
+        String status = Order.normalizeStatus(order.getStatus());
 
         if (restaurantMode) {
             // Restaurant Mode UI
@@ -249,7 +250,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         holder.btnUpdateStatus.setVisibility(View.GONE);
         holder.layoutCustomerActions.setVisibility(View.VISIBLE);
 
-        if ("shipping".equals(status)) {
+        if (Order.STATUS_SHIPPING.equals(status)) {
             // ĐANG GIAO HÀNG
             holder.indicatorActiveShipping.setVisibility(View.VISIBLE);
             holder.tvOrderStatus.setText("● Đang giao hàng");
@@ -302,7 +303,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                 }
             });
 
-        } else if ("delivered".equals(status) || "completed".equals(status)) {
+        } else if (Order.STATUS_COMPLETED.equals(status)) {
             // ĐÃ GIAO / ĐÃ HOÀN TẤT
             holder.indicatorActiveShipping.setVisibility(View.GONE);
             holder.layoutShipperDispatch.setVisibility(View.GONE);
@@ -367,7 +368,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                 });
             }
 
-        } else if ("pending".equals(status)) {
+        } else if (Order.STATUS_PENDING.equals(status)) {
             // CHỜ XÁC NHẬN
             holder.indicatorActiveShipping.setVisibility(View.GONE);
             holder.tvOrderStatus.setText("Chờ xác nhận");
@@ -401,8 +402,8 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                 }
             });
 
-        } else if ("confirmed".equals(status)) {
-            // ĐANG CHUẨN BỊ
+        } else if (Order.STATUS_PREPARING.equals(status) || Order.STATUS_CONFIRMED.equals(status)) {
+            // ĐANG CHUẨN BỊ MÓN
             holder.indicatorActiveShipping.setVisibility(View.GONE);
             holder.tvOrderStatus.setText("Đang chuẩn bị");
             holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_pending);
@@ -434,8 +435,8 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                 }
             });
 
-        } else {
-            // ĐÃ HỦY / KHÁC
+        } else if (Order.STATUS_CANCELLED.equals(status)) {
+            // ĐÃ HỦY
             holder.indicatorActiveShipping.setVisibility(View.GONE);
             holder.tvOrderStatus.setText("Đã hủy");
             holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_cancelled);
@@ -460,6 +461,39 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             holder.tvPrimaryText.setText("Đặt lại đơn");
             holder.tvPrimaryText.setTextColor(ContextCompat.getColor(context, R.color.colorTextPrimary));
             holder.btnPrimaryAction.setOnClickListener(v -> reorderItems(order));
+
+        } else {
+            // MẶC ĐỊNH CHO TRẠNG THÁI KHÁC (KHÔNG TỰ ĐỘNG ĐỂ "ĐÃ HỦY")
+            holder.indicatorActiveShipping.setVisibility(View.GONE);
+            holder.tvOrderStatus.setText("Đang xử lý");
+            holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_pending);
+            holder.tvOrderStatus.setTextColor(ContextCompat.getColor(context, R.color.colorSecondary));
+            holder.tvOrderRatingBadge.setVisibility(View.GONE);
+            holder.layoutShipperDispatch.setVisibility(View.GONE);
+            holder.layoutReviewDelight.setVisibility(View.GONE);
+            holder.tvPaymentLabel.setText("Thu hộ COD");
+
+            holder.btnSecondaryAction.setVisibility(View.VISIBLE);
+            holder.btnSecondaryAction.setBackgroundResource(R.drawable.bg_btn_order_action_light);
+            holder.ivSecondaryIcon.setImageResource(R.drawable.ic_receipt);
+            holder.ivSecondaryIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(context, R.color.colorTextPrimary)));
+            holder.tvSecondaryText.setText("Chi tiết");
+            holder.tvSecondaryText.setTextColor(ContextCompat.getColor(context, R.color.colorTextPrimary));
+            holder.btnSecondaryAction.setOnClickListener(v -> openOrderItemsScreen(order));
+
+            holder.btnPrimaryAction.setVisibility(View.VISIBLE);
+            holder.btnPrimaryAction.setBackgroundResource(R.drawable.bg_btn_order_action_track);
+            holder.ivPrimaryIcon.setImageResource(R.drawable.ic_near_me);
+            holder.ivPrimaryIcon.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+            holder.tvPrimaryText.setText("Theo dõi đơn hàng");
+            holder.tvPrimaryText.setTextColor(Color.WHITE);
+            holder.btnPrimaryAction.setOnClickListener(v -> {
+                if (customerActionListener != null) {
+                    customerActionListener.onTrackOrder(order);
+                } else {
+                    openOrderTrackingScreen(order);
+                }
+            });
         }
     }
 
@@ -491,34 +525,40 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
     }
 
     private void bindRestaurantStatusUI(OrderViewHolder holder, String status, Order order) {
-        switch (status) {
-            case "pending":
+        String norm = Order.normalizeStatus(status);
+        switch (norm) {
+            case Order.STATUS_PENDING:
                 holder.tvOrderStatus.setText("ĐANG CHỜ XÁC NHẬN");
                 holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_pending);
                 holder.tvOrderStatus.setTextColor(ContextCompat.getColor(context, R.color.colorSecondary));
                 holder.btnUpdateStatus.setText("XÁC NHẬN ĐƠN");
                 holder.btnUpdateStatus.setEnabled(true);
                 break;
-            case "confirmed":
+            case Order.STATUS_PREPARING:
                 holder.tvOrderStatus.setText("ĐANG CHUẨN BỊ MÓN");
                 holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_pending);
                 holder.tvOrderStatus.setTextColor(ContextCompat.getColor(context, R.color.colorPrimary));
                 holder.btnUpdateStatus.setText("GIAO CHO SHIPPER");
                 holder.btnUpdateStatus.setEnabled(true);
                 break;
-            case "shipping":
+            case Order.STATUS_SHIPPING:
                 holder.tvOrderStatus.setText("ĐANG GIAO HÀNG");
                 holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_shipping);
                 holder.tvOrderStatus.setTextColor(ContextCompat.getColor(context, R.color.colorTertiary));
                 holder.btnUpdateStatus.setText("HOÀN TẤT ĐƠN");
                 holder.btnUpdateStatus.setEnabled(true);
                 break;
-            case "delivered":
-            case "completed":
+            case Order.STATUS_COMPLETED:
                 holder.tvOrderStatus.setText("ĐÃ GIAO THÀNH CÔNG");
                 holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_shipping);
                 holder.tvOrderStatus.setTextColor(ContextCompat.getColor(context, R.color.colorTertiary));
                 holder.btnUpdateStatus.setText("ĐÃ HOÀN TẤT");
+                holder.btnUpdateStatus.setEnabled(false);
+                break;
+            case Order.STATUS_CANCELLED:
+                holder.tvOrderStatus.setText("ĐÃ HỦY ĐƠN");
+                holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_cancelled);
+                holder.tvOrderStatus.setTextColor(ContextCompat.getColor(context, R.color.error));
                 holder.btnUpdateStatus.setEnabled(false);
                 break;
             default:
@@ -530,12 +570,14 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         }
 
         holder.btnUpdateStatus.setOnClickListener(v -> {
-            if (restaurantId.isEmpty()) {
+            String resId = order.getRestaurantId() != null && !order.getRestaurantId().isEmpty()
+                    ? order.getRestaurantId() : restaurantId;
+            if (resId == null || resId.isEmpty()) {
                 Toast.makeText(context, "Không tìm thấy nhà hàng hiện tại", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            String currentStatus = order.getStatus() == null ? "pending" : order.getStatus();
+            String currentStatus = order.getStatus() == null ? Order.STATUS_PENDING : order.getStatus();
             String nextStatus = resolveNextStatus(currentStatus);
             if (nextStatus == null) return;
 
@@ -543,12 +585,12 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             updates.put("status", nextStatus);
 
             Date now = new Date();
-            if ("confirmed".equals(nextStatus)) updates.put("confirmedAt", now);
-            else if ("shipping".equals(nextStatus)) updates.put("shippingAt", now);
-            else if ("delivered".equals(nextStatus)) updates.put("deliveredAt", now);
+            if (Order.STATUS_PREPARING.equals(nextStatus)) updates.put("confirmedAt", now);
+            else if (Order.STATUS_SHIPPING.equals(nextStatus)) updates.put("shippingAt", now);
+            else if (Order.STATUS_COMPLETED.equals(nextStatus)) updates.put("deliveredAt", now);
 
             WriteBatch batch = db.batch();
-            batch.update(db.collection("restaurants").document(restaurantId)
+            batch.update(db.collection("restaurants").document(resId)
                     .collection("orders").document(order.getOrderId()), updates);
             batch.update(db.collection("orders").document(order.getOrderId()), updates);
 
@@ -559,15 +601,16 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
     }
 
     private String resolveNextStatus(String currentStatus) {
-        if ("pending".equals(currentStatus)) return "confirmed";
-        if ("confirmed".equals(currentStatus)) return "shipping";
-        if ("shipping".equals(currentStatus)) return "delivered";
+        String norm = Order.normalizeStatus(currentStatus);
+        if (Order.STATUS_PENDING.equals(norm)) return Order.STATUS_PREPARING;
+        if (Order.STATUS_PREPARING.equals(norm)) return Order.STATUS_SHIPPING;
+        if (Order.STATUS_SHIPPING.equals(norm)) return Order.STATUS_COMPLETED;
         return null;
     }
 
     private boolean canReview(Order order) {
-        String status = order.getStatus() == null ? "" : order.getStatus().trim().toLowerCase(Locale.ROOT);
-        boolean completed = "delivered".equals(status) || "completed".equals(status);
+        String status = Order.normalizeStatus(order.getStatus());
+        boolean completed = Order.STATUS_COMPLETED.equals(status);
         return completed && !order.isReviewed();
     }
 

@@ -16,15 +16,25 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
+import androidx.core.content.ContextCompat;
 import com.example.foodorderapp.R;
+import com.example.foodorderapp.data.database.FoodDatabase;
+import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.ui.fragment.HomeFragment;
 import com.example.foodorderapp.ui.fragment.MyOrderFragment;
 import com.example.foodorderapp.ui.fragment.RegisterRestaurantFragment;
 import com.example.foodorderapp.ui.fragment.ShoppingcartFragment;
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+
+import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -76,18 +86,87 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             return true;
         });
 
-        // Set up Stitch bottom badges (Giỏ hàng: 2, Đơn hàng: 1)
-        try {
-            com.google.android.material.badge.BadgeDrawable cartBadge = bottomNavigationView.getOrCreateBadge(R.id.nav_cart);
-            cartBadge.setBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.colorPrimary));
-            cartBadge.setBadgeTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.white));
-            cartBadge.setNumber(2);
+        updateCartBadge();
+        listenToActiveOrdersCount();
+    }
 
-            com.google.android.material.badge.BadgeDrawable orderBadge = bottomNavigationView.getOrCreateBadge(R.id.nav_myorder);
-            orderBadge.setBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.colorSecondaryContainer));
-            orderBadge.setBadgeTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.colorOnSecondaryFixed));
-            orderBadge.setNumber(1);
+    private ListenerRegistration activeOrdersListener;
+
+    public void updateCartBadge() {
+        if (bottomNavigationView == null) return;
+        try {
+            List<Food> list = FoodDatabase.getInstance(this).foodDao().getListFoodCart();
+            int count = 0;
+            if (list != null) {
+                for (Food f : list) {
+                    count += f.getCount();
+                }
+            }
+            BadgeDrawable cartBadge = bottomNavigationView.getOrCreateBadge(R.id.nav_cart);
+            cartBadge.setBackgroundColor(ContextCompat.getColor(this, R.color.colorPrimary));
+            cartBadge.setBadgeTextColor(ContextCompat.getColor(this, R.color.white));
+            if (count > 0) {
+                cartBadge.setVisible(true);
+                cartBadge.setNumber(count);
+            } else {
+                cartBadge.setVisible(false);
+            }
         } catch (Exception ignored) {}
+    }
+
+    private void listenToActiveOrdersCount() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null || bottomNavigationView == null) return;
+        if (activeOrdersListener != null) {
+            activeOrdersListener.remove();
+        }
+
+        activeOrdersListener = FirebaseFirestore.getInstance()
+                .collection("orders")
+                .whereEqualTo("customerId", user.getUid())
+                .addSnapshotListener((snapshots, e) -> {
+                    if (e != null || snapshots == null) return;
+                    int activeCount = 0;
+                    for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                        String status = doc.getString("status");
+                        if (status != null) {
+                            String s = com.example.foodorderapp.data.model.Order.normalizeStatus(status);
+                            if (com.example.foodorderapp.data.model.Order.STATUS_PENDING.equals(s) 
+                                    || com.example.foodorderapp.data.model.Order.STATUS_PREPARING.equals(s) 
+                                    || com.example.foodorderapp.data.model.Order.STATUS_CONFIRMED.equals(s) 
+                                    || com.example.foodorderapp.data.model.Order.STATUS_SHIPPING.equals(s)) {
+                                activeCount++;
+                            }
+                        }
+                    }
+                    try {
+                        BadgeDrawable orderBadge = bottomNavigationView.getOrCreateBadge(R.id.nav_myorder);
+                        orderBadge.setBackgroundColor(ContextCompat.getColor(this, R.color.colorSecondaryContainer));
+                        orderBadge.setBadgeTextColor(ContextCompat.getColor(this, R.color.colorOnSecondaryFixed));
+                        if (activeCount > 0) {
+                            orderBadge.setVisible(true);
+                            orderBadge.setNumber(activeCount);
+                        } else {
+                            orderBadge.setVisible(false);
+                        }
+                    } catch (Exception ignored) {}
+                });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateCartBadge();
+        listenToActiveOrdersCount();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (activeOrdersListener != null) {
+            activeOrdersListener.remove();
+            activeOrdersListener = null;
+        }
     }
 
     private void initFragments(Bundle savedInstanceState) {
@@ -120,6 +199,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 .show(target)
                 .commit();
         activeFragment = target;
+        updateCartBadge();
     }
 
     private void showUserInformation() {

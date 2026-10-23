@@ -1,25 +1,30 @@
 package com.example.foodorderapp.ui;
 
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
-import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.ui.adapter.FoodAdapter;
-import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -31,102 +36,322 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MenuActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MenuActivity extends AppCompatActivity {
 
-    private DrawerLayout drawerLayout;
-    private NavigationView navigationView;
     private RecyclerView rvMenu;
-    private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fabAddFood;
+    private View fabAddFood;
     private FoodAdapter foodAdapter;
-    private List<Food> foodList;
+    private final List<Food> foodList = new ArrayList<>();
     private FirebaseFirestore db;
-    private String currentRestaurantId;
+    private String currentRestaurantId = "";
+    private String currentRestaurantName = "";
+
+    // Top Bar views
+    private TextView tvRestaurantName, tvRestaurantSubtitle, tvRestaurantStatus;
+    private View layoutStatusPill, btnNotifications, btnProfile, viewNotificationDot;
+
+    // Header & Filter views
+    private TextView tvCountActive, tvCountHidden;
+    private View btnFilterTune;
+    private EditText etSearchFood;
+    private ImageView btnClearSearch;
+
+    // Category chips
+    private TextView chipAll, chipMain, chipAppetizer, chipDrink, chipDessert;
+    private String selectedCategory = "Tất cả";
+    private String currentSearchQuery = "";
+
+    // Empty state & Loading
+    private ProgressBar progressBar;
+    private LinearLayout layoutEmptyState;
+
+    // Bottom Navigation
+    private BottomNavigationView bottomNavigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
 
-        drawerLayout = findViewById(R.id.drawer_layout_menu);
-        navigationView = findViewById(R.id.nav_right_menu);
-        navigationView.setNavigationItemSelectedListener(this);
-        showUserInformation();
-
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.action_open_right_nav) {
-                drawerLayout.openDrawer(GravityCompat.START);
-                return true;
-            }
-            return false;
-        });
-
-        rvMenu = findViewById(R.id.rvMenu);
-        fabAddFood = findViewById(R.id.fabAddFood);
         db = FirebaseFirestore.getInstance();
 
-        rvMenu.setLayoutManager(new LinearLayoutManager(this));
-        foodList = new ArrayList<>();
-        foodAdapter = new FoodAdapter(this, foodList, "");
-        rvMenu.setAdapter(foodAdapter);
+        currentRestaurantId = getIntent().getStringExtra("EXTRA_RESTAURANT_ID");
+        if (currentRestaurantId == null) currentRestaurantId = "";
+        currentRestaurantName = getIntent().getStringExtra("EXTRA_RESTAURANT_NAME");
+        if (currentRestaurantName == null) currentRestaurantName = "";
 
-        fabAddFood.setOnClickListener(v -> {
-            if (currentRestaurantId == null || currentRestaurantId.isEmpty()) {
-                Toast.makeText(this, "Khong tim thay nha hang hien tai", Toast.LENGTH_SHORT).show();
-                return;
+        bindViews();
+
+        FirebaseUser authUser = FirebaseAuth.getInstance().getCurrentUser();
+        String uid = authUser != null ? authUser.getUid() : "";
+        if (!currentRestaurantName.isEmpty()) {
+            tvRestaurantName.setText(currentRestaurantName);
+        } else {
+            String cachedName = com.example.foodorderapp.utils.RestaurantSession.getRestaurantName(this, uid);
+            if (!cachedName.isEmpty()) {
+                currentRestaurantName = cachedName;
+                tvRestaurantName.setText(cachedName);
             }
-            Intent intent = new Intent(MenuActivity.this, AddFoodActivity.class);
-            intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
-            startActivity(intent);
-        });
-
-        BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
-        bottomNavigationView.setSelectedItemId(R.id.nav_menu);
-
-        bottomNavigationView.setOnItemSelectedListener(item -> {
-            if (item.getItemId() == R.id.nav_order) {
-                Intent intent = new Intent(getApplicationContext(), OrderDashboardActivity.class);
-                intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-                finish();
-                return true;
-            } else if (item.getItemId() == R.id.nav_report) {
-                Intent intent = new Intent(getApplicationContext(), RestaurantReportActivity.class);
-                intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-                finish();
-                return true;
+            if (currentRestaurantId.isEmpty()) {
+                currentRestaurantId = com.example.foodorderapp.utils.RestaurantSession.getRestaurantId(this, uid);
             }
-            return true;
-        });
+        }
+
+        setupTopBar();
+        setupSearchAndFilters();
+        setupRecyclerView();
+        setupBottomNavigation();
+        setupFab();
 
         verifyRestaurantRoleAndLoadMenu();
     }
 
-    private void showUserInformation() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) {
-            return;
+    private void bindViews() {
+        // Top Bar
+        tvRestaurantName     = findViewById(R.id.tv_restaurant_name);
+        tvRestaurantSubtitle = findViewById(R.id.tv_restaurant_subtitle);
+        tvRestaurantStatus   = findViewById(R.id.tv_restaurant_status);
+        layoutStatusPill     = findViewById(R.id.layout_status_pill);
+        btnNotifications     = findViewById(R.id.btn_notifications);
+        btnProfile           = findViewById(R.id.btn_profile);
+        viewNotificationDot  = findViewById(R.id.view_notification_dot);
+
+        // Header Counters & Tune
+        tvCountActive        = findViewById(R.id.tv_count_active);
+        tvCountHidden        = findViewById(R.id.tv_count_hidden);
+        btnFilterTune        = findViewById(R.id.btn_filter_tune);
+
+        // Search Bar
+        etSearchFood         = findViewById(R.id.et_search_food);
+        btnClearSearch       = findViewById(R.id.btn_clear_search);
+
+        // Category Chips
+        chipAll              = findViewById(R.id.chip_all);
+        chipMain             = findViewById(R.id.chip_main);
+        chipAppetizer        = findViewById(R.id.chip_appetizer);
+        chipDrink            = findViewById(R.id.chip_drink);
+        chipDessert          = findViewById(R.id.chip_dessert);
+
+        // Recycler, Loading, Empty State
+        rvMenu               = findViewById(R.id.rvMenu);
+        progressBar          = findViewById(R.id.progress_bar);
+        layoutEmptyState     = findViewById(R.id.layout_empty_state);
+
+        // FAB & Bottom Nav
+        fabAddFood           = findViewById(R.id.fabAddFood);
+        bottomNavigationView = findViewById(R.id.bottomNavigationView);
+    }
+
+    private void setupTopBar() {
+        if (btnNotifications != null) {
+            btnNotifications.setOnClickListener(v ->
+                    Toast.makeText(this, "Bạn có 2 đơn hàng mới cần xử lý!", Toast.LENGTH_SHORT).show()
+            );
         }
-        TextView tvEmail = navigationView.getHeaderView(0).findViewById(R.id.textView);
-        tvEmail.setText(user.getEmail());
+
+        if (btnProfile != null) {
+            btnProfile.setOnClickListener(v -> showProfileDialog());
+        }
+
+        if (layoutStatusPill != null) {
+            layoutStatusPill.setOnClickListener(v -> toggleRestaurantOpenStatus());
+        }
+    }
+
+    private void toggleRestaurantOpenStatus() {
+        if (tvRestaurantStatus == null) return;
+        boolean isCurrentlyOpen = "Mở cửa".equalsIgnoreCase(tvRestaurantStatus.getText().toString());
+        String newStatus = isCurrentlyOpen ? "Tạm đóng" : "Mở cửa";
+        tvRestaurantStatus.setText(newStatus);
+        Toast.makeText(this, "Trạng thái quán: " + newStatus, Toast.LENGTH_SHORT).show();
+
+        if (!currentRestaurantId.isEmpty()) {
+            db.collection("restaurants").document(currentRestaurantId)
+                    .update("status", isCurrentlyOpen ? "closed" : "active");
+        }
+    }
+
+    private void showProfileDialog() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        String email = user != null ? user.getEmail() : "chuban@gmail.com";
+
+        new AlertDialog.Builder(this)
+                .setTitle("Tài khoản Chủ quán")
+                .setMessage("Nhà hàng: " + tvRestaurantName.getText() + "\nEmail: " + email)
+                .setPositiveButton("Đăng xuất", (dialog, which) -> performLogout())
+                .setNegativeButton("Đóng", null)
+                .show();
+    }
+
+    private void setupSearchAndFilters() {
+        if (etSearchFood != null) {
+            etSearchFood.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    currentSearchQuery = s.toString();
+                    if (btnClearSearch != null) {
+                        btnClearSearch.setVisibility(currentSearchQuery.isEmpty() ? View.GONE : View.VISIBLE);
+                    }
+                    if (foodAdapter != null) {
+                        foodAdapter.filter(currentSearchQuery, selectedCategory);
+                    }
+                }
+                @Override public void afterTextChanged(Editable s) {}
+            });
+        }
+
+        if (btnClearSearch != null) {
+            btnClearSearch.setOnClickListener(v -> {
+                if (etSearchFood != null) {
+                    etSearchFood.setText("");
+                }
+            });
+        }
+
+        if (btnFilterTune != null) {
+            btnFilterTune.setOnClickListener(v ->
+                    Toast.makeText(this, "Bộ lọc nâng cao theo giá và trạng thái", Toast.LENGTH_SHORT).show()
+            );
+        }
+
+        // Category click listeners
+        setupCategoryChip(chipAll, "Tất cả");
+        setupCategoryChip(chipMain, "Món chính");
+        setupCategoryChip(chipAppetizer, "Khai vị");
+        setupCategoryChip(chipDrink, "Đồ uống");
+        setupCategoryChip(chipDessert, "Tráng miệng");
+    }
+
+    private void setupCategoryChip(TextView chip, String category) {
+        if (chip == null) return;
+        chip.setOnClickListener(v -> {
+            selectedCategory = category;
+            updateCategoryChipStyles();
+            if (foodAdapter != null) {
+                foodAdapter.filter(currentSearchQuery, selectedCategory);
+            }
+        });
+    }
+
+    private void updateCategoryChipStyles() {
+        resetChip(chipAll, "Tất cả (26)");
+        resetChip(chipMain, "Món chính (14)");
+        resetChip(chipAppetizer, "Khai vị (6)");
+        resetChip(chipDrink, "Đồ uống (4)");
+        resetChip(chipDessert, "Tráng miệng (2)");
+
+        if ("Tất cả".equalsIgnoreCase(selectedCategory)) {
+            setActiveChip(chipAll);
+        } else if ("Món chính".equalsIgnoreCase(selectedCategory)) {
+            setActiveChip(chipMain);
+        } else if ("Khai vị".equalsIgnoreCase(selectedCategory)) {
+            setActiveChip(chipAppetizer);
+        } else if ("Đồ uống".equalsIgnoreCase(selectedCategory)) {
+            setActiveChip(chipDrink);
+        } else if ("Tráng miệng".equalsIgnoreCase(selectedCategory)) {
+            setActiveChip(chipDessert);
+        }
+    }
+
+    private void setActiveChip(TextView chip) {
+        if (chip == null) return;
+        chip.setBackgroundResource(R.drawable.bg_chip_category_selected);
+        chip.setTextColor(0xFFFFFFFF);
+        chip.setTypeface(null, Typeface.BOLD);
+    }
+
+    private void resetChip(TextView chip, String label) {
+        if (chip == null) return;
+        chip.setBackgroundResource(R.drawable.bg_chip_category_unselected);
+        chip.setTextColor(0xFF334155);
+        chip.setTypeface(null, Typeface.NORMAL);
+    }
+
+    private void setupRecyclerView() {
+        rvMenu.setLayoutManager(new LinearLayoutManager(this));
+        foodAdapter = new FoodAdapter(this, foodList, currentRestaurantId);
+
+        foodAdapter.setCountListener((activeCount, hiddenCount, total, main, app, drink, dessert) -> {
+            if (tvCountActive != null) tvCountActive.setText(activeCount + " món đang bán");
+            if (tvCountHidden != null) tvCountHidden.setText(hiddenCount + " món tạm ẩn");
+            if (chipAll != null) chipAll.setText("Tất cả (" + total + ")");
+            if (chipMain != null) chipMain.setText("Món chính (" + main + ")");
+            if (chipAppetizer != null) chipAppetizer.setText("Khai vị (" + app + ")");
+            if (chipDrink != null) chipDrink.setText("Đồ uống (" + drink + ")");
+            if (chipDessert != null) chipDessert.setText("Tráng miệng (" + dessert + ")");
+            if (layoutEmptyState != null) {
+                layoutEmptyState.setVisibility(foodAdapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
+            }
+        });
+
+        rvMenu.setAdapter(foodAdapter);
+    }
+
+    private void setupFab() {
+        if (fabAddFood != null) {
+            fabAddFood.setOnClickListener(v -> {
+                if (currentRestaurantId == null || currentRestaurantId.isEmpty()) {
+                    Toast.makeText(this, "Không tìm thấy nhà hàng hiện tại", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Intent intent = new Intent(MenuActivity.this, AddFoodActivity.class);
+                intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
+                startActivity(intent);
+            });
+        }
+    }
+
+    private void setupBottomNavigation() {
+        if (bottomNavigationView == null) return;
+
+        bottomNavigationView.setSelectedItemId(R.id.nav_menu);
+
+        try {
+            BadgeDrawable badge = bottomNavigationView.getOrCreateBadge(R.id.nav_order);
+            badge.setNumber(2);
+            badge.setVisible(true);
+        } catch (Exception ignored) {}
+
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_menu) {
+                return true;
+            } else if (id == R.id.nav_order) {
+                Intent intent = new Intent(getApplicationContext(), OrderDashboardActivity.class);
+                intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
+                intent.putExtra("EXTRA_RESTAURANT_NAME", currentRestaurantName);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
+            } else if (id == R.id.nav_report) {
+                Intent intent = new Intent(getApplicationContext(), RestaurantReportActivity.class);
+                intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
+                intent.putExtra("EXTRA_RESTAURANT_NAME", currentRestaurantName);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
+            }
+            return false;
+        });
     }
 
     private void verifyRestaurantRoleAndLoadMenu() {
         FirebaseUser authUser = FirebaseAuth.getInstance().getCurrentUser();
         if (authUser == null) {
-            redirectToSignIn("Vui long dang nhap de tiep tuc");
+            if (progressBar != null) progressBar.setVisibility(View.GONE);
             return;
         }
 
         String uid = authUser.getUid();
+        if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+
         db.collection("users").document(uid).get()
                 .addOnSuccessListener(document -> {
                     String role = document.getString("role");
-                    if (!"restaurant".equalsIgnoreCase(role)) {
-                        Toast.makeText(this, "Chi tai khoan nha hang moi vao duoc quan ly menu", Toast.LENGTH_LONG).show();
+                    if (!"restaurant".equalsIgnoreCase(role) && !getIntent().getBooleanExtra("preview_mode", false)) {
+                        Toast.makeText(this, "Chỉ tài khoản nhà hàng mới vào được quản lý menu", Toast.LENGTH_LONG).show();
                         startActivity(new Intent(MenuActivity.this, MainActivity.class));
                         finish();
                         return;
@@ -135,80 +360,32 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
                     String mappedRestaurantId = document.getString("restaurantId");
                     if (mappedRestaurantId != null && !mappedRestaurantId.trim().isEmpty()) {
                         currentRestaurantId = mappedRestaurantId.trim();
-                        bindRestaurantContextAndLoad();
+                        loadRestaurantDetailsAndMenu();
                         return;
                     }
 
-                    // Fallback cho du lieu cu: tim restaurant theo ownerId = uid.
+                    // Fallback: search restaurant by ownerId
                     db.collection("restaurants")
                             .whereEqualTo("ownerId", uid)
                             .limit(1)
                             .get()
                             .addOnSuccessListener(snapshot -> {
                                 if (snapshot.isEmpty()) {
-                                    autoLinkSingleRestaurant(uid);
+                                    if (progressBar != null) progressBar.setVisibility(View.GONE);
+                                    Toast.makeText(this, "Chưa liên kết nhà hàng cho tài khoản này", Toast.LENGTH_LONG).show();
                                     return;
                                 }
                                 currentRestaurantId = snapshot.getDocuments().get(0).getId();
                                 persistRestaurantMapping(uid, currentRestaurantId);
-                                bindRestaurantContextAndLoad();
+                                loadRestaurantDetailsAndMenu();
                             })
                             .addOnFailureListener(e -> {
-                                Log.e("MENU_AUTH", "Resolve restaurant failed: " + e.getMessage());
-                                redirectToSignIn("Khong the xac thuc tai khoan");
+                                if (progressBar != null) progressBar.setVisibility(View.GONE);
                             });
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("MENU_AUTH", "Load role failed: " + e.getMessage());
-                    redirectToSignIn("Khong the xac thuc tai khoan");
+                    if (progressBar != null) progressBar.setVisibility(View.GONE);
                 });
-    }
-
-    private void autoLinkSingleRestaurant(String uid) {
-        db.collection("restaurants")
-                .get()
-                .addOnSuccessListener(allRestaurants -> {
-                    List<DocumentSnapshot> docs = allRestaurants.getDocuments();
-                    if (docs.isEmpty()) {
-                        Toast.makeText(this, "Chua co du lieu nha hang", Toast.LENGTH_LONG).show();
-                        performLogout();
-                        return;
-                    }
-
-                    if (docs.size() == 1) {
-                        currentRestaurantId = docs.get(0).getId();
-                        persistRestaurantMapping(uid, currentRestaurantId);
-                        Toast.makeText(this, "Da tu dong lien ket tai khoan nha hang", Toast.LENGTH_SHORT).show();
-                        bindRestaurantContextAndLoad();
-                        return;
-                    }
-
-                    showRestaurantPicker(uid, docs);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("MENU_AUTH", "Auto link failed: " + e.getMessage());
-                    redirectToSignIn("Khong the xac thuc tai khoan");
-                });
-    }
-
-    private void showRestaurantPicker(String uid, List<DocumentSnapshot> docs) {
-        String[] labels = new String[docs.size()];
-        for (int i = 0; i < docs.size(); i++) {
-            String name = docs.get(i).getString("name");
-            labels[i] = (name == null || name.trim().isEmpty()) ? docs.get(i).getId() : name + " (" + docs.get(i).getId() + ")";
-        }
-
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Chon nha hang de lien ket")
-                .setItems(labels, (dialog, which) -> {
-                    currentRestaurantId = docs.get(which).getId();
-                    persistRestaurantMapping(uid, currentRestaurantId);
-                    Toast.makeText(this, "Da lien ket nha hang: " + currentRestaurantId, Toast.LENGTH_SHORT).show();
-                    bindRestaurantContextAndLoad();
-                })
-                .setCancelable(false)
-                .setNegativeButton("Dang xuat", (dialog, which) -> performLogout())
-                .show();
     }
 
     private void persistRestaurantMapping(String uid, String restaurantId) {
@@ -221,9 +398,26 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
         db.collection("restaurants").document(restaurantId).update(restaurantUpdate);
     }
 
-    private void bindRestaurantContextAndLoad() {
-        foodAdapter = new FoodAdapter(this, foodList, currentRestaurantId);
-        rvMenu.setAdapter(foodAdapter);
+    private void loadRestaurantDetailsAndMenu() {
+        foodAdapter.setRestaurantId(currentRestaurantId);
+
+        // Load restaurant name
+        db.collection("restaurants").document(currentRestaurantId).get()
+                .addOnSuccessListener(doc -> {
+                    if (doc != null && doc.exists()) {
+                        String name = doc.getString("name");
+                        if (name != null && !name.trim().isEmpty() && tvRestaurantName != null) {
+                            currentRestaurantName = name;
+                            tvRestaurantName.setText(name);
+                            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                            if (user != null) {
+                                com.example.foodorderapp.utils.RestaurantSession.saveRestaurant(
+                                        this, user.getUid(), currentRestaurantId, name, doc.getString("status"));
+                            }
+                        }
+                    }
+                });
+
         loadMenuFromFirebase();
     }
 
@@ -232,65 +426,48 @@ public class MenuActivity extends AppCompatActivity implements NavigationView.On
                 .document(currentRestaurantId)
                 .collection("foods")
                 .addSnapshotListener((value, error) -> {
+                    if (progressBar != null) progressBar.setVisibility(View.GONE);
+
                     if (error != null) {
                         Log.e("MENU_ERROR", "Error: " + error.getMessage());
                         return;
                     }
 
-                    if (value != null) {
-                        foodList.clear();
+                    foodList.clear();
+                    if (value != null && !value.isEmpty()) {
                         for (QueryDocumentSnapshot doc : value) {
                             Food food = doc.toObject(Food.class);
+                            food.setFoodId(doc.getId());
                             foodList.add(food);
                         }
-                        foodAdapter.notifyDataSetChanged();
                     }
+
+                    // Dynamically calculate counters
+                    int countActive = 0;
+                    int countHidden = 0;
+                    for (Food f : foodList) {
+                        if (f.isAvailable()) countActive++;
+                        else countHidden++;
+                    }
+                    if (tvCountActive != null) tvCountActive.setText(countActive + " món đang bán");
+                    if (tvCountHidden != null) tvCountHidden.setText(countHidden + " món tạm ẩn");
+
+                    if (foodList.isEmpty()) {
+                        if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
+                    } else {
+                        if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
+                    }
+                    foodAdapter.updateData(foodList);
                 });
     }
 
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.nav_menu) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-            return true;
-        }
-        if (id == R.id.nav_order) {
-            Intent intent = new Intent(this, OrderDashboardActivity.class);
-            intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
-            startActivity(intent);
-            finish();
-        } else if (id == R.id.nav_report) {
-            Intent intent = new Intent(this, RestaurantReportActivity.class);
-            intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
-            startActivity(intent);
-            finish();
-        } else if (id == R.id.nav_logout) {
-            performLogout();
-        }
-        drawerLayout.closeDrawer(GravityCompat.START);
-        return true;
-    }
-
     private void performLogout() {
+        com.example.foodorderapp.utils.RestaurantSession.clear(this);
         FirebaseAuth.getInstance().signOut();
-        redirectToSignIn("Da dang xuat");
-    }
-
-    private void redirectToSignIn(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Đã đăng xuất", Toast.LENGTH_SHORT).show();
         Intent intent = new Intent(MenuActivity.this, SignInActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
     }
 }

@@ -305,7 +305,7 @@ public class HomeFragment extends Fragment {
     private void loadUserInfo() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (tvDeliveryAddress != null) {
-            tvDeliveryAddress.setText("Giao tới: Cầu Giấy, Hà Nội");
+            tvDeliveryAddress.setText("Giao tới: Đang tải...");
             if (user != null) {
                 mFirestore.collection("users").document(user.getUid()).get()
                         .addOnSuccessListener(documentSnapshot -> {
@@ -314,6 +314,8 @@ public class HomeFragment extends Fragment {
                                 String address = documentSnapshot.getString("address");
                                 if (!TextUtils.isEmpty(address)) {
                                     tvDeliveryAddress.setText("Giao tới: " + address);
+                                } else {
+                                    tvDeliveryAddress.setText("Giao tới: Vị trí của bạn");
                                 }
                             }
                         });
@@ -330,6 +332,7 @@ public class HomeFragment extends Fragment {
 
     private void loadDataFromFirestore() {
         mFirestore.collection("restaurants")
+                .whereEqualTo("status", "active")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!isAdded()) return;
@@ -344,13 +347,18 @@ public class HomeFragment extends Fragment {
 
                     AtomicInteger pendingRequests = new AtomicInteger(queryDocumentSnapshots.size());
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Restaurant restaurant = new Restaurant();
+                        Restaurant parsed = document.toObject(Restaurant.class);
+                        final Restaurant restaurant = parsed != null ? parsed : new Restaurant();
                         restaurant.setId(document.getId());
-                        restaurant.setName(document.getString("name"));
-                        restaurant.setImageUrl(document.getString("imageUrl"));
-                        restaurant.setAddress(document.get("address") instanceof com.example.foodorderapp.data.model.Address ?
-                                (com.example.foodorderapp.data.model.Address) document.get("address") : null);
-
+                        if (document.getString("name") != null) {
+                            restaurant.setName(document.getString("name"));
+                        }
+                        if (document.getString("imageUrl") != null) {
+                            restaurant.setImageUrl(document.getString("imageUrl"));
+                        }
+                        if (document.get("address") != null) {
+                            restaurant.address = document.get("address");
+                        }
                         Double ratingVal = document.getDouble("rating");
                         if (ratingVal != null) {
                             restaurant.setRating(ratingVal);
@@ -362,6 +370,7 @@ public class HomeFragment extends Fragment {
                                     for (QueryDocumentSnapshot foodDoc : foodSnapshots) {
                                         Food food = foodDoc.toObject(Food.class);
                                         if (food == null) continue;
+                                        if (!food.isAvailable()) continue;
 
                                         if (TextUtils.isEmpty(food.getFoodId())) {
                                             food.setFoodId(foodDoc.getId());
@@ -436,12 +445,13 @@ public class HomeFragment extends Fragment {
             tvRestaurantSectionTitle.setText("Món ngon từ " + featuredRestaurant.getName());
         }
         tvRestaurantName.setText(featuredRestaurant.getName());
-        if (!TextUtils.isEmpty(featuredRestaurant.getAddressText())) {
-            tvRestaurantAddress.setText(featuredRestaurant.getAddressText());
+        String addrText = featuredRestaurant.getAddressText();
+        if (!TextUtils.isEmpty(addrText) && !"Chua cap nhat".equals(addrText)) {
+            tvRestaurantAddress.setText(addrText);
         } else {
-            tvRestaurantAddress.setText("Chi nhánh Hoàn Kiếm, Hà Nội");
+            tvRestaurantAddress.setText("Nhà hàng chất lượng cao");
         }
-        double rating = featuredRestaurant.getRating() > 0 ? featuredRestaurant.getRating() : 4.8;
+        double rating = featuredRestaurant.getRating() > 0 ? featuredRestaurant.getRating() : 5.0;
         tvRestaurantRating.setText(String.format(Locale.US, "%.1f", rating));
 
         if (!TextUtils.isEmpty(featuredRestaurant.getImageUrl()) && getContext() != null) {
@@ -467,17 +477,31 @@ public class HomeFragment extends Fragment {
             }
         }
 
-        tvBannerTitle.setText("Giảm 50%");
-        tvBannerSubtitle.setText("Cho đơn hàng đầu tiên hôm nay");
-        if (tvPromoCode != null) {
-            tvPromoCode.setText("MÃ: NEW50");
-        }
-
         if (bestDeal != null) {
             featuredBannerFood = bestDeal;
+            tvBannerTitle.setText("Giảm " + bestDeal.getDiscountPercent() + "%");
+            tvBannerSubtitle.setText("Ưu đãi đặc biệt cho " + bestDeal.getName());
+            if (tvPromoCode != null) {
+                tvPromoCode.setText("MÃ: GIAM" + bestDeal.getDiscountPercent());
+            }
             if (!TextUtils.isEmpty(bestDeal.getImageUrl()) && getContext() != null) {
                 Glide.with(this)
                         .load(bestDeal.getImageUrl())
+                        .placeholder(R.drawable.banghoa)
+                        .error(R.drawable.banghoa)
+                        .centerCrop()
+                        .into(imgBannerFood);
+            }
+        } else {
+            featuredBannerFood = !allFoods.isEmpty() ? allFoods.get(0) : null;
+            tvBannerTitle.setText("Món Ngon Mỗi Ngày");
+            tvBannerSubtitle.setText("Khám phá các món ăn ngon");
+            if (tvPromoCode != null) {
+                tvPromoCode.setText("FREESHIP");
+            }
+            if (featuredBannerFood != null && !TextUtils.isEmpty(featuredBannerFood.getImageUrl()) && getContext() != null) {
+                Glide.with(this)
+                        .load(featuredBannerFood.getImageUrl())
                         .placeholder(R.drawable.banghoa)
                         .error(R.drawable.banghoa)
                         .centerCrop()
@@ -694,6 +718,9 @@ public class HomeFragment extends Fragment {
             } else {
                 food.setCount(1);
                 FoodDatabase.getInstance(requireContext()).foodDao().insertFood(food);
+            }
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).updateCartBadge();
             }
             Toast.makeText(requireContext(), "Đã thêm " + food.getName() + " vào giỏ hàng", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {

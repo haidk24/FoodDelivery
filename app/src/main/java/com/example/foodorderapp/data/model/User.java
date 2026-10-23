@@ -86,6 +86,47 @@ public class User {
         this.createdAt = createdAt;
     }
 
+    private long totalSpent;
+    private String restaurantId;
+    private String restaurantName;
+    private int dishCount;
+
+    public String getRestaurantId() { return restaurantId; }
+    public void setRestaurantId(String restaurantId) { this.restaurantId = restaurantId; }
+    private String banReason;
+    private String bannedAt;
+    private String bannedBy;
+    private boolean phoneVerified = true;
+    private String lastOrderTime;
+    private String joinTimeText;
+
+    public long getTotalSpent() { return totalSpent; }
+    public void setTotalSpent(long totalSpent) { this.totalSpent = totalSpent; }
+
+    public String getRestaurantName() { return restaurantName; }
+    public void setRestaurantName(String restaurantName) { this.restaurantName = restaurantName; }
+
+    public int getDishCount() { return dishCount; }
+    public void setDishCount(int dishCount) { this.dishCount = dishCount; }
+
+    public String getBanReason() { return banReason; }
+    public void setBanReason(String banReason) { this.banReason = banReason; }
+
+    public String getBannedAt() { return bannedAt; }
+    public void setBannedAt(String bannedAt) { this.bannedAt = bannedAt; }
+
+    public String getBannedBy() { return bannedBy; }
+    public void setBannedBy(String bannedBy) { this.bannedBy = bannedBy; }
+
+    public boolean isPhoneVerified() { return phoneVerified; }
+    public void setPhoneVerified(boolean phoneVerified) { this.phoneVerified = phoneVerified; }
+
+    public String getLastOrderTime() { return lastOrderTime; }
+    public void setLastOrderTime(String lastOrderTime) { this.lastOrderTime = lastOrderTime; }
+
+    public String getJoinTimeText() { return joinTimeText; }
+    public void setJoinTimeText(String joinTimeText) { this.joinTimeText = joinTimeText; }
+
     public boolean isBanned() {
         return "banned".equals(status);
     }

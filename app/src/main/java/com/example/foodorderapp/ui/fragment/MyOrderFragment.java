@@ -362,14 +362,14 @@ public class MyOrderFragment extends Fragment {
         int countCancelled = 0;
 
         for (Order o : allOrders) {
-            String s = o.getStatus() == null ? "pending" : o.getStatus().trim().toLowerCase(Locale.ROOT);
-            if ("shipping".equals(s)) {
+            String s = Order.normalizeStatus(o.getStatus());
+            if (Order.STATUS_SHIPPING.equals(s)) {
                 countShipping++;
-            } else if ("pending".equals(s) || "confirmed".equals(s)) {
+            } else if (Order.STATUS_PENDING.equals(s) || Order.STATUS_PREPARING.equals(s) || Order.STATUS_CONFIRMED.equals(s)) {
                 countPending++;
-            } else if ("delivered".equals(s) || "completed".equals(s)) {
+            } else if (Order.STATUS_COMPLETED.equals(s)) {
                 countDelivered++;
-            } else if ("cancelled".equals(s)) {
+            } else if (Order.STATUS_CANCELLED.equals(s)) {
                 countCancelled++;
             }
         }
@@ -385,7 +385,7 @@ public class MyOrderFragment extends Fragment {
         filteredOrders.clear();
 
         for (Order order : allOrders) {
-            String s = order.getStatus() == null ? "pending" : order.getStatus().trim().toLowerCase(Locale.ROOT);
+            String s = Order.normalizeStatus(order.getStatus());
 
             // 1. Check category filter
             boolean matchesCategory = false;
@@ -394,16 +394,16 @@ public class MyOrderFragment extends Fragment {
                     matchesCategory = true;
                     break;
                 case "shipping":
-                    matchesCategory = "shipping".equals(s);
+                    matchesCategory = Order.STATUS_SHIPPING.equals(s);
                     break;
                 case "pending":
-                    matchesCategory = "pending".equals(s) || "confirmed".equals(s);
+                    matchesCategory = Order.STATUS_PENDING.equals(s) || Order.STATUS_PREPARING.equals(s) || Order.STATUS_CONFIRMED.equals(s);
                     break;
                 case "delivered":
-                    matchesCategory = "delivered".equals(s) || "completed".equals(s);
+                    matchesCategory = Order.STATUS_COMPLETED.equals(s);
                     break;
                 case "cancelled":
-                    matchesCategory = "cancelled".equals(s);
+                    matchesCategory = Order.STATUS_CANCELLED.equals(s);
                     break;
             }
 

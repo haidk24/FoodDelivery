@@ -8,13 +8,13 @@
 
     <item
         android:id="@+id/nav_restaurants"
-        android:icon="@drawable/ic_restaurant"
-        android:title="Nhà hàng" />
+        android:icon="@drawable/ic_storefront"
+        android:title="Phê duyệt" />
 
     <item
         android:id="@+id/nav_users"
         android:icon="@drawable/ic_people"
-        android:title="Users" />
+        android:title="Người dùng" />
 
     <item
         android:id="@+id/nav_report"

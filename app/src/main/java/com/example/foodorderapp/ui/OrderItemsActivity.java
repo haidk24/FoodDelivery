@@ -266,12 +266,13 @@ public class OrderItemsActivity extends AppCompatActivity {
     }
 
     private void bindStatusUI(String status, Date createdAt) {
-        String safe = status == null ? "pending" : status.trim().toLowerCase(Locale.ROOT);
+        String safe = Order.normalizeStatus(status);
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm • dd/MM/yyyy", Locale.getDefault());
         String timeStr = createdAt != null ? sdf.format(createdAt) : "Thời gian thực";
 
         switch (safe) {
-            case "confirmed":
+            case Order.STATUS_PREPARING:
+            case Order.STATUS_CONFIRMED:
                 ivStatusIcon.setImageResource(R.drawable.ic_restaurant);
                 ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.colorPrimary)));
                 iconStatusBg.setBackgroundResource(R.drawable.bg_pill_status_pending);
@@ -282,7 +283,7 @@ public class OrderItemsActivity extends AppCompatActivity {
                 tvStatusPill.setTextColor(ContextCompat.getColor(this, R.color.colorPrimary));
                 break;
 
-            case "shipping":
+            case Order.STATUS_SHIPPING:
                 ivStatusIcon.setImageResource(R.drawable.ic_moped);
                 ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.colorTertiary)));
                 iconStatusBg.setBackgroundResource(R.drawable.bg_pill_status_shipping);
@@ -293,8 +294,7 @@ public class OrderItemsActivity extends AppCompatActivity {
                 tvStatusPill.setTextColor(ContextCompat.getColor(this, R.color.colorTertiary));
                 break;
 
-            case "delivered":
-            case "completed":
+            case Order.STATUS_COMPLETED:
                 ivStatusIcon.setImageResource(R.drawable.ic_check_circle);
                 ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.colorTertiary)));
                 iconStatusBg.setBackgroundResource(R.drawable.bg_pill_status_completed);
@@ -305,7 +305,7 @@ public class OrderItemsActivity extends AppCompatActivity {
                 tvStatusPill.setTextColor(ContextCompat.getColor(this, R.color.colorTertiary));
                 break;
 
-            case "cancelled":
+            case Order.STATUS_CANCELLED:
                 ivStatusIcon.setImageResource(R.drawable.ic_delete_outline);
                 ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.colorError)));
                 iconStatusBg.setBackgroundResource(R.drawable.bg_pill_status_cancelled);
@@ -316,7 +316,7 @@ public class OrderItemsActivity extends AppCompatActivity {
                 tvStatusPill.setTextColor(ContextCompat.getColor(this, R.color.colorError));
                 break;
 
-            case "pending":
+            case Order.STATUS_PENDING:
             default:
                 ivStatusIcon.setImageResource(R.drawable.ic_schedule);
                 ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.colorSecondary)));
@@ -334,11 +334,12 @@ public class OrderItemsActivity extends AppCompatActivity {
         db.collection("restaurants").document(resId).get()
                 .addOnSuccessListener(doc -> {
                     if (doc != null && doc.exists()) {
-                        String name = doc.getString("name");
-                        String address = doc.getString("address");
+                        com.example.foodorderapp.data.model.Restaurant r = doc.toObject(com.example.foodorderapp.data.model.Restaurant.class);
+                        String name = r != null && !TextUtils.isEmpty(r.getName()) ? r.getName() : doc.getString("name");
+                        String address = r != null ? r.getAddressText() : "Chưa cập nhật";
                         String phone = doc.getString("phone");
                         if (!TextUtils.isEmpty(name)) tvRestaurantName.setText(name);
-                        if (!TextUtils.isEmpty(address)) tvRestaurantAddress.setText(address);
+                        if (!TextUtils.isEmpty(address) && !"Chua cap nhat".equals(address)) tvRestaurantAddress.setText(address);
                         if (!TextUtils.isEmpty(phone)) restaurantPhone = phone;
                     }
                 })
@@ -346,26 +347,26 @@ public class OrderItemsActivity extends AppCompatActivity {
     }
 
     private void setupActionButtons(Order order) {
-        String safe = order.getStatus() == null ? "pending" : order.getStatus().trim().toLowerCase(Locale.ROOT);
+        String safe = Order.normalizeStatus(order.getStatus());
 
-        if ("pending".equals(safe)) {
+        if (Order.STATUS_PENDING.equals(safe)) {
             btnCancelOrder.setVisibility(View.VISIBLE);
             btnCancelOrder.setOnClickListener(v -> confirmCancelOrder(order));
 
             btnPrimaryAction.setText("Theo dõi đơn hàng");
             btnPrimaryAction.setOnClickListener(v -> openTrackingActivity(order));
-        } else if ("confirmed".equals(safe) || "shipping".equals(safe)) {
+        } else if (Order.STATUS_PREPARING.equals(safe) || Order.STATUS_SHIPPING.equals(safe)) {
             btnCancelOrder.setVisibility(View.GONE);
             btnPrimaryAction.setText("Theo dõi đơn hàng");
             btnPrimaryAction.setOnClickListener(v -> openTrackingActivity(order));
-        } else if ("delivered".equals(safe) || "completed".equals(safe)) {
+        } else if (Order.STATUS_COMPLETED.equals(safe) || Order.STATUS_CANCELLED.equals(safe)) {
             btnCancelOrder.setVisibility(View.GONE);
             btnPrimaryAction.setText("Đặt lại đơn");
             btnPrimaryAction.setOnClickListener(v -> reorderItems(order));
-        } else if ("cancelled".equals(safe)) {
+        } else {
             btnCancelOrder.setVisibility(View.GONE);
-            btnPrimaryAction.setText("Đặt lại đơn");
-            btnPrimaryAction.setOnClickListener(v -> reorderItems(order));
+            btnPrimaryAction.setText("Theo dõi đơn hàng");
+            btnPrimaryAction.setOnClickListener(v -> openTrackingActivity(order));
         }
     }
 

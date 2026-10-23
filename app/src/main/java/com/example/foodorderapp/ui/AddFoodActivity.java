@@ -6,42 +6,91 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Base64;
-import android.widget.Button;
+import android.view.View;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 public class AddFoodActivity extends AppCompatActivity {
 
-    private EditText edtFoodName, edtFoodOldPrice, edtFoodNewPrice, edtFoodDiscount, edtFoodDescription;
-    private Button btnSaveFood;
-    private ImageView imgFoodPreview;
-    private ImageButton btnBack;
+    // Top Bar
+    private View btnBack;
+    private View btnProfile;
 
+    // Image Picker
+    private View cardImagePick;
+    private ImageView imgFoodPreview;
+    private View layoutPlaceholderImage;
+    private View badgeChangeImage;
+
+    // Form Inputs
+    private EditText edtFoodName;
+    private EditText edtFoodNewPrice;
+    private EditText edtFoodOldPrice;
+    private TextView tvCalculatedDiscount;
+    private View btnSelectCategory;
+    private TextView tvSelectedCategory;
+    private EditText edtFoodDescription;
+    private TextView tvCharCount;
+    private SwitchCompat switchIsAvailable;
+
+    // Bottom Action Buttons
+    private View btnCancel;
+    private View btnSaveFood;
+    private ImageView imgSaveIcon;
+    private TextView tvSaveButtonText;
+    private ProgressBar progressBarSave;
+
+    // State & Data
     private FirebaseFirestore db;
     private Uri imageUri = null;
     private String currentRestaurantId;
+    private String selectedCategory = "Chưa phân loại";
+    private final NumberFormat currencyFormatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+
+    private final String[] categoryOptions = new String[]{
+            "Chưa phân loại (Mặc định)",
+            "Món chính",
+            "Khai vị",
+            "Đồ uống",
+            "Tráng miệng"
+    };
 
     private final ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     imageUri = result.getData().getData();
-                    imgFoodPreview.setImageURI(imageUri);
+                    if (imageUri != null) {
+                        imgFoodPreview.setImageURI(imageUri);
+                        imgFoodPreview.setVisibility(View.VISIBLE);
+                        layoutPlaceholderImage.setVisibility(View.GONE);
+                        badgeChangeImage.setVisibility(View.VISIBLE);
+                    }
                 }
             }
     );
@@ -51,121 +100,336 @@ public class AddFoodActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_food);
 
-        edtFoodName = findViewById(R.id.edtFoodName);
-        edtFoodOldPrice = findViewById(R.id.edtFoodOldPrice);
-        edtFoodNewPrice = findViewById(R.id.edtFoodNewPrice);
-        edtFoodDiscount = findViewById(R.id.edtFoodDiscount);
-        edtFoodDescription = findViewById(R.id.edtFoodDescription);
-        btnSaveFood = findViewById(R.id.btnSaveFood);
-        imgFoodPreview = findViewById(R.id.imgFoodPreview);
-        btnBack = findViewById(R.id.btnBack);
-
         db = FirebaseFirestore.getInstance();
         currentRestaurantId = getIntent().getStringExtra("EXTRA_RESTAURANT_ID");
-        if (currentRestaurantId == null || currentRestaurantId.trim().isEmpty()) {
-            Toast.makeText(this, "Khong tim thay nha hang hien tai", Toast.LENGTH_LONG).show();
-            finish();
+
+        initViews();
+        setupTopBar();
+        setupImagePicker();
+        setupPriceCalculation();
+        setupCategoryPicker();
+        setupDescriptionCounter();
+        setupActionButtons();
+
+        resolveRestaurantIdIfNeeded();
+    }
+
+    private void initViews() {
+        btnBack                = findViewById(R.id.btnBack);
+        btnProfile             = findViewById(R.id.btnProfile);
+
+        cardImagePick          = findViewById(R.id.cardImagePick);
+        imgFoodPreview         = findViewById(R.id.imgFoodPreview);
+        layoutPlaceholderImage = findViewById(R.id.layoutPlaceholderImage);
+        badgeChangeImage       = findViewById(R.id.badgeChangeImage);
+
+        edtFoodName            = findViewById(R.id.edtFoodName);
+        edtFoodNewPrice        = findViewById(R.id.edtFoodNewPrice);
+        edtFoodOldPrice        = findViewById(R.id.edtFoodOldPrice);
+        tvCalculatedDiscount   = findViewById(R.id.tvCalculatedDiscount);
+        btnSelectCategory      = findViewById(R.id.btnSelectCategory);
+        tvSelectedCategory     = findViewById(R.id.tvSelectedCategory);
+        edtFoodDescription     = findViewById(R.id.edtFoodDescription);
+        tvCharCount            = findViewById(R.id.tvCharCount);
+        switchIsAvailable      = findViewById(R.id.switchIsAvailable);
+
+        btnCancel              = findViewById(R.id.btnCancel);
+        btnSaveFood            = findViewById(R.id.btnSaveFood);
+        imgSaveIcon            = findViewById(R.id.imgSaveIcon);
+        tvSaveButtonText       = findViewById(R.id.tvSaveButtonText);
+        progressBarSave        = findViewById(R.id.progressBarSave);
+    }
+
+    private void setupTopBar() {
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> showExitConfirmDialog());
+        }
+
+        if (btnProfile != null) {
+            btnProfile.setOnClickListener(v -> {
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                String email = user != null ? user.getEmail() : "chuban@gmail.com";
+                new AlertDialog.Builder(this)
+                        .setTitle("Tài khoản Chủ quán")
+                        .setMessage("Email: " + email)
+                        .setPositiveButton("Đóng", null)
+                        .show();
+            });
+        }
+    }
+
+    private void showExitConfirmDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Hủy bỏ thay đổi?")
+                .setMessage("Những thông tin món ăn bạn vừa nhập sẽ không được lưu lại. Bạn có chắc chắn muốn thoát?")
+                .setPositiveButton("THOÁT", (dialog, which) -> finish())
+                .setNegativeButton("Ở LẠI", null)
+                .show();
+    }
+
+    private void setupImagePicker() {
+        View.OnClickListener openGallery = v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            pickImageLauncher.launch(intent);
+        };
+
+        if (cardImagePick != null) cardImagePick.setOnClickListener(openGallery);
+        if (badgeChangeImage != null) badgeChangeImage.setOnClickListener(openGallery);
+    }
+
+    private void setupPriceCalculation() {
+        TextWatcher priceWatcher = new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                calculateAndDisplayDiscount();
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        };
+
+        if (edtFoodNewPrice != null) edtFoodNewPrice.addTextChangedListener(priceWatcher);
+        if (edtFoodOldPrice != null) edtFoodOldPrice.addTextChangedListener(priceWatcher);
+    }
+
+    private void calculateAndDisplayDiscount() {
+        if (tvCalculatedDiscount == null) return;
+
+        String newPriceStr = edtFoodNewPrice.getText().toString().trim().replace(".", "").replace(",", "");
+        String oldPriceStr = edtFoodOldPrice.getText().toString().trim().replace(".", "").replace(",", "");
+
+        if (newPriceStr.isEmpty()) {
+            tvCalculatedDiscount.setText("Tự động tính theo Giá gốc & Giá bán");
+            tvCalculatedDiscount.setTextColor(0xFF64748B);
             return;
         }
-        currentRestaurantId = currentRestaurantId.trim();
 
-        btnBack.setOnClickListener(v -> {
-            new android.app.AlertDialog.Builder(this)
-                    .setTitle("Hủy bỏ thay đổi?")
-                    .setMessage("Những thông tin bạn vừa nhập sẽ không được lưu lại trên hệ thống. Bạn có chắc chắn muốn thoát?")
-                    .setPositiveButton("THOÁT", (dialog, which) -> finish())
-                    .setNegativeButton("Ở LẠI", null)
-                    .show();
-        });
+        try {
+            double newPrice = Double.parseDouble(newPriceStr);
+            if (oldPriceStr.isEmpty()) {
+                tvCalculatedDiscount.setText("Giá thanh toán: " + currencyFormatter.format(newPrice) + " đ (Chưa áp dụng giảm)");
+                tvCalculatedDiscount.setTextColor(0xFF64748B);
+                return;
+            }
 
-        imgFoodPreview.setOnClickListener(v -> {
-            Intent intent = new Intent();
-            intent.setType("image/*");
-            intent.setAction(Intent.ACTION_GET_CONTENT);
-            pickImageLauncher.launch(intent);
-        });
+            double oldPrice = Double.parseDouble(oldPriceStr);
+            if (oldPrice > newPrice && oldPrice > 0) {
+                int percent = (int) Math.round(((oldPrice - newPrice) / oldPrice) * 100);
+                double saved = oldPrice - newPrice;
+                tvCalculatedDiscount.setText("Giảm " + percent + "% • Tiết kiệm " + currencyFormatter.format(saved) + " đ");
+                tvCalculatedDiscount.setTextColor(0xFF059669); // Emerald green
+            } else if (newPrice >= oldPrice) {
+                tvCalculatedDiscount.setText("Giá bán bằng hoặc cao hơn giá gốc (0% giảm)");
+                tvCalculatedDiscount.setTextColor(0xFF64748B);
+            }
+        } catch (NumberFormatException e) {
+            tvCalculatedDiscount.setText("Tự động tính theo Giá gốc & Giá bán");
+            tvCalculatedDiscount.setTextColor(0xFF64748B);
+        }
+    }
 
-        btnSaveFood.setOnClickListener(v -> processForm());
+    private void setupCategoryPicker() {
+        if (btnSelectCategory != null) {
+            btnSelectCategory.setOnClickListener(v -> {
+                new AlertDialog.Builder(this)
+                        .setTitle("Chọn danh mục phân loại")
+                        .setItems(categoryOptions, (dialog, which) -> {
+                            String chosen = categoryOptions[which];
+                            if (which == 0) {
+                                selectedCategory = "Chưa phân loại";
+                            } else {
+                                selectedCategory = chosen;
+                            }
+                            if (tvSelectedCategory != null) {
+                                tvSelectedCategory.setText(chosen);
+                            }
+                        })
+                        .show();
+            });
+        }
+    }
+
+    private void setupDescriptionCounter() {
+        if (edtFoodDescription != null) {
+            edtFoodDescription.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    if (tvCharCount != null) {
+                        tvCharCount.setText(s.length() + "/200");
+                    }
+                }
+                @Override public void afterTextChanged(Editable s) {}
+            });
+        }
+    }
+
+    private void setupActionButtons() {
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> showExitConfirmDialog());
+        }
+
+        if (btnSaveFood != null) {
+            btnSaveFood.setOnClickListener(v -> processForm());
+        }
+    }
+
+    private void resolveRestaurantIdIfNeeded() {
+        if (currentRestaurantId != null && !currentRestaurantId.trim().isEmpty()) {
+            return;
+        }
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            currentRestaurantId = "default_restaurant";
+            return;
+        }
+
+        String uid = user.getUid();
+        db.collection("users").document(uid).get().addOnSuccessListener(doc -> {
+            String rId = doc.getString("restaurantId");
+            if (rId != null && !rId.trim().isEmpty()) {
+                currentRestaurantId = rId.trim();
+            } else {
+                db.collection("restaurants").whereEqualTo("ownerId", uid).limit(1).get()
+                        .addOnSuccessListener(snap -> {
+                            if (!snap.isEmpty()) {
+                                currentRestaurantId = snap.getDocuments().get(0).getId();
+                            } else {
+                                currentRestaurantId = "default_restaurant";
+                            }
+                        })
+                        .addOnFailureListener(e -> currentRestaurantId = "default_restaurant");
+            }
+        }).addOnFailureListener(e -> currentRestaurantId = "default_restaurant");
     }
 
     private void processForm() {
-        String name = edtFoodName.getText().toString().trim();
-        String oldPriceStr = edtFoodOldPrice.getText().toString().trim();
-        String newPriceStr = edtFoodNewPrice.getText().toString().trim();
-        String discountStr = edtFoodDiscount.getText().toString().trim();
-        String description = edtFoodDescription.getText().toString().trim();
+        String name = edtFoodName != null ? edtFoodName.getText().toString().trim() : "";
+        String newPriceStr = edtFoodNewPrice != null ? edtFoodNewPrice.getText().toString().trim().replace(".", "").replace(",", "") : "";
+        String oldPriceStr = edtFoodOldPrice != null ? edtFoodOldPrice.getText().toString().trim().replace(".", "").replace(",", "") : "";
+        String description = edtFoodDescription != null ? edtFoodDescription.getText().toString().trim() : "";
+        boolean isAvailable = switchIsAvailable == null || switchIsAvailable.isChecked();
 
-        if (name.isEmpty() || newPriceStr.isEmpty()) {
-            Toast.makeText(this, "Vui long nhap Ten mon va Gia moi!", Toast.LENGTH_SHORT).show();
+        if (name.isEmpty()) {
+            Toast.makeText(this, "Vui lòng nhập tên món ăn!", Toast.LENGTH_SHORT).show();
+            if (edtFoodName != null) edtFoodName.requestFocus();
             return;
         }
 
-        double oldPrice;
-        double newPrice;
-        int discountPercent;
+        if (newPriceStr.isEmpty()) {
+            Toast.makeText(this, "Vui lòng nhập giá bán của món!", Toast.LENGTH_SHORT).show();
+            if (edtFoodNewPrice != null) edtFoodNewPrice.requestFocus();
+            return;
+        }
 
+        double newPrice;
+        double oldPrice;
         try {
             newPrice = Double.parseDouble(newPriceStr);
             oldPrice = oldPriceStr.isEmpty() ? newPrice : Double.parseDouble(oldPriceStr);
-            discountPercent = discountStr.isEmpty() ? calculateDiscount(oldPrice, newPrice) : Integer.parseInt(discountStr);
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Gia tri gia hoac giam gia khong hop le", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Giá tiền không hợp lệ!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (newPrice <= 0 || oldPrice <= 0) {
-            Toast.makeText(this, "Gia tien phai lon hon 0", Toast.LENGTH_SHORT).show();
+        if (newPrice <= 0) {
+            Toast.makeText(this, "Giá bán phải lớn hơn 0 đ!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (discountPercent < 0 || discountPercent > 100) {
-            Toast.makeText(this, "Discount phai nam trong khoang 0-100", Toast.LENGTH_SHORT).show();
-            return;
+        int discountPercent = 0;
+        if (oldPrice > newPrice && oldPrice > 0) {
+            discountPercent = (int) Math.round(((oldPrice - newPrice) / oldPrice) * 100);
         }
 
-        btnSaveFood.setEnabled(false);
-        btnSaveFood.setText("Đang tải ảnh lên...");
+        setSavingState(true, "Đang xử lý hình ảnh...");
+
+        final double finalOldPrice = oldPrice;
+        final double finalNewPrice = newPrice;
+        final int finalDiscount = discountPercent;
+        final String finalDescription = description;
+        final boolean finalIsAvailable = isAvailable;
 
         if (imageUri != null) {
-            encodeImageAndSave(name, oldPrice, newPrice, discountPercent, description, imageUri);
+            new Thread(() -> {
+                try {
+                    String imageData = buildImageDataUri(imageUri);
+                    runOnUiThread(() -> saveDataToFirestore(
+                            name, finalOldPrice, finalNewPrice, finalDiscount, finalDescription, imageData, finalIsAvailable
+                    ));
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        setSavingState(false, "LƯU MÓN ĂN");
+                    });
+                }
+            }).start();
         } else {
-            saveDataToFirestore(name, oldPrice, newPrice, discountPercent, description, "");
+            // Default placeholder image if no image picked
+            String defaultImg = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=80";
+            saveDataToFirestore(name, finalOldPrice, finalNewPrice, finalDiscount, finalDescription, defaultImg, finalIsAvailable);
         }
     }
 
-    private int calculateDiscount(double oldPrice, double newPrice) {
-        if (oldPrice <= 0 || newPrice >= oldPrice) {
-            return 0;
-        }
-        return (int) Math.round(((oldPrice - newPrice) / oldPrice) * 100);
-    }
+    private void saveDataToFirestore(String name, double oldPrice, double newPrice,
+                                     int discountPercent, String description, String imageUrl, boolean isAvailable) {
+        setSavingState(true, "Đang lưu lên thực đơn...");
 
-    private void encodeImageAndSave(String name, double oldPrice, double newPrice, int discountPercent,
-                                    String description, Uri uri) {
-        new Thread(() -> {
-            try {
-                String imageData = buildImageDataUri(uri);
-                runOnUiThread(() -> saveDataToFirestore(name, oldPrice, newPrice, discountPercent, description, imageData));
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    resetButton();
+        if (currentRestaurantId == null || currentRestaurantId.isEmpty()) {
+            currentRestaurantId = "default_restaurant";
+        }
+
+        DocumentReference newFoodRef = db.collection("restaurants")
+                .document(currentRestaurantId).collection("foods").document();
+
+        Food newFood = new Food(
+                newFoodRef.getId(),
+                name,
+                description,
+                newPrice,
+                imageUrl,
+                selectedCategory,
+                isAvailable,
+                0,
+                oldPrice,
+                newPrice,
+                discountPercent,
+                currentRestaurantId
+        );
+
+        newFoodRef.set(newFood)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Đã thêm món \"" + name + "\" vào thực đơn thành công!", Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_OK);
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Lỗi khi lưu: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    setSavingState(false, "LƯU MÓN ĂN");
                 });
-            }
-        }).start();
+    }
+
+    private void setSavingState(boolean isSaving, String message) {
+        if (btnSaveFood != null) btnSaveFood.setEnabled(!isSaving);
+        if (btnCancel != null) btnCancel.setEnabled(!isSaving);
+
+        if (progressBarSave != null) {
+            progressBarSave.setVisibility(isSaving ? View.VISIBLE : View.GONE);
+        }
+        if (imgSaveIcon != null) {
+            imgSaveIcon.setVisibility(isSaving ? View.GONE : View.VISIBLE);
+        }
+        if (tvSaveButtonText != null) {
+            tvSaveButtonText.setText(message);
+        }
     }
 
     private String buildImageDataUri(Uri uri) throws Exception {
         InputStream is = getContentResolver().openInputStream(uri);
-        if (is == null) {
-            throw new Exception("Khong mo duoc anh da chon");
-        }
+        if (is == null) throw new Exception("Không thể mở tệp ảnh");
 
         Bitmap bitmap = BitmapFactory.decodeStream(is);
         is.close();
-        if (bitmap == null) {
-            throw new Exception("Dinh dang anh khong hop le");
-        }
+        if (bitmap == null) throw new Exception("Định dạng ảnh không hợp lệ");
 
         Bitmap resizedBitmap = resizeBitmap(bitmap, 800);
         String encoded = encodeBitmapSafely(resizedBitmap);
@@ -192,7 +456,7 @@ public class AddFoodActivity extends AppCompatActivity {
     }
 
     private String encodeBitmapSafely(Bitmap bitmap) throws Exception {
-        int quality = 70;
+        int quality = 75;
         String encoded;
 
         do {
@@ -205,38 +469,8 @@ public class AddFoodActivity extends AppCompatActivity {
         } while (encoded.length() > 700000 && quality >= 30);
 
         if (encoded.length() > 700000) {
-            throw new Exception("Anh qua lon, vui long chon anh nho hon");
+            throw new Exception("Kích thước ảnh quá lớn, vui lòng chọn ảnh nhỏ hơn");
         }
         return encoded;
-    }
-
-    private void saveDataToFirestore(String name, double oldPrice, double newPrice,
-                                     int discountPercent, String description, String imageUrl) {
-        btnSaveFood.setText("Đang lưu dữ liệu...");
-
-        DocumentReference newFoodRef = db.collection("restaurants")
-                .document(currentRestaurantId).collection("foods").document();
-
-        Food newFood = new Food(
-                newFoodRef.getId(), name, description, newPrice,
-                imageUrl,
-                "Chua phan loai", true, 0,
-                oldPrice, newPrice, discountPercent
-        );
-
-        newFoodRef.set(newFood)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Thêm món thành công!", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Lỗi mạng: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    resetButton();
-                });
-    }
-
-    private void resetButton() {
-        btnSaveFood.setEnabled(true);
-        btnSaveFood.setText("LƯU MÓN ĂN");
     }
 }

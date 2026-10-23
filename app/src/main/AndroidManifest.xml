@@ -15,7 +15,7 @@
         android:theme="@style/Theme.FoodOrderApp"
         tools:targetApi="31">
 
-        <activity android:name=".ui.MenuActivity" android:exported="false" />
+        <activity android:name=".ui.MenuActivity" android:exported="true" />
 
         <activity
             android:name=".ui.SignInActivity"
@@ -28,15 +28,15 @@
 
         <activity android:name=".ui.SignUpActivity" android:exported="false" />
         <activity android:name=".ui.MainActivity" android:exported="true" />
-        <activity android:name=".ui.OrderDashboardActivity" android:exported="false" />
-        <activity android:name=".ui.RestaurantReportActivity" android:exported="false" />
+        <activity android:name=".ui.OrderDashboardActivity" android:exported="true" />
+        <activity android:name=".ui.RestaurantReportActivity" android:exported="true" />
         <activity android:name=".ui.OrderItemsActivity" android:exported="false" />
         <activity android:name=".ui.OrderTrackingActivity" android:exported="false" />
         <activity android:name=".ui.ReviewActivity" android:exported="false" />
-        <activity android:name=".ui.EditFoodActivity" android:exported="false" />
-        <activity android:name=".ui.AddFoodActivity" android:exported="false" />
+        <activity android:name=".ui.EditFoodActivity" android:exported="true" />
+        <activity android:name=".ui.AddFoodActivity" android:exported="true" />
         <activity android:name=".ui.activity.FoodDetailActivity" android:exported="false" />
-        <activity android:name=".ui.admin.AdminActivity" android:exported="false" />
+        <activity android:name=".ui.admin.AdminActivity" android:exported="true" />
     </application>
 
 </manifest>

@@ -92,6 +92,22 @@ public class ShoppingcartFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        prefillCustomerInfo();
+        displayListFoodCart();
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (!hidden) {
+            prefillCustomerInfo();
+            displayListFoodCart();
+        }
+    }
+
     private void initViews(View view) {
         tvHeaderAddress = view.findViewById(R.id.tv_header_address);
         tvCartCountBadge = view.findViewById(R.id.tv_cart_count_badge);
@@ -226,7 +242,7 @@ public class ShoppingcartFragment extends Fragment {
 
         String resId = mListFoodCart.get(0).getRestaurantId();
         if (TextUtils.isEmpty(resId)) {
-            tvRestaurantName.setText("Mạnh Tiến Quán");
+            tvRestaurantName.setText("Nhà hàng đối tác");
             return;
         }
 
@@ -241,9 +257,9 @@ public class ShoppingcartFragment extends Fragment {
                             return;
                         }
                     }
-                    tvRestaurantName.setText("Mạnh Tiến Quán");
+                    tvRestaurantName.setText("Nhà hàng đối tác");
                 })
-                .addOnFailureListener(e -> tvRestaurantName.setText("Mạnh Tiến Quán"));
+                .addOnFailureListener(e -> tvRestaurantName.setText("Nhà hàng đối tác"));
     }
 
     private void setupActions() {

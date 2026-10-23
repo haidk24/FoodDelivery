@@ -196,7 +196,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
     }
 
     private void updateStepperStages(Order order) {
-        String status = order.getStatus() == null ? "pending" : order.getStatus().trim().toLowerCase(Locale.ROOT);
+        String status = Order.normalizeStatus(order.getStatus());
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
         String createdTime = order.getCreatedAt() != null ? timeFormat.format(order.getCreatedAt()) : "--:--";
@@ -216,7 +216,8 @@ public class OrderTrackingActivity extends AppCompatActivity {
         ivStep1Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
 
         switch (status) {
-            case "confirmed":
+            case Order.STATUS_PREPARING:
+            case Order.STATUS_CONFIRMED:
                 // Step 1 done, Step 2 active
                 lineStep1To2.setBackgroundColor(colorTertiary);
                 ivStep2Dot.setImageTintList(ColorStateList.valueOf(colorPrimary));
@@ -237,7 +238,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 tvTrackingEta.setText("Quán đang chế biến • Dự kiến giao trong 25-30 phút");
                 break;
 
-            case "shipping":
+            case Order.STATUS_SHIPPING:
                 // Step 1 done, Step 2 done, Step 3 active (Shipping)
                 lineStep1To2.setBackgroundColor(colorTertiary);
                 ivStep2Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
@@ -260,8 +261,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 tvTrackingEta.setText("Tài xế cách bạn 1.2 km • ~8 phút nữa");
                 break;
 
-            case "delivered":
-            case "completed":
+            case Order.STATUS_COMPLETED:
                 // All steps done
                 lineStep1To2.setBackgroundColor(colorTertiary);
                 ivStep2Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
@@ -282,7 +282,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 tvTrackingEta.setText("✔ Đã giao hàng thành công!");
                 break;
 
-            case "cancelled":
+            case Order.STATUS_CANCELLED:
                 lineStep1To2.setBackgroundColor(colorInactive);
                 lineStep2To3.setBackgroundColor(colorInactive);
                 lineStep3To4.setBackgroundColor(colorInactive);
@@ -293,7 +293,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 tvTrackingEta.setText("Đơn hàng đã bị hủy");
                 break;
 
-            case "pending":
+            case Order.STATUS_PENDING:
             default:
                 // Step 1 in progress
                 lineStep1To2.setBackgroundColor(colorInactive);

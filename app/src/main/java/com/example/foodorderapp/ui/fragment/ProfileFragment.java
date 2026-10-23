@@ -20,6 +20,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.util.Locale;
+
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.ui.MainActivity;
@@ -211,7 +213,7 @@ public class ProfileFragment extends Fragment {
         if (user == null) return;
 
         mFirestore.collection("orders")
-                .whereEqualTo("userId", user.getUid())
+                .whereEqualTo("customerId", user.getUid())
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     int completed = 0;
@@ -219,25 +221,20 @@ public class ProfileFragment extends Fragment {
                     for (DocumentSnapshot doc : queryDocumentSnapshots) {
                         String status = doc.getString("status");
                         if (status != null) {
-                            String s = status.toLowerCase();
-                            if (s.contains("hoàn tất") || s.contains("completed") || s.contains("thành công") || s.contains("giao thành công")) {
+                            String s = status.toLowerCase(Locale.ROOT);
+                            if (s.contains("hoàn tất") || s.contains("completed") || s.contains("thành công") || s.contains("hoan_tat")) {
                                 completed++;
-                            } else if (s.contains("đang giao") || s.contains("shipping") || s.contains("dang_giao")) {
+                            } else if (s.contains("đang giao") || s.contains("shipping") || s.contains("dang_giao") || s.contains("delivering") || s.contains("preparing")) {
                                 shipping++;
                             }
                         }
-                    }
-
-                    // Fallback to total documents if completed == 0 for presentation
-                    if (completed == 0 && !queryDocumentSnapshots.isEmpty()) {
-                        completed = queryDocumentSnapshots.size();
                     }
 
                     tvTotalOrdersCount.setText(String.valueOf(completed));
 
                     if (shipping > 0) {
                         badgeShippingContainer.setVisibility(View.VISIBLE);
-                        tvBadgeShippingText.setText(shipping + " đang giao");
+                        tvBadgeShippingText.setText(shipping + " đang xử lý");
                     } else {
                         badgeShippingContainer.setVisibility(View.GONE);
                     }

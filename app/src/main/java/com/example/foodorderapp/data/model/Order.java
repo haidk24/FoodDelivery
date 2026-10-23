@@ -17,6 +17,40 @@ public class Order {
     private String status;
     private String note;
 
+    public static final String STATUS_PENDING = "pending";
+    public static final String STATUS_PREPARING = "preparing";
+    public static final String STATUS_CONFIRMED = "confirmed";
+    public static final String STATUS_SHIPPING = "shipping";
+    public static final String STATUS_COMPLETED = "completed";
+    public static final String STATUS_CANCELLED = "cancelled";
+
+    public static String normalizeStatus(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return STATUS_PENDING;
+        }
+        String s = status.trim().toLowerCase(java.util.Locale.ROOT);
+        if (s.contains("hủy") || s.contains("huy") || s.contains("cancel")) {
+            return STATUS_CANCELLED;
+        }
+        if (s.contains("hoàn") || s.contains("hoan") || s.contains("deliver") || s.contains("complet") || s.contains("thành công") || s.contains("thanh cong")) {
+            return STATUS_COMPLETED;
+        }
+        if (s.contains("giao") || s.contains("ship")) {
+            return STATUS_SHIPPING;
+        }
+        if (s.contains("chuẩn bị") || s.contains("chuan bi") || s.contains("nấu") || s.contains("nau") || s.contains("prepar") || s.contains("confirm")) {
+            return STATUS_PREPARING;
+        }
+        if (s.contains("chờ") || s.contains("cho") || s.contains("pend")) {
+            return STATUS_PENDING;
+        }
+        return s;
+    }
+
+    public String getNormalizedStatus() {
+        return normalizeStatus(this.status);
+    }
+
     public String getCustomerId() {
         return customerId;
     }
@@ -106,10 +140,10 @@ public class Order {
     }
 
     public Address getDeliveryAddress() {
-        return deliveryAddress;
+        return deliveryAddress instanceof Address ? (Address) deliveryAddress : null;
     }
 
-    public void setDeliveryAddress(Address deliveryAddress) {
+    public void setDeliveryAddress(Object deliveryAddress) {
         this.deliveryAddress = deliveryAddress;
     }
 
@@ -140,7 +174,7 @@ public class Order {
         this.reviewed = reviewed;
     }
 
-    private Address deliveryAddress; // Kiểu map
+    private Object deliveryAddress;
 
     @ServerTimestamp
     private Date createdAt;

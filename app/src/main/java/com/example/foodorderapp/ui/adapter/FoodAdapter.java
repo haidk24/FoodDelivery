@@ -9,13 +9,16 @@ import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -26,19 +29,108 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder> {
 
-    private Context context;
-    private List<Food> foodList;
+    private final Context context;
+    private final List<Food> originalList;
+    private final List<Food> displayedList;
     private String restaurantId;
+    private final NumberFormat currencyFormat = NumberFormat.getInstance(new Locale("vi", "VN"));
+    private OnFoodCountChangedListener countListener;
+
+    public interface OnFoodCountChangedListener {
+        void onCountChanged(int activeCount, int hiddenCount, int totalCount, int mainCount, int appCount, int drinkCount, int dessertCount);
+    }
 
     public FoodAdapter(Context context, List<Food> foodList, String restaurantId) {
         this.context = context;
-        this.foodList = foodList;
+        this.originalList = new ArrayList<>();
+        if (foodList != null) {
+            this.originalList.addAll(foodList);
+        }
+        this.displayedList = new ArrayList<>(this.originalList);
         this.restaurantId = restaurantId == null ? "" : restaurantId;
+    }
+
+    public void setRestaurantId(String restaurantId) {
+        this.restaurantId = restaurantId == null ? "" : restaurantId;
+    }
+
+    public void setCountListener(OnFoodCountChangedListener listener) {
+        this.countListener = listener;
+        notifyCountChanged();
+    }
+
+    public void updateData(List<Food> newFoods) {
+        if (newFoods != originalList) {
+            originalList.clear();
+            if (newFoods != null) {
+                originalList.addAll(newFoods);
+            }
+        }
+        filter("", "Tất cả");
+    }
+
+    private String stripAccents(String s) {
+        if (s == null) return "";
+        String normalized = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD);
+        String withoutAccents = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return withoutAccents.replace('đ', 'd').replace('Đ', 'd').toLowerCase();
+    }
+
+    public void filter(String query, String category) {
+        displayedList.clear();
+        String rawQ = query == null ? "" : query.trim().toLowerCase();
+        String normQ = stripAccents(rawQ);
+        boolean isAllCategory = category == null || category.equalsIgnoreCase("Tất cả") || category.isEmpty();
+
+        for (Food f : originalList) {
+            String nameRaw = f.getName() != null ? f.getName().toLowerCase() : "";
+            String nameNorm = stripAccents(nameRaw);
+            String descRaw = f.getDescription() != null ? f.getDescription().toLowerCase() : "";
+            String descNorm = stripAccents(descRaw);
+
+            boolean matchesQuery = rawQ.isEmpty()
+                    || nameRaw.contains(rawQ)
+                    || nameNorm.contains(normQ)
+                    || descRaw.contains(rawQ)
+                    || descNorm.contains(normQ);
+
+            boolean matchesCategory = isAllCategory
+                    || (f.getCategory() != null && f.getCategory().equalsIgnoreCase(category));
+
+            if (matchesQuery && matchesCategory) {
+                displayedList.add(f);
+            }
+        }
+        notifyDataSetChanged();
+        notifyCountChanged();
+    }
+
+    private void notifyCountChanged() {
+        if (countListener != null) {
+            int active = 0;
+            int hidden = 0;
+            int main = 0;
+            int app = 0;
+            int drink = 0;
+            int dessert = 0;
+            for (Food f : originalList) {
+                if (f.isAvailable()) active++;
+                else hidden++;
+
+                String cat = f.getCategory() == null ? "" : f.getCategory().toLowerCase();
+                if (cat.contains("chính")) main++;
+                else if (cat.contains("khai")) app++;
+                else if (cat.contains("uống") || cat.contains("nước")) drink++;
+                else if (cat.contains("tráng")) dessert++;
+            }
+            countListener.onCountChanged(active, hidden, originalList.size(), main, app, drink, dessert);
+        }
     }
 
     @NonNull
@@ -50,135 +142,230 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull FoodViewHolder holder, int position) {
-        Food food = foodList.get(position);
+        Food food = displayedList.get(position);
+        boolean isAvailable = food.isAvailable();
 
-        // 1. SET TÊN MÓN
-        holder.tvFoodName.setText(food.getName());
+        // 1. Tên món & tag (Ẩn)
+        holder.tvFoodName.setText(food.getName() != null ? food.getName() : "");
+        holder.tvHiddenTag.setVisibility(isAvailable ? View.GONE : View.VISIBLE);
 
-        // 2. XỬ LÝ MÔ TẢ (Ẩn đi nếu chủ quán không nhập)
-        if (food.getDescription() != null && !food.getDescription().isEmpty()) {
-            holder.tvFoodDesc.setText(food.getDescription());
-            holder.tvFoodDesc.setVisibility(View.VISIBLE);
+        // 2. Mô tả & Banner cảnh báo khi ẩn
+        if (isAvailable) {
+            holder.layoutHiddenAlert.setVisibility(View.GONE);
+            if (food.getDescription() != null && !food.getDescription().trim().isEmpty()) {
+                holder.tvFoodDesc.setText(food.getDescription());
+                holder.tvFoodDesc.setVisibility(View.VISIBLE);
+            } else {
+                holder.tvFoodDesc.setVisibility(View.GONE);
+            }
         } else {
+            // Khi món bị ẩn, hiển thị banner cảnh báo
+            holder.layoutHiddenAlert.setVisibility(View.VISIBLE);
             holder.tvFoodDesc.setVisibility(View.GONE);
         }
 
-        // 3. FORMAT VA SET GIA (gia moi, gia cu, discount)
-        NumberFormat format = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+        // 3. Huy hiệu trạng thái trên ảnh
+        if (isAvailable) {
+            holder.tvBadgeStatus.setText("MỞ BÁN");
+            holder.tvBadgeStatus.setBackgroundResource(R.drawable.bg_badge_food_active);
+        } else {
+            holder.tvBadgeStatus.setText("Tạm ẩn");
+            holder.tvBadgeStatus.setBackgroundResource(R.drawable.bg_badge_food_hidden);
+        }
+
+        // 4. Giá & Khuyến mãi
         double newPrice = food.getNewPrice();
         double oldPrice = food.getOldPrice();
-        int discountPercent = food.getDiscountPercent();
+        int discount = food.getDiscountPercent();
 
-        holder.tvFoodNewPrice.setText(format.format(newPrice));
+        holder.tvFoodNewPrice.setText(currencyFormat.format(newPrice) + " đ");
 
-        holder.tvFoodOldPrice.setVisibility(View.VISIBLE);
-        holder.tvFoodDiscount.setVisibility(View.VISIBLE);
-
-        if (oldPrice > newPrice) {
-            holder.tvFoodOldPrice.setText(format.format(oldPrice));
+        if (oldPrice > newPrice && oldPrice > 0) {
+            holder.tvFoodOldPrice.setText(currencyFormat.format(oldPrice) + " đ");
             holder.tvFoodOldPrice.setPaintFlags(holder.tvFoodOldPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-            holder.tvFoodDiscount.setText("-" + Math.max(discountPercent, 0) + "%");
+            holder.tvFoodOldPrice.setVisibility(View.VISIBLE);
+
+            holder.tvFoodDiscount.setText("-" + Math.max(discount, 1) + "%");
+            holder.tvFoodDiscount.setVisibility(View.VISIBLE);
         } else {
-            holder.tvFoodOldPrice.setText(format.format(oldPrice));
-            holder.tvFoodOldPrice.setPaintFlags(holder.tvFoodOldPrice.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
-            holder.tvFoodDiscount.setText("0%");
+            holder.tvFoodOldPrice.setVisibility(View.GONE);
+            holder.tvFoodDiscount.setVisibility(View.GONE);
         }
 
-        // 4. LOAD ẢNH BẰNG GLIDE
-        if (food.getImageUrl() != null && !food.getImageUrl().isEmpty()) {
-            if (food.getImageUrl().startsWith("data:image")) {
-                int commaIndex = food.getImageUrl().indexOf(',');
-                if (commaIndex > 0 && commaIndex < food.getImageUrl().length() - 1) {
-                    String base64Part = food.getImageUrl().substring(commaIndex + 1);
-                    byte[] decoded = Base64.decode(base64Part, Base64.DEFAULT);
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
-                    if (bitmap != null) {
-                        holder.imgFood.setImageBitmap(bitmap);
-                    } else {
-                        holder.imgFood.setImageDrawable(null);
-                    }
-                } else {
-                    holder.imgFood.setImageDrawable(null);
+        // 5. Load ảnh món
+        loadFoodImage(food.getImageUrl(), holder.imgFood);
+
+        // 6. Switch & Trạng thái phục vụ
+        holder.switchAvailability.setOnCheckedChangeListener(null);
+        holder.switchAvailability.setChecked(isAvailable);
+        holder.tvAvailabilityLabel.setText(isAvailable ? "Đang phục vụ" : "Đang tạm ẩn");
+
+        holder.switchAvailability.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            updateFoodAvailability(food, isChecked);
+        });
+
+        // 7. Nút hành động phía dưới: Sửa / Bán lại / Xóa
+        if (isAvailable) {
+            holder.btnEdit.setVisibility(View.VISIBLE);
+            holder.btnReactivate.setVisibility(View.GONE);
+        } else {
+            holder.btnEdit.setVisibility(View.GONE);
+            holder.btnReactivate.setVisibility(View.VISIBLE);
+        }
+
+        holder.btnEdit.setOnClickListener(v -> openEditFood(food));
+        holder.btnReactivate.setOnClickListener(v -> updateFoodAvailability(food, true));
+        holder.btnDelete.setOnClickListener(v -> confirmDeleteFood(food));
+
+        // 8. Menu 3 chấm
+        holder.btnOptions.setOnClickListener(v -> showPopupMenu(holder.btnOptions, food));
+    }
+
+    private void loadFoodImage(String imageUrl, ImageView imageView) {
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            if (imageUrl.startsWith("data:image")) {
+                int commaIndex = imageUrl.indexOf(',');
+                if (commaIndex > 0 && commaIndex < imageUrl.length() - 1) {
+                    try {
+                        String base64Part = imageUrl.substring(commaIndex + 1);
+                        byte[] decoded = Base64.decode(base64Part, Base64.DEFAULT);
+                        Bitmap bitmap = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
+                        if (bitmap != null) {
+                            imageView.setImageBitmap(bitmap);
+                            return;
+                        }
+                    } catch (Exception ignored) {}
                 }
             } else {
-                Glide.with(context).load(food.getImageUrl()).centerCrop().into(holder.imgFood);
+                Glide.with(context)
+                        .load(imageUrl)
+                        .placeholder(R.drawable.bg_search_input_gray)
+                        .centerCrop()
+                        .into(imageView);
+                return;
             }
-        } else {
-            holder.imgFood.setBackgroundColor(android.graphics.Color.parseColor("#F0F0F0"));
-            holder.imgFood.setImageDrawable(null);
+        }
+        imageView.setImageResource(R.drawable.ic_restaurant);
+        imageView.setBackgroundColor(0xFFF1F5F9);
+    }
+
+    private void updateFoodAvailability(Food food, boolean available) {
+        if (restaurantId == null || restaurantId.isEmpty() || food.getFoodId() == null) {
+            Toast.makeText(context, "Không xác định được nhà hàng!", Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        // 5. HIỆU ỨNG THỊ GIÁC (Làm mờ thẻ nếu trạng thái là Tạm ẩn)
-        holder.itemView.setAlpha(food.isAvailable() ? 1.0f : 0.5f);
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("restaurants")
+                .document(restaurantId)
+                .collection("foods")
+                .document(food.getFoodId())
+                .update("isAvailable", available)
+                .addOnSuccessListener(aVoid -> {
+                    food.setAvailable(available);
+                    notifyDataSetChanged();
+                    notifyCountChanged();
+                    String msg = available ? "Đã mở bán lại món: " + food.getName() : "Đã tạm ẩn món: " + food.getName();
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(context, "Cập nhật trạng thái thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    notifyDataSetChanged();
+                });
+    }
 
-        // 6. XỬ LÝ MENU 3 CHẤM (Sửa - Ẩn - Xóa)
-        holder.btnOptions.setOnClickListener(v -> {
-            PopupMenu popup = new PopupMenu(context, holder.btnOptions);
-            popup.getMenu().add("Sửa món");
-            popup.getMenu().add(food.isAvailable() ? "Tạm ẩn" : "Mở bán lại");
-            popup.getMenu().add("Xóa vĩnh viễn");
+    private void openEditFood(Food food) {
+        Intent intent = new Intent(context, EditFoodActivity.class);
+        intent.putExtra("EXTRA_RESTAURANT_ID", restaurantId);
+        intent.putExtra("EXTRA_FOOD_ID", food.getFoodId());
+        intent.putExtra("EXTRA_NAME", food.getName());
+        intent.putExtra("EXTRA_PRICE", food.getPrice());
+        intent.putExtra("EXTRA_OLD_PRICE", food.getOldPrice());
+        intent.putExtra("EXTRA_NEW_PRICE", food.getNewPrice());
+        intent.putExtra("EXTRA_DISCOUNT", food.getDiscountPercent());
+        intent.putExtra("EXTRA_DESC", food.getDescription());
+        intent.putExtra("EXTRA_IMAGE_URL", food.getImageUrl());
+        intent.putExtra("EXTRA_CATEGORY", food.getCategory());
+        intent.putExtra("EXTRA_IS_AVAILABLE", food.isAvailable());
+        context.startActivity(intent);
+    }
 
-            popup.setOnMenuItemClickListener(item -> {
-                if (restaurantId.isEmpty()) {
-                    Toast.makeText(context, "Khong tim thay nha hang hien tai", Toast.LENGTH_SHORT).show();
-                    return true;
-                }
+    private void confirmDeleteFood(Food food) {
+        new AlertDialog.Builder(context)
+                .setTitle("Xóa món ăn")
+                .setMessage("Bạn có chắc chắn muốn xóa món \"" + food.getName() + "\" khỏi thực đơn?")
+                .setPositiveButton("Xóa", (dialog, which) -> {
+                    if (restaurantId.isEmpty() || food.getFoodId() == null) return;
+                    FirebaseFirestore.getInstance().collection("restaurants")
+                            .document(restaurantId).collection("foods").document(food.getFoodId())
+                            .delete()
+                            .addOnSuccessListener(aVoid -> {
+                                originalList.remove(food);
+                                displayedList.remove(food);
+                                notifyDataSetChanged();
+                                notifyCountChanged();
+                                Toast.makeText(context, "Đã xóa món thành công!", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> Toast.makeText(context, "Lỗi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
 
-                FirebaseFirestore db = FirebaseFirestore.getInstance();
-                DocumentReference foodRef = db.collection("restaurants")
-                        .document(restaurantId).collection("foods").document(food.getFoodId());
+    private void showPopupMenu(View anchor, Food food) {
+        PopupMenu popup = new PopupMenu(context, anchor);
+        popup.getMenu().add(0, 1, 0, "Sửa món");
+        popup.getMenu().add(0, 2, 1, food.isAvailable() ? "Tạm ẩn món" : "Mở bán lại");
+        popup.getMenu().add(0, 3, 2, "Xóa món");
 
-                if (item.getTitle().equals("Sửa món")) {
-                    // Chuyển sang màn hình Edit và gửi kèm dữ liệu cũ
-                    Intent intent = new Intent(context, EditFoodActivity.class);
-                    intent.putExtra("EXTRA_RESTAURANT_ID", restaurantId);
-                    intent.putExtra("EXTRA_FOOD_ID", food.getFoodId());
-                    intent.putExtra("EXTRA_NAME", food.getName());
-                    intent.putExtra("EXTRA_PRICE", food.getPrice());
-                    intent.putExtra("EXTRA_OLD_PRICE", food.getOldPrice());
-                    intent.putExtra("EXTRA_NEW_PRICE", food.getNewPrice());
-                    intent.putExtra("EXTRA_DISCOUNT", food.getDiscountPercent());
-                    intent.putExtra("EXTRA_DESC", food.getDescription());
-                    intent.putExtra("EXTRA_IMAGE_URL", food.getImageUrl());
-                    context.startActivity(intent);
-                }
-                else if (item.getTitle().equals("Tạm ẩn") || item.getTitle().equals("Mở bán lại")) {
-                    // Đổi trạng thái isAvailable
-                    boolean newStatus = !food.isAvailable();
-                    foodRef.update("isAvailable", newStatus)
-                            .addOnSuccessListener(a -> Toast.makeText(context, "Đã cập nhật trạng thái!", Toast.LENGTH_SHORT).show());
-                }
-                else if (item.getTitle().equals("Xóa vĩnh viễn")) {
-                    // Xóa hoàn toàn khỏi database
-                    foodRef.delete().addOnSuccessListener(a -> Toast.makeText(context, "Đã xóa món ăn!", Toast.LENGTH_SHORT).show());
-                }
-                return true;
-            });
-            popup.show();
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                openEditFood(food);
+            } else if (item.getItemId() == 2) {
+                updateFoodAvailability(food, !food.isAvailable());
+            } else if (item.getItemId() == 3) {
+                confirmDeleteFood(food);
+            }
+            return true;
         });
+        popup.show();
     }
 
     @Override
     public int getItemCount() {
-        return foodList != null ? foodList.size() : 0;
+        return displayedList != null ? displayedList.size() : 0;
     }
 
-    // KHUÔN GIỮ VIEW (Ánh xạ các thành phần từ file XML)
     public static class FoodViewHolder extends RecyclerView.ViewHolder {
-        TextView tvFoodName, tvFoodNewPrice, tvFoodOldPrice, tvFoodDiscount, tvFoodDesc;
         ImageView imgFood;
-        ImageButton btnOptions;
+        TextView tvBadgeStatus;
+        TextView tvFoodName, tvHiddenTag;
+        FrameLayout btnOptions;
+        TextView tvFoodDesc;
+        LinearLayout layoutHiddenAlert;
+        TextView tvFoodNewPrice, tvFoodOldPrice, tvFoodDiscount;
+        SwitchCompat switchAvailability;
+        TextView tvAvailabilityLabel;
+        LinearLayout btnEdit, btnReactivate;
+        FrameLayout btnDelete;
 
-        public FoodViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvFoodName = itemView.findViewById(R.id.tvFoodName);
-            tvFoodNewPrice = itemView.findViewById(R.id.tvFoodNewPrice);
-            tvFoodOldPrice = itemView.findViewById(R.id.tvFoodOldPrice);
-            tvFoodDiscount = itemView.findViewById(R.id.tvFoodDiscount);
-            tvFoodDesc = itemView.findViewById(R.id.tvFoodDesc);
-            imgFood = itemView.findViewById(R.id.imgFood);
-            btnOptions = itemView.findViewById(R.id.btnOptions);
+        public FoodViewHolder(@NonNull View v) {
+            super(v);
+            imgFood               = v.findViewById(R.id.imgFood);
+            tvBadgeStatus         = v.findViewById(R.id.tvBadgeStatus);
+            tvFoodName            = v.findViewById(R.id.tvFoodName);
+            tvHiddenTag           = v.findViewById(R.id.tvHiddenTag);
+            btnOptions            = v.findViewById(R.id.btnOptions);
+            tvFoodDesc            = v.findViewById(R.id.tvFoodDesc);
+            layoutHiddenAlert     = v.findViewById(R.id.layoutHiddenAlert);
+            tvFoodNewPrice        = v.findViewById(R.id.tvFoodNewPrice);
+            tvFoodOldPrice        = v.findViewById(R.id.tvFoodOldPrice);
+            tvFoodDiscount        = v.findViewById(R.id.tvFoodDiscount);
+            switchAvailability    = v.findViewById(R.id.switchAvailability);
+            tvAvailabilityLabel   = v.findViewById(R.id.tvAvailabilityLabel);
+            btnEdit               = v.findViewById(R.id.btnEdit);
+            btnReactivate         = v.findViewById(R.id.btnReactivate);
+            btnDelete             = v.findViewById(R.id.btnDelete);
         }
     }
 }
-

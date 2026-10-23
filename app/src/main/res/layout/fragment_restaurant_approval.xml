@@ -1,22 +1,242 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F2F2F7">
+    android:background="@color/colorBackground">
 
-    <!-- 3 tabs: Chờ duyệt / Hoạt động / Tạm ngưng -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tab_layout"
+    <!-- Top Search & Filter Bar -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
-        style="@style/Widget.MaterialComponents.TabLayout"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp">
 
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/view_pager"
+        <!-- Search Input -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_pill_filter_week"
+            android:backgroundTint="#F1F5F9"
+            android:paddingHorizontal="12dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_search"
+                app:tint="#64748B" />
+
+            <EditText
+                android:id="@+id/edt_search"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:background="@null"
+                android:hint="Tìm tên quán, chủ sở hữu, số ĐT..."
+                android:textColorHint="#94A3B8"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="13sp"
+                android:inputType="text"
+                android:imeOptions="actionSearch" />
+        </LinearLayout>
+
+        <!-- Filter / Tune Button -->
+        <FrameLayout
+            android:id="@+id/btn_filter"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_tab_active_pill"
+            android:backgroundTint="#F1F5F9"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_tune"
+                app:tint="#334155" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- 3 Custom Tabs: Chờ duyệt | Hoạt động | Tạm ngưng -->
+    <LinearLayout
+        android:id="@+id/layout_tab_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp">
+
+        <!-- Tab 1: Chờ duyệt -->
+        <LinearLayout
+            android:id="@+id/tab_pending"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/bg_tab_active_pill"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/tv_tab_pending_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chờ duyệt"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#962808" />
+
+            <TextView
+                android:id="@+id/tv_badge_pending"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_badge_circle_orange"
+                android:gravity="center"
+                android:text="1"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:textColor="@color/white" />
+        </LinearLayout>
+
+        <!-- Tab 2: Hoạt động -->
+        <LinearLayout
+            android:id="@+id/tab_active"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/tv_tab_active_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hoạt động"
+                android:textSize="13sp"
+                android:textColor="#334155" />
+
+            <TextView
+                android:id="@+id/tv_badge_active"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_badge_pill_gray"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="1dp"
+                android:text="24"
+                android:textSize="11sp"
+                android:textColor="#475569" />
+        </LinearLayout>
+
+        <!-- Tab 3: Tạm ngưng -->
+        <LinearLayout
+            android:id="@+id/tab_suspended"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/tv_tab_suspended_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tạm ngưng"
+                android:textSize="13sp"
+                android:textColor="#334155" />
+
+            <TextView
+                android:id="@+id/tv_badge_suspended"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_badge_pill_gray"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="1dp"
+                android:text="3"
+                android:textSize="11sp"
+                android:textColor="#475569" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Content: RecyclerView of Restaurants -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_restaurants"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="6dp"
+            android:paddingBottom="24dp"
+            android:clipToPadding="false" />
+
+        <!-- Empty State -->
+        <LinearLayout
+            android:id="@+id/layout_empty_state"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_storefront"
+                app:tint="#94A3B8" />
+
+            <TextView
+                android:id="@+id/tv_empty_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Không tìm thấy nhà hàng nào"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/colorTextPrimary" />
+
+            <TextView
+                android:id="@+id/tv_empty_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Hãy thử tìm kiếm với từ khóa khác"
+                android:textSize="13sp"
+                android:textColor="#64748B" />
+        </LinearLayout>
+
+        <!-- Loading spinner -->
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/colorPrimary"
+            android:visibility="gone" />
+    </FrameLayout>
 
 </LinearLayout>
