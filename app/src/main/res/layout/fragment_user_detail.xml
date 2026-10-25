@@ -195,14 +195,5 @@
             android:layout_marginBottom="8dp"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
-        <Button
-            android:id="@+id/btn_send_notification"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:text="Gửi thông báo"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-
     </LinearLayout>
 </ScrollView>

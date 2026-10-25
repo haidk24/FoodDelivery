@@ -361,7 +361,7 @@
                                         android:id="@+id/tv_restaurant_name"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Mạnh Tiến Quán"
+                                        android:text="Đang tải thông tin quán"
                                         android:textSize="14sp"
                                         android:textStyle="bold"
                                         android:textColor="@color/colorTextPrimary"

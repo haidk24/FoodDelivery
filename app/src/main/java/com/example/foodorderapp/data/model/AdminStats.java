@@ -6,6 +6,7 @@ public class AdminStats {
     public long totalOrdersToday;
     public long revenueToday;
     public long pendingRestaurants;
+    public long revenueThisWeek;
 
     public AdminStats() {}
 
@@ -17,5 +18,11 @@ public class AdminStats {
         this.totalOrdersToday = totalOrdersToday;
         this.revenueToday = revenueToday;
         this.pendingRestaurants = pendingRestaurants;
+    }
+
+    public AdminStats(long totalUsers, long totalRestaurants, long totalOrdersToday,
+                      long revenueToday, long pendingRestaurants, long revenueThisWeek) {
+        this(totalUsers, totalRestaurants, totalOrdersToday, revenueToday, pendingRestaurants);
+        this.revenueThisWeek = revenueThisWeek;
     }
 }

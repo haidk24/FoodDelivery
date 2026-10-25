@@ -28,6 +28,7 @@ import com.example.foodorderapp.data.database.FoodDatabase;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.data.model.User;
 import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
@@ -172,17 +173,22 @@ public class ShoppingcartFragment extends Fragment {
             return;
         }
 
-        String displayName = document.getString("displayName");
+        User profile = document.toObject(User.class);
+        if (profile == null) {
+            return;
+        }
+
+        String displayName = profile.getDisplayName();
         if (!TextUtils.isEmpty(displayName)) {
             tvCustomerName.setText(displayName);
         }
 
-        String phone = document.getString("phone");
+        String phone = profile.getPhone();
         if (!TextUtils.isEmpty(phone)) {
             tvCustomerPhone.setText(phone);
         }
 
-        String address = document.getString("address");
+        String address = profile.getAddress();
         if (!TextUtils.isEmpty(address)) {
             tvCustomerAddress.setText(address);
             if (tvHeaderAddress != null) {

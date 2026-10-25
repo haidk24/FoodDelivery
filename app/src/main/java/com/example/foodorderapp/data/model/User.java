@@ -5,6 +5,7 @@ public class User {
     private String displayName;
     private String email;
     private String phone ;
+    private String address;
     private String role;       // customer | restaurant | shipper | admin
     private String status;     // active | banned
     private int orderCount;
@@ -31,11 +32,11 @@ public class User {
     }
 
     public String getDisplayName() {
-        return displayName;
+        return cleanText(displayName);
     }
 
     public void setDisplayName(String displayName) {
-        this.displayName = displayName;
+        this.displayName = cleanText(displayName);
     }
 
     public String getEmail() {
@@ -47,11 +48,19 @@ public class User {
     }
 
     public String getPhone() {
-        return phone;
+        return cleanText(phone);
     }
 
     public void setPhone(String phone) {
-        this.phone = phone;
+        this.phone = cleanText(phone);
+    }
+
+    public String getAddress() {
+        return cleanText(address);
+    }
+
+    public void setAddress(String address) {
+        this.address = cleanText(address);
     }
 
     public String getRole() {
@@ -96,7 +105,7 @@ public class User {
     private String banReason;
     private String bannedAt;
     private String bannedBy;
-    private boolean phoneVerified = true;
+    private boolean phoneVerified;
     private String lastOrderTime;
     private String joinTimeText;
 
@@ -129,5 +138,9 @@ public class User {
 
     public boolean isBanned() {
         return "banned".equals(status);
+    }
+
+    private String cleanText(String value) {
+        return value == null ? "" : value.trim();
     }
 }

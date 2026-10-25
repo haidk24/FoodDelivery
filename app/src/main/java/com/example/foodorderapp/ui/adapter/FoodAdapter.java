@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
+import com.example.foodorderapp.data.model.FoodCategory;
 import com.example.foodorderapp.ui.EditFoodActivity;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -42,6 +43,8 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     private final NumberFormat currencyFormat = NumberFormat.getInstance(new Locale("vi", "VN"));
     private OnFoodCountChangedListener countListener;
     private String availabilityFilter = "Tất cả";
+    private String currentQuery = "";
+    private String currentCategory = "Tất cả";
 
     public interface OnFoodCountChangedListener {
         void onCountChanged(int activeCount, int hiddenCount, int totalCount, int mainCount, int appCount, int drinkCount, int dessertCount);
@@ -77,7 +80,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
                 originalList.addAll(newFoods);
             }
         }
-        filter("", "Tất cả");
+        filter(currentQuery, currentCategory);
     }
 
     private String stripAccents(String s) {
@@ -88,34 +91,48 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     }
 
     public void filter(String query, String category) {
+        currentQuery = query == null ? "" : query;
+        currentCategory = category == null ? "Tất cả" : category;
         displayedList.clear();
-        String rawQ = query == null ? "" : query.trim().toLowerCase();
-        String normQ = stripAccents(rawQ);
-        boolean isAllCategory = category == null || category.equalsIgnoreCase("Tất cả") || category.isEmpty();
 
         for (Food f : originalList) {
-            String nameRaw = f.getName() != null ? f.getName().toLowerCase() : "";
-            String nameNorm = stripAccents(nameRaw);
-            String descRaw = f.getDescription() != null ? f.getDescription().toLowerCase() : "";
-            String descNorm = stripAccents(descRaw);
-
-            boolean matchesQuery = rawQ.isEmpty()
-                    || nameRaw.contains(rawQ)
-                    || nameNorm.contains(normQ)
-                    || descRaw.contains(rawQ)
-                    || descNorm.contains(normQ);
-
-            boolean matchesCategory = isAllCategory
-                    || (f.getCategory() != null && f.getCategory().equalsIgnoreCase(category));
-
-            boolean matchesAvailability = "Tất cả".equals(availabilityFilter)
-                    || ("Đang bán".equals(availabilityFilter) == f.isAvailable());
-            if (matchesQuery && matchesCategory && matchesAvailability) {
+            if (matchesQuery(f) && matchesAvailability(f) && matchesCategory(f, currentCategory)) {
                 displayedList.add(f);
             }
         }
         notifyDataSetChanged();
         notifyCountChanged();
+    }
+
+    private boolean matchesQuery(Food food) {
+        String rawQuery = currentQuery.trim().toLowerCase();
+        if (rawQuery.isEmpty()) return true;
+
+        String normalizedQuery = stripAccents(rawQuery);
+        String name = food.getName() == null ? "" : food.getName().toLowerCase();
+        String description = food.getDescription() == null ? "" : food.getDescription().toLowerCase();
+        return name.contains(rawQuery)
+                || stripAccents(name).contains(normalizedQuery)
+                || description.contains(rawQuery)
+                || stripAccents(description).contains(normalizedQuery);
+    }
+
+    private boolean matchesAvailability(Food food) {
+        return "Tất cả".equals(availabilityFilter)
+                || ("Đang bán".equals(availabilityFilter) == food.isAvailable());
+    }
+
+    private boolean matchesCategory(Food food, String requestedCategory) {
+        return FoodCategory.matches(food.getCategory(), requestedCategory);
+    }
+
+    private String categoryKey(String category) {
+        String normalized = FoodCategory.normalize(category);
+        if (FoodCategory.MAIN.equals(normalized)) return "main";
+        if (FoodCategory.APPETIZER.equals(normalized)) return "appetizer";
+        if (FoodCategory.DRINK.equals(normalized)) return "drink";
+        if (FoodCategory.DESSERT.equals(normalized)) return "dessert";
+        return "main";
     }
 
     private void notifyCountChanged() {
@@ -126,17 +143,22 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
             int app = 0;
             int drink = 0;
             int dessert = 0;
+            int totalForChips = 0;
             for (Food f : originalList) {
                 if (f.isAvailable()) active++;
                 else hidden++;
 
-                String cat = f.getCategory() == null ? "" : f.getCategory().toLowerCase();
-                if (cat.contains("chính")) main++;
-                else if (cat.contains("khai")) app++;
-                else if (cat.contains("uống") || cat.contains("nước")) drink++;
-                else if (cat.contains("tráng")) dessert++;
+                // Chip danh mục phản ánh đúng các món còn lại sau bộ lọc trạng thái và tìm kiếm.
+                if (!matchesAvailability(f) || !matchesQuery(f)) continue;
+                totalForChips++;
+
+                String category = categoryKey(f.getCategory());
+                if ("main".equals(category)) main++;
+                else if ("appetizer".equals(category)) app++;
+                else if ("drink".equals(category)) drink++;
+                else if ("dessert".equals(category)) dessert++;
             }
-            countListener.onCountChanged(active, hidden, originalList.size(), main, app, drink, dessert);
+            countListener.onCountChanged(active, hidden, totalForChips, main, app, drink, dessert);
         }
     }
 
@@ -270,8 +292,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
                 .update("isAvailable", available)
                 .addOnSuccessListener(aVoid -> {
                     food.setAvailable(available);
-                    notifyDataSetChanged();
-                    notifyCountChanged();
+                    filter(currentQuery, currentCategory);
                     String msg = available ? "Đã mở bán lại món: " + food.getName() : "Đã tạm ẩn món: " + food.getName();
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
                 })
@@ -308,9 +329,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
                             .delete()
                             .addOnSuccessListener(aVoid -> {
                                 originalList.remove(food);
-                                displayedList.remove(food);
-                                notifyDataSetChanged();
-                                notifyCountChanged();
+                                filter(currentQuery, currentCategory);
                                 Toast.makeText(context, "Đã xóa món thành công!", Toast.LENGTH_SHORT).show();
                             })
                             .addOnFailureListener(e -> Toast.makeText(context, "Lỗi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show());

@@ -187,7 +187,7 @@ public class OrderItemsActivity extends AppCompatActivity {
         // Customer
         tvCustomerName.setText(safeText(order.getCustomerName(), "Khách hàng"));
         tvCustomerPhone.setText(safeText(order.getCustomerPhone(), "Chưa có SĐT"));
-        tvCustomerAddress.setText(safeText(order.getCustomerAddress(), "Chưa có địa chỉ"));
+        tvCustomerAddress.setText(safeText(order.getDeliveryAddressText(), "Chưa có địa chỉ"));
 
         // Payment
         double subtotal = 0;
@@ -337,7 +337,7 @@ public class OrderItemsActivity extends AppCompatActivity {
                         com.example.foodorderapp.data.model.Restaurant r = doc.toObject(com.example.foodorderapp.data.model.Restaurant.class);
                         String name = r != null && !TextUtils.isEmpty(r.getName()) ? r.getName() : doc.getString("name");
                         String address = r != null ? r.getAddressText() : "Chưa cập nhật";
-                        String phone = doc.getString("phone");
+                        String phone = r != null ? r.getPhone() : "";
                         if (!TextUtils.isEmpty(name)) tvRestaurantName.setText(name);
                         if (!TextUtils.isEmpty(address) && !"Chua cap nhat".equals(address)) tvRestaurantAddress.setText(address);
                         if (!TextUtils.isEmpty(phone)) restaurantPhone = phone;
@@ -377,7 +377,7 @@ public class OrderItemsActivity extends AppCompatActivity {
         intent.putExtra("EXTRA_STATUS", order.getStatus());
         intent.putExtra("EXTRA_CUSTOMER_NAME", order.getCustomerName());
         intent.putExtra("EXTRA_CUSTOMER_PHONE", order.getCustomerPhone());
-        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getCustomerAddress());
+        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getDeliveryAddressText());
         intent.putExtra("EXTRA_RESTAURANT_ID", order.getRestaurantId());
         startActivity(intent);
     }

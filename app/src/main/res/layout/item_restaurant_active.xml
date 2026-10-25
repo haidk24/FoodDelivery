@@ -52,7 +52,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Mạnh Tiến Quán – C..."
+                        android:text="Đang tải thông tin quán"
                         android:textSize="15sp"
                         android:textStyle="bold"
                         android:textColor="@color/colorTextPrimary"
@@ -109,7 +109,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
-                        android:text="• 128 đánh giá • 45 món"
+                        android:text="Chưa có dữ liệu"
                         android:textSize="11sp"
                         android:textColor="#64748B" />
                 </LinearLayout>
@@ -145,7 +145,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="64"
+                    android:text="—"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@color/colorTextPrimary" />
@@ -176,7 +176,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="8.4M"
+                    android:text="—"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#C2410C" />
@@ -207,7 +207,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="0.8%"
+                    android:text="—"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#16A34A" />

@@ -24,6 +24,7 @@ import java.util.Locale;
 
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
+import com.example.foodorderapp.data.model.User;
 import com.example.foodorderapp.ui.MainActivity;
 import com.example.foodorderapp.ui.SignInActivity;
 import com.google.android.material.button.MaterialButton;
@@ -176,7 +177,7 @@ public class ProfileFragment extends Fragment {
 
         // Load saved address
         if (sharedPreferences != null) {
-            String savedAddress = sharedPreferences.getString("delivery_address", "Cầu Giấy, Hà Nội (Mặc định)");
+            String savedAddress = sharedPreferences.getString("delivery_address", "Chưa cập nhật địa chỉ");
             tvProfileAddress.setText(savedAddress);
             String savedPhone = sharedPreferences.getString("user_phone", "");
             if (!savedPhone.isEmpty()) {
@@ -189,15 +190,16 @@ public class ProfileFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
-                        String firestoreName = doc.getString("displayName");
+                        User profile = doc.toObject(User.class);
+                        String firestoreName = profile != null ? profile.getDisplayName() : "";
                         if (firestoreName != null && !firestoreName.isEmpty()) {
                             tvProfileName.setText(firestoreName);
                         }
-                        String phone = doc.getString("phone");
+                        String phone = profile != null ? profile.getPhone() : "";
                         if (phone != null && !phone.isEmpty()) {
                             tvProfilePhone.setText(phone);
                         }
-                        String address = doc.getString("address");
+                        String address = profile != null ? profile.getAddress() : "";
                         if (address != null && !address.isEmpty()) {
                             tvProfileAddress.setText(address);
                         }
@@ -263,7 +265,7 @@ public class ProfileFragment extends Fragment {
         final EditText etPhone = new EditText(requireContext());
         etPhone.setHint("Số điện thoại");
         etPhone.setInputType(InputType.TYPE_CLASS_PHONE);
-        etPhone.setText(tvProfilePhone.getText().toString().equals("0987 654 321") ? "" : tvProfilePhone.getText());
+        etPhone.setText(tvProfilePhone.getText().toString().equals("Chưa cập nhật") ? "" : tvProfilePhone.getText());
         layout.addView(etPhone);
 
         builder.setView(layout);

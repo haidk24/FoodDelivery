@@ -164,27 +164,22 @@ public class RestaurantAdapter
             }
 
             if (type == TYPE_PENDING) {
-                if (tvCategory != null) {
-                    tvCategory.setText("Món Việt & Cơm trưa văn phòng");
-                }
+                if (tvCategory != null) tvCategory.setText("Nhà hàng");
                 if (tvRegisteredTime != null) {
-                    tvRegisteredTime.setText("Đăng ký: 25 phút trước");
+                    tvRegisteredTime.setText("Đăng ký: " + formatCreatedAt(r.createdAt));
                 }
                 if (tvOwnerInfo != null) {
-                    String phone = (r.phone != null && !r.phone.isEmpty()) ? r.phone : "0987 654 321";
-                    tvOwnerInfo.setText("Chủ quán: " + (r.name != null ? r.name : "Vũ Tiến Mạnh") + " • " + phone);
+                    String phone = r.getPhone().isEmpty() ? "Chưa cập nhật" : r.getPhone();
+                    tvOwnerInfo.setText("Mã chủ quán: " + (r.ownerId == null || r.ownerId.isEmpty() ? "Chưa cập nhật" : r.ownerId) + " • " + phone);
                 }
                 if (tvEmailInfo != null) {
-                    String emailPrefix = (r.name != null) ? r.name.toLowerCase().replaceAll("[^a-z0-9]", "") : "tienmanh";
-                    if (emailPrefix.isEmpty()) emailPrefix = "doitac";
-                    tvEmailInfo.setText(emailPrefix + "@foodmail.vn");
+                    tvEmailInfo.setText("Email chủ quán chưa có trong hồ sơ nhà hàng");
                 }
                 if (tvTagLicense != null) {
-                    tvTagLicense.setText("Đủ GPKD & VSATTP");
+                    tvTagLicense.setText(r.hasLicence ? "Đã cập nhật giấy phép" : "Chưa xác nhận giấy phép");
                 }
                 if (tvTagDishes != null) {
-                    int dishes = (r.foods != null && !r.foods.isEmpty()) ? r.foods.size() : 32;
-                    tvTagDishes.setText(dishes + " món đăng ký");
+                    tvTagDishes.setText("Số món xem trong chi tiết");
                 }
 
                 if (btnApprove != null) btnApprove.setOnClickListener(v -> listener.onApprove(r));
@@ -192,21 +187,20 @@ public class RestaurantAdapter
 
             } else if (type == TYPE_ACTIVE) {
                 if (tvRating != null) {
-                    tvRating.setText(String.format(Locale.getDefault(), "★ %.1f", r.rating > 0 ? r.rating : 4.8));
+                    tvRating.setText(r.rating > 0 ? String.format(Locale.getDefault(), "★ %.1f", r.rating) : "Chưa có đánh giá");
                 }
                 if (tvReviewsAndDishes != null) {
-                    int dishes = (r.foods != null && !r.foods.isEmpty()) ? r.foods.size() : 45;
-                    tvReviewsAndDishes.setText("• 128 đánh giá • " + dishes + " món");
+                    tvReviewsAndDishes.setText("Chưa có số liệu món trong hồ sơ");
                 }
-                if (tvOrdersToday != null) tvOrdersToday.setText("64");
-                if (tvRevenueToday != null) tvRevenueToday.setText("8.4M");
-                if (tvCancelRate != null) tvCancelRate.setText("0.8%");
+                if (tvOrdersToday != null) tvOrdersToday.setText("—");
+                if (tvRevenueToday != null) tvRevenueToday.setText("—");
+                if (tvCancelRate != null) tvCancelRate.setText("—");
 
                 if (btnSuspend != null) btnSuspend.setOnClickListener(v -> listener.onSuspend(r));
 
             } else {
                 if (tvPauseReason != null) {
-                    tvPauseReason.setText("Tự đóng cửa: Sửa chữa mặt bằng (đến 15/11)");
+                    tvPauseReason.setText("Nhà hàng đang tạm ngưng");
                 }
                 if (btnReinstate != null) btnReinstate.setOnClickListener(v -> listener.onReinstate(r));
             }
@@ -216,6 +210,13 @@ public class RestaurantAdapter
             }
 
             itemView.setOnClickListener(v -> listener.onViewDetail(r));
+        }
+
+        private String formatCreatedAt(Object value) {
+            java.util.Date date = value instanceof com.google.firebase.Timestamp
+                    ? ((com.google.firebase.Timestamp) value).toDate()
+                    : value instanceof java.util.Date ? (java.util.Date) value : null;
+            return date == null ? "Chưa cập nhật" : new java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date);
         }
     }
 }

@@ -102,14 +102,17 @@
                     android:src="@drawable/ic_notifications"
                     app:tint="@color/colorTextPrimary"
                     android:contentDescription="Thông báo" />
-                <View
+                <TextView
                     android:id="@+id/badge_notification"
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_gravity="top|end"
-                    android:layout_margin="10dp"
+                    android:layout_margin="6dp"
                     android:background="@drawable/bg_badge_dot"
-                    android:visibility="visible" />
+                    android:gravity="center"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:visibility="gone" />
             </FrameLayout>
 
             <!-- User Avatar (38x38dp circular) -->
@@ -453,18 +456,10 @@
                             style="@style/Widget.FoodOrder.CategoryChip" />
 
                         <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_soup"
+                            android:id="@+id/chip_dessert"
                             android:layout_width="wrap_content"
                             android:layout_height="36dp"
-                            android:text="Món nước"
-                            android:textSize="12sp"
-                            style="@style/Widget.FoodOrder.CategoryChip" />
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_rice_noodle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="36dp"
-                            android:text="Cơm &amp; Bún"
+                            android:text="Tráng miệng"
                             android:textSize="12sp"
                             style="@style/Widget.FoodOrder.CategoryChip" />
 

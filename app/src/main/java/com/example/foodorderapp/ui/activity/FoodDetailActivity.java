@@ -19,6 +19,7 @@ import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.database.FoodDatabase;
 import com.example.foodorderapp.data.model.Food;
+import com.example.foodorderapp.data.model.Restaurant;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -265,9 +266,9 @@ public class FoodDetailActivity extends AppCompatActivity {
 
     private void loadRestaurantDetails(String restaurantId) {
         if (TextUtils.isEmpty(restaurantId)) {
-            tvRestaurantName.setText("Mạnh Tiến Quán");
-            tvRestaurantRating.setText("4.8");
-            tvRestaurantReviews.setText("(128 đánh giá)");
+            tvRestaurantName.setText("Chưa xác định quán");
+            tvRestaurantRating.setText("--");
+            tvRestaurantReviews.setText("");
             return;
         }
 
@@ -277,11 +278,12 @@ public class FoodDetailActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc != null && doc.exists()) {
-                        String name = doc.getString("name");
+                        Restaurant restaurant = doc.toObject(Restaurant.class);
+                        String name = restaurant != null ? restaurant.getName() : "";
                         if (!TextUtils.isEmpty(name)) {
                             tvRestaurantName.setText(name);
                         }
-                        String imgUrl = doc.getString("imageUrl");
+                        String imgUrl = restaurant != null ? restaurant.getImageUrl() : "";
                         if (!TextUtils.isEmpty(imgUrl)) {
                             Glide.with(this)
                                     .load(imgUrl)
@@ -294,12 +296,16 @@ public class FoodDetailActivity extends AppCompatActivity {
                         if (rating != null && rating > 0) {
                             tvRestaurantRating.setText(String.format(Locale.US, "%.1f", rating));
                         }
+                    } else {
+                        tvRestaurantName.setText("Không tìm thấy quán");
+                        tvRestaurantRating.setText("--");
+                        tvRestaurantReviews.setText("");
                     }
                 })
                 .addOnFailureListener(e -> {
-                    tvRestaurantName.setText("Mạnh Tiến Quán");
-                    tvRestaurantRating.setText("4.8");
-                    tvRestaurantReviews.setText("(128 đánh giá)");
+                    tvRestaurantName.setText("Không tải được thông tin quán");
+                    tvRestaurantRating.setText("--");
+                    tvRestaurantReviews.setText("");
                 });
     }
 

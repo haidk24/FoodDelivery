@@ -85,6 +85,7 @@ public class MenuActivity extends AppCompatActivity {
         if (currentRestaurantName == null) currentRestaurantName = "";
 
         bindViews();
+        tvRestaurantSubtitle.setText("Quản lý thực đơn");
 
         FirebaseUser authUser = FirebaseAuth.getInstance().getCurrentUser();
         String uid = authUser != null ? authUser.getUid() : "";
@@ -325,23 +326,31 @@ public class MenuActivity extends AppCompatActivity {
                 return true;
             } else if (id == R.id.nav_order) {
                 Intent intent = new Intent(getApplicationContext(), OrderDashboardActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
                 intent.putExtra("EXTRA_RESTAURANT_NAME", currentRestaurantName);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
-                finish();
                 return true;
             } else if (id == R.id.nav_report) {
                 Intent intent = new Intent(getApplicationContext(), RestaurantReportActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
                 intent.putExtra("EXTRA_RESTAURANT_NAME", currentRestaurantName);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
-                finish();
                 return true;
             }
             return false;
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (bottomNavigationView != null) {
+            bottomNavigationView.setSelectedItemId(R.id.nav_menu);
+        }
     }
 
     private void verifyRestaurantRoleAndLoadMenu() {

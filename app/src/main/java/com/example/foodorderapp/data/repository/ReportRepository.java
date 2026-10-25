@@ -4,6 +4,7 @@ package com.example.foodorderapp.data.repository;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.foodorderapp.data.model.ReportStats;
+import com.example.foodorderapp.data.model.Order;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
@@ -42,10 +43,24 @@ public class ReportRepository {
             MutableLiveData<Boolean> loading,
             MutableLiveData<String> error) {
 
-        loading.postValue(true);
-
         Date startDate = getStartDate(period);
         int  dayCount  = getDayCount(period);
+        loadStatsForRange(startDate, new Date(), dayCount, restaurantId, liveData, loading, error);
+    }
+
+    public void loadStats(Date startDate, Date endDate, String restaurantId,
+                          MutableLiveData<ReportStats> liveData,
+                          MutableLiveData<Boolean> loading,
+                          MutableLiveData<String> error) {
+        long days = Math.max(1L, (endDate.getTime() - startDate.getTime()) / 86400000L + 1L);
+        loadStatsForRange(startDate, endDate, (int) Math.min(days, 366L), restaurantId, liveData, loading, error);
+    }
+
+    private void loadStatsForRange(Date startDate, Date endDate, int dayCount, String restaurantId,
+                                   MutableLiveData<ReportStats> liveData,
+                                   MutableLiveData<Boolean> loading,
+                                   MutableLiveData<String> error) {
+        loading.postValue(true);
 
         String scopedRestaurantId = restaurantId == null ? "" : restaurantId.trim();
         boolean hasRestaurantScope = !scopedRestaurantId.isEmpty();
@@ -53,10 +68,13 @@ public class ReportRepository {
         Query query;
         if (hasRestaurantScope) {
             // Scoped mode: read directly from restaurant sub-collection to avoid index/rule issues.
-            query = db.collection("restaurants").document(scopedRestaurantId).collection("orders");
+            query = db.collection("restaurants").document(scopedRestaurantId).collection("orders")
+                    .whereGreaterThanOrEqualTo("createdAt", startDate)
+                    .whereLessThanOrEqualTo("createdAt", endDate);
         } else {
             // Admin/global mode.
-            query = db.collection("orders").whereGreaterThanOrEqualTo("createdAt", startDate);
+            query = db.collection("orders").whereGreaterThanOrEqualTo("createdAt", startDate)
+                    .whereLessThanOrEqualTo("createdAt", endDate);
         }
 
         query.get()
@@ -71,9 +89,7 @@ public class ReportRepository {
 
                     // Payment method count
                     Map<String, Long> paymentCount = new HashMap<>();
-                    paymentCount.put("COD",   0L);
-                    paymentCount.put("MoMo",  0L);
-                    paymentCount.put("VNPay", 0L);
+                    paymentCount.put(Order.PAYMENT_COD, 0L);
 
                     // Revenue theo ngày — LinkedHashMap giữ thứ tự ngày
                     Map<String, Long> revenueByDay = buildEmptyDayMap(
@@ -94,14 +110,14 @@ public class ReportRepository {
                         Object createdAt = doc.get("createdAt");
 
                         Date orderDate = extractDate(createdAt);
-                        if (orderDate == null || orderDate.before(startDate)) {
+                        if (orderDate == null || orderDate.before(startDate) || orderDate.after(endDate)) {
                             continue;
                         }
 
                         totalOrders++;
 
                         // Đếm theo status
-                        if ("delivered".equals(status)) {
+                        if (Order.STATUS_COMPLETED.equals(Order.normalizeStatus(status))) {
                             delivered++;
                             totalRevenue += amount;
 
@@ -121,13 +137,11 @@ public class ReportRepository {
                             }
                         }
 
-                        if ("cancelled".equals(status)) cancelled++;
+                        if (Order.STATUS_CANCELLED.equals(Order.normalizeStatus(status))) cancelled++;
 
                         // Phương thức thanh toán
-                        if (method != null && paymentCount.containsKey(method)) {
-                            paymentCount.put(method,
-                                    paymentCount.get(method) + 1);
-                        }
+                        String normalizedMethod = Order.normalizePaymentMethod(method);
+                        paymentCount.put(normalizedMethod, paymentCount.getOrDefault(normalizedMethod, 0L) + 1);
                     }
 
                     // ── Lấy thêm tên nhà hàng cho top list ───────────

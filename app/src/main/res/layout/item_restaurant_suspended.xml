@@ -105,7 +105,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
-                        android:text="Tự đóng cửa: Sửa chữa mặt bằng (đến 15/11)"
+                        android:text="Nhà hàng đang tạm ngưng"
                         android:textSize="11sp"
                         android:textColor="#DC2626"
                         android:maxLines="1"

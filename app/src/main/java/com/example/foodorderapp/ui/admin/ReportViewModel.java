@@ -23,23 +23,32 @@ public class ReportViewModel extends ViewModel {
     private ReportRepository.Period currentPeriod
             = ReportRepository.Period.TODAY;
     private String restaurantScopeId;
-
-    public ReportViewModel() {
-        loadReport(ReportRepository.Period.TODAY);
-    }
+    private java.util.Date customStartDate;
+    private java.util.Date customEndDate;
 
     public void setRestaurantScope(String restaurantId) {
         this.restaurantScopeId = restaurantId;
-        refresh();
     }
 
     public void loadReport(ReportRepository.Period period) {
         currentPeriod = period;
+        customStartDate = null;
+        customEndDate = null;
         repo.loadStats(period, restaurantScopeId, reportStats, isLoading, errorMessage);
     }
 
     public void refresh() {
+        if (customStartDate != null && customEndDate != null) {
+            repo.loadStats(customStartDate, customEndDate, restaurantScopeId, reportStats, isLoading, errorMessage);
+            return;
+        }
         loadReport(currentPeriod);
+    }
+
+    public void loadCustomReport(java.util.Date startDate, java.util.Date endDate) {
+        customStartDate = startDate;
+        customEndDate = endDate;
+        repo.loadStats(startDate, endDate, restaurantScopeId, reportStats, isLoading, errorMessage);
     }
 
     public LiveData<ReportStats> getReportStats() { return reportStats; }

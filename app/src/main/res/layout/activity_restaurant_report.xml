@@ -8,17 +8,19 @@
     android:fitsSystemWindows="true">
 
     <LinearLayout
+        android:id="@+id/restaurant_screen_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:layout_marginBottom="60dp">
+        android:layout_marginBottom="64dp">
 
         <!-- ════════════════════════════════════════════════════════════ -->
         <!-- 1. Top Bar: Restaurant Identity & Actions                     -->
         <!-- ════════════════════════════════════════════════════════════ -->
         <LinearLayout
+            android:id="@+id/restaurant_top_bar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="86dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp"
@@ -33,15 +35,19 @@
                 android:orientation="vertical">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/tv_restaurant_name"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
                         android:text=""
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -53,11 +59,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:minWidth="64dp"
                         android:background="@drawable/bg_pill_restaurant_open"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
                         android:clickable="true"
-                        android:focusable="true">
+                        android:focusable="true"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp">
 
                         <View
                             android:layout_width="6dp"
@@ -70,6 +79,8 @@
                             android:id="@+id/tv_restaurant_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
                             android:text=""
                             android:textColor="#16A34A"
                             android:textSize="11sp"
@@ -92,6 +103,7 @@
                 android:id="@+id/btn_notifications"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true">
 
@@ -108,8 +120,8 @@
                     android:layout_width="8dp"
                     android:layout_height="8dp"
                     android:layout_gravity="top|end"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginEnd="6dp"
                     android:background="@drawable/bg_badge_dot"
                     android:backgroundTint="#EF4444" />
             </FrameLayout>
@@ -135,9 +147,10 @@
 
         <!-- Divider Line -->
         <View
+            android:id="@+id/restaurant_top_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#F1F5F9" />
+            android:background="#EAEFF5" />
 
         <!-- ════════════════════════════════════════════════════════════ -->
         <!-- 2. Time Range Selector Row                                   -->
@@ -1182,7 +1195,7 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:layout_gravity="bottom"
         android:background="@color/white"
         app:elevation="8dp"

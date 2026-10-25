@@ -448,7 +448,7 @@ public class MyOrderFragment extends Fragment {
         intent.putExtra("EXTRA_STATUS", order.getStatus());
         intent.putExtra("EXTRA_CUSTOMER_NAME", order.getCustomerName());
         intent.putExtra("EXTRA_CUSTOMER_PHONE", order.getCustomerPhone());
-        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getCustomerAddress());
+        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getDeliveryAddressText());
         intent.putExtra("EXTRA_RESTAURANT_ID", order.getRestaurantId());
         intent.putStringArrayListExtra("EXTRA_ITEM_LINES", buildItemLines(order));
         startActivity(intent);
@@ -461,7 +461,7 @@ public class MyOrderFragment extends Fragment {
         intent.putExtra("EXTRA_STATUS", order.getStatus());
         intent.putExtra("EXTRA_CUSTOMER_NAME", order.getCustomerName());
         intent.putExtra("EXTRA_CUSTOMER_PHONE", order.getCustomerPhone());
-        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getCustomerAddress());
+        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getDeliveryAddressText());
         intent.putExtra("EXTRA_RESTAURANT_ID", order.getRestaurantId());
         startActivity(intent);
     }

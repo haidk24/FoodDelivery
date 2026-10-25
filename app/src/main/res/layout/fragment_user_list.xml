@@ -141,7 +141,7 @@
                             android:id="@+id/tv_total_users"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="142"
+                            android:text="—"
                             android:textSize="21sp"
                             android:textStyle="bold"
                             android:textColor="@color/colorTextPrimary" />
@@ -196,7 +196,7 @@
                             android:id="@+id/tv_active_users"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="138"
+                            android:text="—"
                             android:textSize="21sp"
                             android:textStyle="bold"
                             android:textColor="@color/colorTextPrimary" />
@@ -248,7 +248,7 @@
                             android:id="@+id/tv_banned_users"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="4"
+                            android:text="—"
                             android:textSize="21sp"
                             android:textStyle="bold"
                             android:textColor="#DC2626" />
@@ -367,12 +367,12 @@
                         android:background="@drawable/bg_badge_pill_gray"
                         android:paddingHorizontal="6dp"
                         android:paddingVertical="1dp"
-                        android:text="142"
+                        android:text="0"
                         android:textSize="10.5sp"
                         android:textColor="#475569" />
                 </LinearLayout>
 
-                <!-- Chip 2: Khách hàng (Default active like mockup) -->
+                <!-- Chip 2: Khách hàng -->
                 <LinearLayout
                     android:id="@+id/chip_filter_customer"
                     android:layout_width="wrap_content"
@@ -411,7 +411,7 @@
                         android:backgroundTint="#7F1D1D"
                         android:paddingHorizontal="6dp"
                         android:paddingVertical="1dp"
-                        android:text="128"
+                        android:text="0"
                         android:textSize="10.5sp"
                         android:textColor="@color/white" />
                 </LinearLayout>
@@ -452,7 +452,7 @@
                         android:background="@drawable/bg_badge_pill_gray"
                         android:paddingHorizontal="6dp"
                         android:paddingVertical="1dp"
-                        android:text="10"
+                        android:text="0"
                         android:textSize="10.5sp"
                         android:textColor="#475569" />
                 </LinearLayout>
@@ -486,7 +486,7 @@
                         android:background="@drawable/bg_badge_pill_gray"
                         android:paddingHorizontal="6dp"
                         android:paddingVertical="1dp"
-                        android:text="4"
+                        android:text="0"
                         android:textSize="10.5sp"
                         android:textColor="#475569" />
                 </LinearLayout>
@@ -550,7 +550,7 @@
                 android:visibility="gone" />
         </FrameLayout>
 
-        <!-- Bottom Footer: Xem thêm 138 người dùng khác -->
+        <!-- Bottom Footer: Xem thêm người dùng -->
         <LinearLayout
             android:id="@+id/layout_footer"
             android:layout_width="match_parent"
@@ -563,6 +563,7 @@
 
             <LinearLayout
                 android:id="@+id/btn_load_more_users"
+                android:visibility="gone"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:orientation="horizontal"
@@ -582,7 +583,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="Xem thêm 138 người dùng khác"
+                    android:text="Xem thêm"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:textColor="#1E40AF" />
@@ -593,7 +594,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Hiển thị 4 trên tổng số 142 bản ghi"
+                android:text="Hiển thị 0 bản ghi"
                 android:textSize="11sp"
                 android:textColor="#94A3B8" />
 

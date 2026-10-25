@@ -149,8 +149,8 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         }
 
         // Generic fallback while loading, avoids flashing wrong restaurant name
-        holder.tvRestaurantName.setText("Quán ăn");
-        holder.tvRestaurantAddress.setText("Hoàn Kiếm, Hà Nội");
+        holder.tvRestaurantName.setText("Đang tải thông tin quán");
+        holder.tvRestaurantAddress.setText("Đang tải địa chỉ");
 
         if (!TextUtils.isEmpty(resId)) {
             db.collection("restaurants").document(resId).get()
@@ -262,8 +262,8 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             // Dispatch shipper box
             holder.layoutShipperDispatch.setVisibility(View.VISIBLE);
             holder.layoutReviewDelight.setVisibility(View.GONE);
-            if (!TextUtils.isEmpty(order.getCustomerAddress())) {
-                holder.tvDeliveryDest.setText("Đang tới: " + order.getCustomerAddress());
+            if (!TextUtils.isEmpty(order.getDeliveryAddressText())) {
+                holder.tvDeliveryDest.setText("Đang tới: " + order.getDeliveryAddressText());
             }
 
             holder.layoutShipperDispatch.setOnClickListener(v -> {
@@ -635,7 +635,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         intent.putExtra("EXTRA_STATUS", order.getStatus());
         intent.putExtra("EXTRA_CUSTOMER_NAME", order.getCustomerName());
         intent.putExtra("EXTRA_CUSTOMER_PHONE", order.getCustomerPhone());
-        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getCustomerAddress());
+        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getDeliveryAddressText());
         intent.putExtra("EXTRA_RESTAURANT_ID", order.getRestaurantId());
         intent.putStringArrayListExtra("EXTRA_ITEM_LINES", itemLines);
         context.startActivity(intent);
@@ -648,7 +648,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         intent.putExtra("EXTRA_STATUS", order.getStatus());
         intent.putExtra("EXTRA_CUSTOMER_NAME", order.getCustomerName());
         intent.putExtra("EXTRA_CUSTOMER_PHONE", order.getCustomerPhone());
-        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getCustomerAddress());
+        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getDeliveryAddressText());
         intent.putExtra("EXTRA_RESTAURANT_ID", order.getRestaurantId());
         context.startActivity(intent);
     }
@@ -686,7 +686,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
     private String buildCustomerInfo(Order order) {
         String name = safeText(order.getCustomerName(), "Chưa cập nhật");
         String phone = safeText(order.getCustomerPhone(), "Chưa cập nhật");
-        String address = safeText(order.getCustomerAddress(), "Chưa cập nhật");
+        String address = safeText(order.getDeliveryAddressText(), "Chưa cập nhật");
         return "Khách: " + name + " - " + phone + "\nĐịa chỉ: " + address;
     }
 

@@ -72,7 +72,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:text="22:03 • Trực tiếp"
+                    android:text="—"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:textColor="#334155" />
@@ -90,6 +90,7 @@
         <!-- 2. Alert Action Card: CẦN XỬ LÝ NGAY -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_action_alert"
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -144,7 +145,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="Tiến Mạnh Quán 2"
+                            android:text="Nhà hàng đang chờ duyệt"
                             android:textSize="16sp"
                             android:textStyle="bold"
                             android:textColor="@color/colorTextPrimary" />
@@ -278,12 +279,13 @@
 
                         <TextView
                             android:id="@+id/tv_revenue_tag"
+                            android:visibility="gone"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:background="@drawable/bg_pill_status_green"
                             android:paddingHorizontal="6dp"
                             android:paddingVertical="2dp"
-                            android:text="+18.2%"
+                            android:text="—"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:textColor="#16A34A" />
@@ -302,7 +304,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="18.4M đ"
+                        android:text="—"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:textColor="@color/colorTextPrimary" />
@@ -366,7 +368,7 @@
                             android:background="@drawable/bg_pill_status_amber"
                             android:paddingHorizontal="6dp"
                             android:paddingVertical="2dp"
-                            android:text="432 đơn"
+                            android:text="—"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:textColor="#B45309" />
@@ -376,7 +378,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Tổng đơn toàn sàn"
+                            android:text="Đơn phát sinh hôm nay"
                         android:textSize="12sp"
                         android:textColor="#64748B" />
 
@@ -385,7 +387,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="432 đơn"
+                        android:text="—"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:textColor="@color/colorTextPrimary" />
@@ -395,7 +397,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="385 hoàn thành • 47 đang xử lý"
+                        android:text="Đơn phát sinh hôm nay"
                         android:textSize="10sp"
                         android:textColor="#64748B" />
                 </LinearLayout>
@@ -457,7 +459,7 @@
                             android:background="#EFF6FF"
                             android:paddingHorizontal="6dp"
                             android:paddingVertical="2dp"
-                            android:text="24 quán"
+                            android:text="— quán"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:textColor="#1D4ED8" />
@@ -467,7 +469,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Nhà hàng đối tác"
+                        android:text="Nhà hàng đang hoạt động"
                         android:textSize="12sp"
                         android:textColor="#64748B" />
 
@@ -476,7 +478,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="24 quán"
+                        android:text="— quán"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:textColor="@color/colorTextPrimary" />
@@ -486,7 +488,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="21 hoạt động • 3 chờ duyệt"
+                        android:text="— chờ duyệt"
                         android:textSize="10sp"
                         android:textColor="#64748B" />
                 </LinearLayout>
@@ -540,7 +542,7 @@
                             android:background="#F5F3FF"
                             android:paddingHorizontal="6dp"
                             android:paddingVertical="2dp"
-                            android:text="142 user"
+                            android:text="— user"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:textColor="#6D28D9" />
@@ -559,7 +561,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="142 người"
+                        android:text="— người"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:textColor="@color/colorTextPrimary" />
@@ -569,7 +571,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="118 khách hàng, 24 chủ quán"
+                        android:text="Tài khoản đã đăng ký"
                         android:textSize="10sp"
                         android:textColor="#64748B" />
                 </LinearLayout>
@@ -620,7 +622,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
-                            android:text="Tổng tuần: 184.200.000 đ"
+                            android:text="Tổng tuần: —"
                             android:textSize="12sp"
                             android:textColor="#64748B" />
                     </LinearLayout>
@@ -672,6 +674,7 @@
 
                 <!-- Bar Chart Graphic Area -->
                 <RelativeLayout
+                    android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="170dp"
                     android:layout_marginTop="16dp">
@@ -834,7 +837,7 @@
                                 android:paddingHorizontal="5dp"
                                 android:paddingVertical="2dp"
                                 android:layout_marginBottom="4dp"
-                                android:text="28.6M"
+                                android:text="—"
                                 android:maxLines="1"
                                 android:singleLine="true"
                                 android:textSize="9.5sp"
@@ -912,6 +915,7 @@
             <!-- Sample Order 1 -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_recent_order_1"
+                android:visibility="gone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
@@ -967,7 +971,7 @@
                                 android:id="@+id/tv_order1_time"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="2 phút trước"
+                                android:text="—"
                                 android:textSize="11sp"
                                 android:textColor="#94A3B8" />
                         </LinearLayout>
@@ -995,7 +999,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="190.000 đ"
+                                android:text="—"
                                 android:textSize="13sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/colorPrimary" />
@@ -1019,6 +1023,7 @@
             <!-- Sample Order 2 -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_recent_order_2"
+                android:visibility="gone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
@@ -1074,7 +1079,7 @@
                                 android:id="@+id/tv_order2_time"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="8 phút trước"
+                                android:text="—"
                                 android:textSize="11sp"
                                 android:textColor="#94A3B8" />
                         </LinearLayout>
@@ -1102,7 +1107,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="75.000 đ"
+                                android:text="—"
                                 android:textSize="13sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/colorPrimary" />

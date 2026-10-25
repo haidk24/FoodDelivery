@@ -4,22 +4,26 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F9F9FF">
+    android:background="#F9F9FF"
+    android:fitsSystemWindows="true">
 
     <!-- ════════════════════════════════════════════════════════════ -->
     <!-- Main Content Container                                       -->
     <!-- ════════════════════════════════════════════════════════════ -->
     <LinearLayout
+        android:id="@+id/restaurant_screen_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginBottom="64dp"
         android:orientation="vertical">
 
         <!-- ──────────────────────────────────────────────────────────── -->
         <!-- 1. Top Bar: Restaurant Name, Open Status Pill, Bell, Avatar -->
         <!-- ──────────────────────────────────────────────────────────── -->
         <LinearLayout
+            android:id="@+id/restaurant_top_bar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="86dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp"
@@ -34,15 +38,19 @@
                 android:orientation="vertical">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/tv_restaurant_name"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
                         android:text=""
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -54,6 +62,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
+                        android:minWidth="64dp"
                         android:background="@drawable/bg_pill_restaurant_open"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
@@ -71,6 +80,8 @@
                             android:id="@+id/tv_restaurant_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
                             android:text=""
                             android:textSize="10sp"
                             android:textStyle="bold"
@@ -135,6 +146,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/restaurant_top_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#EAEFF5" />
@@ -475,7 +487,7 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigationView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:layout_gravity="bottom"
         android:background="@color/white"
         app:elevation="8dp"

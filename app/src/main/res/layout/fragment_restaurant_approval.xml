@@ -106,7 +106,7 @@
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_badge_circle_orange"
                 android:gravity="center"
-                android:text="1"
+                android:text="0"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:textColor="@color/white" />
@@ -140,7 +140,7 @@
                 android:background="@drawable/bg_badge_pill_gray"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="1dp"
-                android:text="24"
+                android:text="0"
                 android:textSize="11sp"
                 android:textColor="#475569" />
         </LinearLayout>
@@ -173,7 +173,7 @@
                 android:background="@drawable/bg_badge_pill_gray"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="1dp"
-                android:text="3"
+                android:text="0"
                 android:textSize="11sp"
                 android:textColor="#475569" />
         </LinearLayout>

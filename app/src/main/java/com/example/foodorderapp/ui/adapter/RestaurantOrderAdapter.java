@@ -130,8 +130,7 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
             boolean matchesDate = daysFilter == 0 || (o.getCreatedAt() != null
                     && o.getCreatedAt().getTime() >= startTime
                     && o.getCreatedAt().getTime() < endTime);
-            boolean isCod = o.getPaymentMethod() != null
-                    && o.getPaymentMethod().toUpperCase(Locale.ROOT).contains("COD");
+            boolean isCod = o.isCodPayment();
             boolean matchesPayment = "Tất cả".equals(paymentFilter)
                     || ("COD".equals(paymentFilter) == isCod);
             if (matchesQuery && matchesStatus && matchesDate && matchesPayment) {
@@ -176,8 +175,7 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
             if (order.getCreatedAt() == null || order.getCreatedAt().before(start.getTime())
                     || !order.getCreatedAt().before(end)) return false;
         }
-        boolean cod = order.getPaymentMethod() != null
-                && order.getPaymentMethod().toUpperCase(Locale.ROOT).contains("COD");
+        boolean cod = order.isCodPayment();
         if (!"Tất cả".equals(paymentFilter) && ("COD".equals(paymentFilter) != cod)) return false;
         if (summaryQuery.isEmpty()) return true;
         String id = order.getOrderId() == null ? "" : order.getOrderId().toLowerCase(Locale.ROOT);
@@ -295,8 +293,8 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
                 ? order.getCustomerPhone() : "Chưa có số điện thoại";
         holder.tvCustomerNamePhone.setText(customerName + " • " + customerPhone);
 
-        String customerAddress = order.getCustomerAddress() != null && !order.getCustomerAddress().isEmpty()
-                ? order.getCustomerAddress() : "Chưa có địa chỉ";
+        String deliveryAddress = order.getDeliveryAddressText();
+        String customerAddress = deliveryAddress.isEmpty() ? "Chưa có địa chỉ" : deliveryAddress;
         holder.tvCustomerAddress.setText(customerAddress);
 
         final String finalPhone = customerPhone;

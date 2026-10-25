@@ -491,7 +491,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="10dp"
-                    android:text="Chưa phân loại (Mặc định)"
+                    android:text="Món chính"
                     android:textSize="14sp"
                     android:textColor="#0F172A" />
 

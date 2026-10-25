@@ -55,6 +55,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
     private ProgressBar progressBar;
 
     private int currentTab = TAB_PENDING;
+    private boolean hasLoadedRestaurantData;
     private String currentSearchQuery = "";
 
     private List<Restaurant> cachedPendingList = new ArrayList<>();
@@ -118,9 +119,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
         tabActive.setOnClickListener(v -> selectTab(TAB_ACTIVE));
         tabSuspended.setOnClickListener(v -> selectTab(TAB_SUSPENDED));
 
-        btnFilter.setOnClickListener(v -> {
-            Toast.makeText(requireContext(), "Bộ lọc nâng cao", Toast.LENGTH_SHORT).show();
-        });
+        if (btnFilter != null) btnFilter.setVisibility(View.GONE);
 
         // Khởi tạo tab ban đầu
         selectTab(TAB_PENDING);
@@ -172,28 +171,30 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
 
     private void observeViewModel() {
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), loading -> {
-            if (progressBar != null) {
-                progressBar.setVisibility(Boolean.TRUE.equals(loading) ? View.VISIBLE : View.GONE);
+            if (progressBar != null && Boolean.TRUE.equals(loading)) {
+                progressBar.setVisibility(View.VISIBLE);
             }
         });
 
         viewModel.getPendingRestaurantList().observe(getViewLifecycleOwner(), list -> {
             cachedPendingList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
-            ensureSamplePendingIfEmpty();
             tvBadgePending.setText(String.valueOf(cachedPendingList.size()));
             if (currentTab == TAB_PENDING) applyFilterAndDisplay();
         });
 
+        viewModel.getRestaurantsLoaded().observe(getViewLifecycleOwner(), loaded -> {
+            hasLoadedRestaurantData = Boolean.TRUE.equals(loaded);
+            if (hasLoadedRestaurantData) applyFilterAndDisplay();
+        });
+
         viewModel.getActiveRestaurantList().observe(getViewLifecycleOwner(), list -> {
             cachedActiveList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
-            ensureSampleActiveIfEmpty();
             tvBadgeActive.setText(String.valueOf(cachedActiveList.size()));
             if (currentTab == TAB_ACTIVE) applyFilterAndDisplay();
         });
 
         viewModel.getSuspendedRestaurantList().observe(getViewLifecycleOwner(), list -> {
             cachedSuspendedList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
-            ensureSampleSuspendedIfEmpty();
             tvBadgeSuspended.setText(String.valueOf(cachedSuspendedList.size()));
             if (currentTab == TAB_SUSPENDED) applyFilterAndDisplay();
         });
@@ -211,48 +212,14 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
         });
     }
 
-    private void ensureSamplePendingIfEmpty() {
-        if (cachedPendingList.isEmpty()) {
-            Restaurant sample = new Restaurant();
-            sample.restaurantId = "sample_pending_1";
-            sample.name = "Tiến Mạnh Quán 2";
-            sample.phone = "0987 654 321";
-            sample.status = "pending";
-            sample.rating = 0;
-            sample.hasLicence = true;
-            sample.ownerId = "tienmanh";
-            sample.address = "Số 88 Phố Huế, Q. Hai Bà Trưng, Hà Nội";
-            cachedPendingList.add(sample);
-        }
-    }
-
-    private void ensureSampleActiveIfEmpty() {
-        if (cachedActiveList.isEmpty()) {
-            Restaurant sample = new Restaurant();
-            sample.restaurantId = "sample_active_1";
-            sample.name = "Mạnh Tiến Quán – Cơm & Phở";
-            sample.phone = "0912 345 678";
-            sample.status = "active";
-            sample.rating = 4.8;
-            sample.address = "Hoàn Kiếm, Hà Nội";
-            cachedActiveList.add(sample);
-        }
-    }
-
-    private void ensureSampleSuspendedIfEmpty() {
-        if (cachedSuspendedList.isEmpty()) {
-            Restaurant sample = new Restaurant();
-            sample.restaurantId = "sample_suspended_1";
-            sample.name = "Phở Bát Đàn Cổ Truyền";
-            sample.phone = "0904 112 233";
-            sample.status = "suspended";
-            sample.rating = 4.5;
-            sample.address = "Cầu Giấy, Hà Nội";
-            cachedSuspendedList.add(sample);
-        }
-    }
-
     private void applyFilterAndDisplay() {
+        if (!hasLoadedRestaurantData) {
+            rvRestaurants.setVisibility(View.GONE);
+            layoutEmptyState.setVisibility(View.GONE);
+            if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+            return;
+        }
+        if (progressBar != null) progressBar.setVisibility(View.GONE);
         List<Restaurant> sourceList;
         if (currentTab == TAB_PENDING) {
             sourceList = cachedPendingList;
@@ -287,34 +254,34 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
 
     @Override
     public void onApprove(Restaurant r) {
-        if (r.restaurantId != null && !r.restaurantId.startsWith("sample_")) {
+        if (r.restaurantId != null) {
             viewModel.approveRestaurant(r.restaurantId);
         } else {
-            Toast.makeText(requireContext(), "Đã duyệt thành công cho " + r.name, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Thiếu mã nhà hàng nên không thể cập nhật.", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     public void onSuspend(Restaurant r) {
-        if (r.restaurantId != null && !r.restaurantId.startsWith("sample_")) {
+        if (r.restaurantId != null) {
             viewModel.suspendRestaurant(r.restaurantId);
         } else {
-            Toast.makeText(requireContext(), "Đã tạm ngưng cho " + r.name, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Thiếu mã nhà hàng nên không thể cập nhật.", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     public void onReinstate(Restaurant r) {
-        if (r.restaurantId != null && !r.restaurantId.startsWith("sample_")) {
+        if (r.restaurantId != null) {
             viewModel.reinstateRestaurant(r.restaurantId);
         } else {
-            Toast.makeText(requireContext(), "Đã mở hoạt động lại cho " + r.name, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Thiếu mã nhà hàng nên không thể cập nhật.", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     public void onViewDetail(Restaurant r) {
-        if (r.restaurantId != null && !r.restaurantId.startsWith("sample_")) {
+        if (r.restaurantId != null) {
             Bundle args = new Bundle();
             args.putString("restaurantId", r.restaurantId);
             try {
@@ -323,8 +290,6 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
             } catch (Exception e) {
                 Toast.makeText(requireContext(), "Xem chi tiết: " + r.name, Toast.LENGTH_SHORT).show();
             }
-        } else {
-            Toast.makeText(requireContext(), "Chi tiết nhà hàng: " + r.name, Toast.LENGTH_SHORT).show();
-        }
+        } else Toast.makeText(requireContext(), "Thiếu mã nhà hàng.", Toast.LENGTH_SHORT).show();
     }
 }

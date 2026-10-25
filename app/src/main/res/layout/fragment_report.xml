@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F9F9FF"
+    android:background="#F9F9FF">
+
+<ScrollView
+    android:id="@+id/report_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="gone"
     android:fillViewport="true"
     android:overScrollMode="never"
     android:scrollbars="none">
@@ -133,15 +139,6 @@
                 android:focusable="true" />
         </LinearLayout>
 
-        <!-- Loading indicator -->
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="8dp"
-            android:visibility="gone" />
-
         <!-- ════════════════════════════════════════════════════════════ -->
         <!-- 3. Primary Hero Card (Terracotta Gradient)                   -->
         <!-- ════════════════════════════════════════════════════════════ -->
@@ -206,7 +203,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="12dp"
-                android:text="185.400.000 đ"
+                android:text="—"
                 android:textSize="28sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF" />
@@ -235,7 +232,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tổng tiền đơn hoàn tất (COD)"
+                    android:text="Tổng tiền đơn hoàn tất"
                     android:textSize="11sp"
                     android:textColor="#FFE2DA" />
 
@@ -244,7 +241,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="2.114 đơn thành công"
+                    android:text="— đơn hoàn tất"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:textColor="#FFFFFF" />
@@ -312,7 +309,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="2.140 đơn"
+                    android:text="— đơn"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#111C2D" />
@@ -371,7 +368,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="185.400.000 đ"
+                    android:text="—"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#111C2D" />
@@ -420,7 +417,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text="98.8%"
+                        android:text="—"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:textColor="#16A34A" />
@@ -439,7 +436,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="2.114 đơn"
+                    android:text="— đơn"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#15803D" />
@@ -479,7 +476,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text="1.2%"
+                        android:text="—"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:textColor="#DC2626" />
@@ -498,7 +495,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="26 đơn"
+                    android:text="— đơn"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#DC2626" />
@@ -543,7 +540,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Đỉnh điểm Thứ Bảy (36.2M đ)"
+                        android:text="Doanh thu theo ngày"
                         android:textSize="12sp"
                         android:textColor="#64748B" />
                 </LinearLayout>
@@ -776,13 +773,14 @@
 
                         <TextView
                             android:id="@+id/pill_peak_t7"
+                            android:visibility="gone"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="4dp"
                             android:background="@drawable/bg_pill_peak_t7"
                             android:paddingHorizontal="6dp"
                             android:paddingVertical="2dp"
-                            android:text="36.2M ★"
+                            android:text="—"
                             android:textColor="#FFFFFF"
                             android:textSize="9sp"
                             android:textStyle="bold" />
@@ -883,7 +881,7 @@
                     android:background="@drawable/bg_pill_connected"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="4dp"
-                    android:text="Tổng 2.140 đơn"
+                    android:text="Tổng — đơn"
                     android:textSize="11sp"
                     android:textColor="#475569" />
             </LinearLayout>
@@ -898,6 +896,8 @@
 
                 <!-- Donut Frame -->
                 <FrameLayout
+                    android:id="@+id/payment_donut_frame"
+                    android:visibility="gone"
                     android:layout_width="104dp"
                     android:layout_height="104dp"
                     android:background="@drawable/bg_donut_cod_ring">
@@ -912,7 +912,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="100%"
+                    android:text="—"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="#111C2D" />
@@ -961,9 +961,10 @@
                                 android:textColor="#111C2D" />
 
                             <TextView
+                                android:id="@+id/tv_payment_cod_percent"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="100%"
+                                android:text="—"
                                 android:textSize="13sp"
                                 android:textStyle="bold"
                                 android:textColor="#111C2D" />
@@ -975,7 +976,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:layout_marginStart="14dp"
-                            android:text="2.140 đơn hoàn tất"
+                            android:text="— đơn COD"
                             android:textSize="11sp"
                             android:textColor="#64748B" />
                     </LinearLayout>
@@ -998,7 +999,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Phương thức mặc định hệ thống"
+                            android:text="Phương thức lưu trong đơn hàng"
                             android:textSize="11sp"
                             android:textColor="#059669" />
                     </LinearLayout>
@@ -1035,7 +1036,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="end"
-                android:text="Cập nhật thời gian thực"
+                android:text="Dữ liệu từ Firestore"
                 android:textSize="11sp"
                 android:textColor="#64748B" />
         </LinearLayout>
@@ -1082,7 +1083,7 @@
                         android:id="@+id/tv_health_restaurants"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="24"
+                        android:text="—"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="#111C2D" />
@@ -1132,7 +1133,7 @@
                         android:id="@+id/tv_health_pending"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1"
+                        android:text="—"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="#111C2D" />
@@ -1149,7 +1150,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Bottom Mini Card: 142 Tài khoản người dùng -->
+        <!-- Bottom Mini Card: Tài khoản người dùng -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -1183,7 +1184,7 @@
                     android:id="@+id/tv_health_users"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="142"
+                    android:text="—"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="#111C2D" />
@@ -1224,3 +1225,12 @@
 
     </LinearLayout>
 </ScrollView>
+
+<ProgressBar
+    android:id="@+id/progress_bar"
+    android:layout_width="32dp"
+    android:layout_height="32dp"
+    android:layout_gravity="center"
+    android:visibility="visible" />
+
+</FrameLayout>

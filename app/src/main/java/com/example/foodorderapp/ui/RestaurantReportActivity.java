@@ -15,6 +15,7 @@ import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.utils.RestaurantOrderBadge;
+import com.example.foodorderapp.utils.RestaurantSession;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -37,6 +38,7 @@ public class RestaurantReportActivity extends AppCompatActivity {
     private final List<Order> orders = new ArrayList<>();
     private FirebaseFirestore db;
     private String restaurantId;
+    private String restaurantDisplayName = "";
     private ListenerRegistration ordersRegistration;
     private ListenerRegistration restaurantRegistration;
     private RestaurantOrderBadge orderBadge;
@@ -59,8 +61,23 @@ public class RestaurantReportActivity extends AppCompatActivity {
         setContentView(R.layout.activity_restaurant_report);
         db = FirebaseFirestore.getInstance();
         restaurantId = getIntent().getStringExtra("EXTRA_RESTAURANT_ID");
+        restaurantDisplayName = getIntent().getStringExtra("EXTRA_RESTAURANT_NAME");
+        if (restaurantId == null) restaurantId = "";
+        if (restaurantDisplayName == null) restaurantDisplayName = "";
         restaurantName = findViewById(R.id.tv_restaurant_name);
         restaurantStatus = findViewById(R.id.tv_restaurant_status);
+        FirebaseUser cachedUser = FirebaseAuth.getInstance().getCurrentUser();
+        String cachedUid = cachedUser != null ? cachedUser.getUid() : "";
+        if (restaurantId.isEmpty()) restaurantId = RestaurantSession.getRestaurantId(this, cachedUid);
+        if (restaurantDisplayName.isEmpty()) {
+            restaurantDisplayName = RestaurantSession.getRestaurantName(this, cachedUid);
+        }
+        if (!restaurantDisplayName.isEmpty()) restaurantName.setText(restaurantDisplayName);
+        String cachedStatus = RestaurantSession.getRestaurantStatus(this, cachedUid);
+        if (!cachedStatus.isEmpty()) {
+            restaurantStatus.setText("active".equals(cachedStatus) ? "Mở cửa" : "Tạm đóng");
+        }
+        ((TextView) findViewById(R.id.tv_restaurant_subtitle)).setText("Báo cáo & Doanh thu");
         todayTab = findViewById(R.id.btn_tab_today);
         weekTab = findViewById(R.id.btn_tab_7days);
         monthTab = findViewById(R.id.btn_tab_30days);
@@ -150,16 +167,26 @@ public class RestaurantReportActivity extends AppCompatActivity {
 
     private void open(Class<?> screen) {
         Intent intent = new Intent(this, screen);
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         intent.putExtra("EXTRA_RESTAURANT_ID", restaurantId);
+        intent.putExtra("EXTRA_RESTAURANT_NAME", restaurantDisplayName);
         startActivity(intent);
         overridePendingTransition(0, 0);
-        finish();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (navigation != null) navigation.setSelectedItemId(R.id.nav_report);
     }
 
     private void resolveRestaurant() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
             showError("Vui lòng đăng nhập để xem báo cáo");
+            return;
+        }
+        if (!restaurantId.isEmpty()) {
+            listenRestaurant(restaurantId);
             return;
         }
         String uid = user.getUid();
@@ -184,8 +211,14 @@ public class RestaurantReportActivity extends AppCompatActivity {
         restaurantRegistration = db.collection("restaurants").document(id).addSnapshotListener((doc, error) -> {
             if (error == null && doc != null && doc.exists()) {
                 String name = doc.getString("name");
+                restaurantDisplayName = name == null ? "" : name.trim();
                 restaurantName.setText(name == null ? "" : name);
                 restaurantStatus.setText("active".equals(doc.getString("status")) ? "Mở cửa" : "Tạm đóng");
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                if (user != null) {
+                    RestaurantSession.saveRestaurant(this, user.getUid(), restaurantId,
+                        restaurantDisplayName, doc.getString("status"));
+                }
             }
         });
         if (ordersRegistration != null) ordersRegistration.remove();
@@ -272,8 +305,7 @@ public class RestaurantReportActivity extends AppCompatActivity {
             String key = dayFormat.format(created);
             byDay.put(key, byDay.get(key) + amount);
             completedByDay.put(key, completedByDay.get(key) + 1);
-            if (order.getPaymentMethod() != null
-                    && order.getPaymentMethod().toUpperCase(Locale.ROOT).contains("COD")) {
+            if (order.isCodPayment()) {
                 codCount++; codRevenue += amount;
             } else {
                 otherCount++; otherRevenue += amount;

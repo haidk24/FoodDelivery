@@ -1,6 +1,7 @@
 package com.example.foodorderapp.data.model;
 
 import com.google.firebase.firestore.ServerTimestamp;
+import com.google.firebase.firestore.Exclude;
 import java.util.Date;
 import java.util.List;
 
@@ -23,6 +24,7 @@ public class Order {
     public static final String STATUS_SHIPPING = "shipping";
     public static final String STATUS_COMPLETED = "completed";
     public static final String STATUS_CANCELLED = "cancelled";
+    public static final String PAYMENT_COD = "COD";
 
     public static String normalizeStatus(String status) {
         if (status == null || status.trim().isEmpty()) {
@@ -60,27 +62,67 @@ public class Order {
     }
 
     public String getCustomerName() {
-        return customerName;
+        return cleanText(customerName);
     }
 
     public void setCustomerName(String customerName) {
-        this.customerName = customerName;
+        this.customerName = cleanText(customerName);
     }
 
     public String getCustomerPhone() {
-        return customerPhone;
+        return cleanText(customerPhone);
     }
 
     public void setCustomerPhone(String customerPhone) {
-        this.customerPhone = customerPhone;
+        this.customerPhone = cleanText(customerPhone);
     }
 
     public String getCustomerAddress() {
-        return customerAddress;
+        return cleanText(customerAddress);
     }
 
     public void setCustomerAddress(String customerAddress) {
-        this.customerAddress = customerAddress;
+        this.customerAddress = cleanText(customerAddress);
+    }
+
+    /**
+     * The address snapshot saved with an order. New orders use customerAddress;
+     * deliveryAddress is supported only to keep older Firestore orders readable.
+     */
+    @Exclude
+    public String getDeliveryAddressText() {
+        if (customerAddress != null && !customerAddress.trim().isEmpty()) {
+            return customerAddress.trim();
+        }
+        if (deliveryAddress instanceof String) {
+            return ((String) deliveryAddress).trim();
+        }
+        if (deliveryAddress instanceof Address) {
+            Address address = (Address) deliveryAddress;
+            return joinAddress(address.getStreet(), address.getWard(),
+                    address.getDistrict(), address.getCity());
+        }
+        if (deliveryAddress instanceof java.util.Map) {
+            java.util.Map<?, ?> address = (java.util.Map<?, ?>) deliveryAddress;
+            return joinAddress(address.get("street"), address.get("ward"),
+                    address.get("district"), address.get("city"));
+        }
+        return "";
+    }
+
+    private static String joinAddress(Object... parts) {
+        StringBuilder result = new StringBuilder();
+        for (Object part : parts) {
+            String text = part == null ? "" : String.valueOf(part).trim();
+            if (text.isEmpty()) continue;
+            if (result.length() > 0) result.append(", ");
+            result.append(text);
+        }
+        return result.toString();
+    }
+
+    private static String cleanText(String value) {
+        return value == null ? "" : value.trim();
     }
 
     public String getRestaurantId() {
@@ -132,11 +174,30 @@ public class Order {
     }
 
     public String getPaymentMethod() {
-        return paymentMethod;
+        return normalizePaymentMethod(paymentMethod);
     }
 
     public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
+        this.paymentMethod = normalizePaymentMethod(paymentMethod);
+    }
+
+    /** New and legacy orders without a payment field are COD in this app. */
+    @Exclude
+    public boolean isCodPayment() {
+        return PAYMENT_COD.equals(normalizePaymentMethod(paymentMethod));
+    }
+
+    public static String normalizePaymentMethod(String paymentMethod) {
+        String value = cleanText(paymentMethod);
+        if (value.isEmpty()) return PAYMENT_COD;
+        String normalized = java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                .replace('đ', 'd').replace('Đ', 'd')
+                .toLowerCase(java.util.Locale.ROOT);
+        if (normalized.contains("cod") || normalized.contains("cash") || normalized.contains("tien mat")) {
+            return PAYMENT_COD;
+        }
+        return value;
     }
 
     public Address getDeliveryAddress() {

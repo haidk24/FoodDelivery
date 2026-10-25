@@ -34,7 +34,7 @@ public class UserDetailFragment extends Fragment {
     // Views
     private TextView tvInitials, tvName, tvEmail, tvStatusBadge;
     private TextView tvPhone, tvRole, tvCreatedAt, tvOrderCount;
-    private Button   btnBanUnban, btnSendNotif;
+    private Button   btnBanUnban;
     private ImageButton btnBack, btnEditUser;
 
     @Override
@@ -77,7 +77,6 @@ public class UserDetailFragment extends Fragment {
         tvCreatedAt  = v.findViewById(R.id.tv_created_at);
         tvOrderCount = v.findViewById(R.id.tv_order_count);
         btnBanUnban  = v.findViewById(R.id.btn_ban_unban);
-        btnSendNotif = v.findViewById(R.id.btn_send_notification);
     }
 
     private void setupListeners(View view) {
@@ -133,13 +132,17 @@ public class UserDetailFragment extends Fragment {
             btnBanUnban.setBackgroundTintList(
                     android.content.res.ColorStateList.valueOf(0xFFE8F5EC));
             btnBanUnban.setTextColor(0xFF1E6B3A);
-        } else {
+        } else if ("active".equalsIgnoreCase(user.getStatus())) {
             tvStatusBadge.setText("Hoạt động");
             tvStatusBadge.setTextColor(0xFF34C759);
             btnBanUnban.setText("Khóa tài khoản");
             btnBanUnban.setBackgroundTintList(
                     android.content.res.ColorStateList.valueOf(0xFFFDECEA));
             btnBanUnban.setTextColor(0xFF8B1A1A);
+        } else {
+            tvStatusBadge.setText("Chưa xác định");
+            btnBanUnban.setText("Không thể khóa: thiếu trạng thái");
+            btnBanUnban.setEnabled(false);
         }
 
         String currentUid = "";
@@ -149,7 +152,9 @@ public class UserDetailFragment extends Fragment {
             }
         } catch (Exception ignored) {}
         
-        btnBanUnban.setEnabled(!user.getUid().equals(currentUid));
+        if ("active".equalsIgnoreCase(user.getStatus()) || isBanned) {
+            btnBanUnban.setEnabled(user.getUid() != null && !user.getUid().equals(currentUid));
+        }
 
         btnBanUnban.setOnClickListener(v -> {
             if (isBanned) {
@@ -165,7 +170,6 @@ public class UserDetailFragment extends Fragment {
             }
         });
 
-        btnSendNotif.setOnClickListener(v -> showSendNotifDialog(user));
     }
 
     private void showEditUserDialog(User user) {
@@ -196,8 +200,8 @@ public class UserDetailFragment extends Fragment {
         layout.addView(tvRoleLabel);
 
         final Spinner spinnerRole = new Spinner(requireContext());
-        String[] roles = {"customer", "restaurant", "admin"};
-        String[] roleLabels = {"Khách hàng", "Nhà hàng", "Admin"};
+        String[] roles = {"customer", "restaurant", "shipper", "admin"};
+        String[] roleLabels = {"Khách hàng", "Nhà hàng", "Tài xế giao hàng", "Admin"};
         
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), 
                 android.R.layout.simple_spinner_item, roleLabels);
@@ -240,25 +244,6 @@ public class UserDetailFragment extends Fragment {
                 .setTitle(title)
                 .setMessage(message)
                 .setPositiveButton("Xác nhận", (d, w) -> onConfirm.run())
-                .setNegativeButton("Huỷ", null)
-                .show();
-    }
-
-    private void showSendNotifDialog(User user) {
-        android.widget.EditText etMessage = new android.widget.EditText(
-                requireContext());
-        etMessage.setHint("Nhập nội dung thông báo...");
-        etMessage.setPadding(40, 20, 40, 20);
-
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Gửi thông báo tới " + user.getDisplayName())
-                .setView(etMessage)
-                .setPositiveButton("Gửi", (d, w) -> {
-                    String msg = etMessage.getText().toString().trim();
-                    if (msg.isEmpty()) return;
-                    Toast.makeText(requireContext(),
-                            "Đã gửi thông báo!", Toast.LENGTH_SHORT).show();
-                })
                 .setNegativeButton("Huỷ", null)
                 .show();
     }

@@ -68,7 +68,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
     private TextView tvLoadMoreLabel, tvRecordsSummary;
     private ProgressBar progressLoadMore;
 
-    private String currentFilter = FILTER_CUSTOMER; // Theo mockup, tab Khách hàng được chọn ban đầu
+    private String currentFilter = FILTER_CUSTOMER;
     private String currentSearchQuery = "";
     private boolean isExpanded = false;
     private final List<User> allLoadedUsers = new ArrayList<>();
@@ -213,9 +213,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
     private void setupActions() {
         btnAddUser.setOnClickListener(v -> showAddUserDialog());
 
-        btnFilterDialog.setOnClickListener(v -> {
-            Toast.makeText(requireContext(), "Bộ lọc nâng cao", Toast.LENGTH_SHORT).show();
-        });
+        if (btnFilterDialog != null) btnFilterDialog.setVisibility(View.GONE);
 
         btnLoadMoreUsers.setOnClickListener(v -> {
             isExpanded = true;
@@ -236,7 +234,6 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
             if (users != null) {
                 allLoadedUsers.addAll(users);
             }
-            ensureRealisticSamplesIfFew();
             updateMetricsAndBadges();
             applyFilterAndDisplay();
         });
@@ -255,48 +252,8 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
         });
     }
 
-    private void ensureRealisticSamplesIfFew() {
-        // Luôn đặt 4 thẻ người dùng tiêu biểu đúng với thiết kế mẫu Stitch ở đầu danh sách
-        // Loại bỏ trùng lặp nếu đã có
-        List<User> toRemove = new ArrayList<>();
-        for (User u : allLoadedUsers) {
-            if ("vohuuthai1508@gmail.com".equalsIgnoreCase(u.getEmail())
-                    || "theidz1234@gmail.com".equalsIgnoreCase(u.getEmail())
-                    || "tienmanh@gmail.com".equalsIgnoreCase(u.getEmail())
-                    || "manhbeo22@gmail.com".equalsIgnoreCase(u.getEmail())) {
-                toRemove.add(u);
-            }
-        }
-        allLoadedUsers.removeAll(toRemove);
-
-        List<User> sampleList = new ArrayList<>();
-
-        User u1 = new User("mock_user_1", "Thái Võ", "vohuuthai1508@gmail.com", "0987111222", "customer", "active", 0);
-        u1.setPhoneVerified(true);
-        u1.setJoinTimeText("Gia nhập 3 ngày trước");
-        sampleList.add(u1);
-
-        User u2 = new User("mock_user_2", "Thái 05", "theidz1234@gmail.com", "0987333444", "customer", "active", 2);
-        u2.setTotalSpent(365000);
-        u2.setLastOrderTime("Hôm qua 19:40");
-        sampleList.add(u2);
-
-        User u3 = new User("mock_user_3", "Tiến Mạnh", "tienmanh@gmail.com", "0987654321", "restaurant", "active", 15);
-        u3.setRestaurantName("Mạnh Tiến Quán (Quận 1)");
-        u3.setDishCount(48);
-        sampleList.add(u3);
-
-        User u4 = new User("mock_user_4", "Hoàng Hương", "manhbeo22@gmail.com", "0987888999", "customer", "banned", 1);
-        u4.setBanReason("Hủy 4 đơn liên tiếp không lý do");
-        u4.setBannedAt("14/10/2023");
-        u4.setBannedBy("Admin_01");
-        sampleList.add(u4);
-
-        allLoadedUsers.addAll(0, sampleList);
-    }
-
     private void updateMetricsAndBadges() {
-        int total = Math.max(allLoadedUsers.size(), 142);
+        int total = allLoadedUsers.size();
         int active = 0;
         int banned = 0;
         int customers = 0;
@@ -304,30 +261,19 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
 
         for (User u : allLoadedUsers) {
             if ("banned".equalsIgnoreCase(u.getStatus())) banned++;
-            else active++;
+            else if ("active".equalsIgnoreCase(u.getStatus())) active++;
 
             if ("restaurant".equalsIgnoreCase(u.getRole())) restaurants++;
-            else customers++;
+            else if ("customer".equalsIgnoreCase(u.getRole())) customers++;
         }
 
-        // Đồng bộ thống kê theo giao diện mẫu
-        int displayTotal = Math.max(total, 142);
-        int displayActive = Math.max(active, 138);
-        int displayBanned = Math.max(banned, 4);
-        int displayCust = Math.max(customers, 128);
-        int displayRest = Math.max(restaurants, 10);
-
-        tvTotalUsers.setText(String.valueOf(displayTotal));
-        tvActiveUsers.setText(String.valueOf(displayActive));
-        tvBannedUsers.setText(String.valueOf(displayBanned));
-
-        tvBadgeAll.setText(String.valueOf(displayTotal));
-        tvBadgeCustomer.setText(String.valueOf(displayCust));
-        tvBadgeRestaurant.setText(String.valueOf(displayRest));
-        tvBadgeBanned.setText(String.valueOf(displayBanned));
-
-        tvLoadMoreLabel.setText("Xem thêm " + (displayTotal - 4) + " người dùng khác");
-        tvRecordsSummary.setText("Hiển thị 4 trên tổng số " + displayTotal + " bản ghi");
+        tvTotalUsers.setText(String.valueOf(total));
+        tvActiveUsers.setText(String.valueOf(active));
+        tvBannedUsers.setText(String.valueOf(banned));
+        tvBadgeAll.setText(String.valueOf(total));
+        tvBadgeCustomer.setText(String.valueOf(customers));
+        tvBadgeRestaurant.setText(String.valueOf(restaurants));
+        tvBadgeBanned.setText(String.valueOf(banned));
     }
 
     private void applyFilterAndDisplay() {
@@ -340,7 +286,9 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
             } else if (FILTER_BANNED.equals(currentFilter)) {
                 matchesFilter = "banned".equalsIgnoreCase(u.getStatus());
             }
-            // Mặc định ở tab Khách hàng hoặc Tất cả hiển thị toàn bộ 4 thẻ mẫu đại diện đúng với mockup Stitch
+            if (FILTER_CUSTOMER.equals(currentFilter)) {
+                matchesFilter = "customer".equalsIgnoreCase(u.getRole());
+            }
 
             if (!matchesFilter) continue;
 
@@ -348,8 +296,12 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                 String name = u.getDisplayName() != null ? u.getDisplayName().toLowerCase(Locale.getDefault()) : "";
                 String email = u.getEmail() != null ? u.getEmail().toLowerCase(Locale.getDefault()) : "";
                 String phone = u.getPhone() != null ? u.getPhone().toLowerCase(Locale.getDefault()) : "";
+                String address = u.getAddress() != null ? u.getAddress().toLowerCase(Locale.getDefault()) : "";
+                String restaurant = u.getRestaurantName() != null ? u.getRestaurantName().toLowerCase(Locale.getDefault()) : "";
 
-                if (!name.contains(currentSearchQuery) && !email.contains(currentSearchQuery) && !phone.contains(currentSearchQuery)) {
+                if (!name.contains(currentSearchQuery) && !email.contains(currentSearchQuery)
+                        && !phone.contains(currentSearchQuery) && !address.contains(currentSearchQuery)
+                        && !restaurant.contains(currentSearchQuery)) {
                     continue;
                 }
             }
@@ -362,11 +314,12 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
             int limit = Math.min(filtered.size(), 4);
             toDisplay = new ArrayList<>(filtered.subList(0, limit));
             btnLoadMoreUsers.setVisibility(filtered.size() > 4 ? View.VISIBLE : View.GONE);
-            tvRecordsSummary.setText("Hiển thị " + limit + " trên tổng số " + Math.max(allLoadedUsers.size(), 142) + " bản ghi");
+            tvLoadMoreLabel.setText("Xem thêm " + Math.max(0, filtered.size() - limit) + " người dùng khác");
+            tvRecordsSummary.setText("Hiển thị " + limit + " trên tổng số " + filtered.size() + " bản ghi");
         } else {
             toDisplay = filtered;
             btnLoadMoreUsers.setVisibility(View.GONE);
-            tvRecordsSummary.setText("Hiển thị " + filtered.size() + " trên tổng số " + Math.max(allLoadedUsers.size(), 142) + " bản ghi");
+            tvRecordsSummary.setText("Hiển thị " + filtered.size() + " trên tổng số " + filtered.size() + " bản ghi");
         }
 
         adapter.submitList(toDisplay);
@@ -381,6 +334,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
         EditText edtName = dialogView.findViewById(R.id.edt_new_user_name);
         EditText edtEmail = dialogView.findViewById(R.id.edt_new_user_email);
         EditText edtPhone = dialogView.findViewById(R.id.edt_new_user_phone);
+        EditText edtPassword = dialogView.findViewById(R.id.edt_new_user_password);
 
         new AlertDialog.Builder(requireContext())
                 .setTitle("Thêm tài khoản người dùng")
@@ -389,16 +343,63 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                     String name = edtName.getText().toString().trim();
                     String email = edtEmail.getText().toString().trim();
                     String phone = edtPhone.getText().toString().trim();
-                    if (!name.isEmpty() && !email.isEmpty()) {
-                        User newUser = new User("user_" + System.currentTimeMillis(), name, email, phone, "customer", "active", 0);
-                        allLoadedUsers.add(0, newUser);
-                        updateMetricsAndBadges();
-                        applyFilterAndDisplay();
-                        Toast.makeText(requireContext(), "Đã thêm người dùng: " + name, Toast.LENGTH_SHORT).show();
+                    String password = edtPassword.getText().toString();
+                    if (name.isEmpty() || email.isEmpty() || password.length() < 6) {
+                        Toast.makeText(requireContext(), "Nhập tên, email hợp lệ và mật khẩu ít nhất 6 ký tự.", Toast.LENGTH_LONG).show();
+                    } else {
+                        createUserAccount(name, email, phone, password);
                     }
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
+    }
+
+    private void createUserAccount(String name, String email, String phone, String password) {
+        com.google.firebase.FirebaseApp secondaryApp = null;
+        try {
+            String appName = "admin-user-creation-" + System.currentTimeMillis();
+            secondaryApp = com.google.firebase.FirebaseApp.initializeApp(
+                    requireContext(), com.google.firebase.FirebaseApp.getInstance().getOptions(), appName);
+            com.google.firebase.FirebaseApp finalSecondaryApp = secondaryApp;
+            com.google.firebase.auth.FirebaseAuth.getInstance(secondaryApp)
+                    .createUserWithEmailAndPassword(email, password)
+                    .addOnSuccessListener(result -> {
+                        if (result.getUser() == null) {
+                            finalSecondaryApp.delete();
+                            Toast.makeText(requireContext(), "Không tạo được tài khoản xác thực.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        String uid = result.getUser().getUid();
+                        User newUser = new User();
+                        newUser.setUid(uid);
+                        newUser.setDisplayName(name);
+                        newUser.setEmail(email);
+                        newUser.setPhone(phone);
+                        newUser.setRole("customer");
+                        newUser.setStatus("active");
+                        newUser.setCreatedAt(com.google.firebase.Timestamp.now());
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                .collection("users").document(uid).set(newUser)
+                                .addOnSuccessListener(unused -> {
+                                    finalSecondaryApp.delete();
+                                    if (isAdded()) Toast.makeText(requireContext(), "Đã tạo tài khoản người dùng.", Toast.LENGTH_SHORT).show();
+                                    viewModel.loadFirstPageUsers("all");
+                                })
+                                .addOnFailureListener(error -> {
+                                    result.getUser().delete().addOnCompleteListener(deleteTask -> {
+                                        finalSecondaryApp.delete();
+                                        if (isAdded()) Toast.makeText(requireContext(), "Không lưu được hồ sơ Firestore nên đã hủy tài khoản vừa tạo: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                                    });
+                                });
+                    })
+                    .addOnFailureListener(error -> {
+                        finalSecondaryApp.delete();
+                        if (isAdded()) Toast.makeText(requireContext(), "Không tạo được tài khoản: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+        } catch (Exception error) {
+            if (secondaryApp != null) secondaryApp.delete();
+            if (isAdded()) Toast.makeText(requireContext(), "Không khởi tạo được luồng tạo tài khoản: " + error.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     // ── UserAdapter.Listener callbacks ───────────────────────────────
@@ -423,7 +424,30 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
 
     @Override
     public void onViewOrders(User user) {
-        Toast.makeText(requireContext(), "Xem đơn hàng của " + user.getDisplayName(), Toast.LENGTH_SHORT).show();
+        if (user.getUid() == null) return;
+        Toast.makeText(requireContext(), "Đang tải đơn hàng...", Toast.LENGTH_SHORT).show();
+        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("orders")
+                .whereEqualTo("customerId", user.getUid()).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (!isAdded()) return;
+                    java.util.List<String> rows = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
+                        String id = doc.getString("orderId");
+                        if (id == null) id = doc.getId();
+                        String status = doc.getString("status");
+                        Object rawAmount = doc.get("totalAmount");
+                        String amountText = rawAmount instanceof Number ? ((Number) rawAmount).longValue() + " đ" : "—";
+                        rows.add("#" + (id.length() > 8 ? id.substring(0, 8) : id)
+                                + " • " + (status == null ? "Chưa cập nhật trạng thái" : status)
+                                + " • " + amountText);
+                    }
+                    if (rows.isEmpty()) rows.add("Không tìm thấy đơn hàng của tài khoản này.");
+                    new AlertDialog.Builder(requireContext()).setTitle("Đơn hàng của " + user.getDisplayName())
+                            .setItems(rows.toArray(new String[0]), null).setPositiveButton("Đóng", null).show();
+                })
+                .addOnFailureListener(error -> {
+                    if (isAdded()) Toast.makeText(requireContext(), "Không tải được đơn hàng: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                });
     }
 
     @Override
@@ -438,12 +462,9 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                     else if (which == 3) selectedRole = "admin";
 
                     user.setRole(selectedRole);
-                    if (user.getUid() != null && !user.getUid().startsWith("mock_")) {
+                    if (user.getUid() != null) {
                         viewModel.updateUser(user);
                     }
-                    updateMetricsAndBadges();
-                    applyFilterAndDisplay();
-                    Toast.makeText(requireContext(), "Đã cập nhật vai trò: " + roles[which], Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
@@ -455,13 +476,9 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                 .setTitle("Mở khóa tài khoản")
                 .setMessage("Bạn có chắc chắn muốn mở khóa tài khoản cho " + user.getDisplayName() + "?")
                 .setPositiveButton("Mở khóa", (dialog, which) -> {
-                    user.setStatus("active");
-                    if (user.getUid() != null && !user.getUid().startsWith("mock_")) {
+                    if (user.getUid() != null) {
                         viewModel.unbanUser(user.getUid());
                     }
-                    updateMetricsAndBadges();
-                    applyFilterAndDisplay();
-                    Toast.makeText(requireContext(), "Đã mở khóa tài khoản thành công!", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
@@ -504,16 +521,9 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                 .setTitle("Khóa tài khoản")
                 .setMessage("Khóa tài khoản của " + user.getDisplayName() + " do vi phạm?")
                 .setPositiveButton("Khóa", (dialog, which) -> {
-                    user.setStatus("banned");
-                    user.setBanReason("Khóa bởi quản trị viên hệ thống");
-                    user.setBannedAt("Hôm nay");
-                    user.setBannedBy("Admin");
-                    if (user.getUid() != null && !user.getUid().startsWith("mock_")) {
+                    if (user.getUid() != null) {
                         viewModel.banUser(user.getUid());
                     }
-                    updateMetricsAndBadges();
-                    applyFilterAndDisplay();
-                    Toast.makeText(requireContext(), "Đã khóa tài khoản!", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Hủy", null)
                 .show();

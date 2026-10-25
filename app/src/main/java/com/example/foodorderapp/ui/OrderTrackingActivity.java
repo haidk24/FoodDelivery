@@ -110,7 +110,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 intent.putExtra("EXTRA_STATUS", currentOrder.getStatus());
                 intent.putExtra("EXTRA_CUSTOMER_NAME", currentOrder.getCustomerName());
                 intent.putExtra("EXTRA_CUSTOMER_PHONE", currentOrder.getCustomerPhone());
-                intent.putExtra("EXTRA_CUSTOMER_ADDRESS", currentOrder.getCustomerAddress());
+                intent.putExtra("EXTRA_CUSTOMER_ADDRESS", currentOrder.getDeliveryAddressText());
                 intent.putExtra("EXTRA_RESTAURANT_ID", currentOrder.getRestaurantId());
             }
             startActivity(intent);
@@ -250,7 +250,8 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 ivStep3Dot.setImageTintList(ColorStateList.valueOf(colorPrimary));
                 tvStep3Title.setText("Đang giao đến bạn");
                 tvStep3Title.setTextColor(colorPrimary);
-                String dest = TextUtils.isEmpty(order.getCustomerAddress()) ? "địa chỉ của bạn" : order.getCustomerAddress();
+                String dest = TextUtils.isEmpty(order.getDeliveryAddressText())
+                        ? "địa chỉ của bạn" : order.getDeliveryAddressText();
                 tvStep3Time.setText("Tài xế đang di chuyển tới " + dest);
 
                 lineStep3To4.setBackgroundColor(colorInactive);
@@ -320,7 +321,9 @@ public class OrderTrackingActivity extends AppCompatActivity {
         db.collection("restaurants").document(resId).get()
                 .addOnSuccessListener(doc -> {
                     if (doc != null && doc.exists()) {
-                        String name = doc.getString("name");
+                        com.example.foodorderapp.data.model.Restaurant restaurant =
+                                doc.toObject(com.example.foodorderapp.data.model.Restaurant.class);
+                        String name = restaurant != null ? restaurant.getName() : "";
                         if (!TextUtils.isEmpty(name)) {
                             tvSummaryRestaurant.setText(name);
                             tvMapRestaurantLabel.setText(name);

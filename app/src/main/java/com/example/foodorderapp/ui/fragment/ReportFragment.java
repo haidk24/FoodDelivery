@@ -33,6 +33,8 @@ public class ReportFragment extends Fragment {
 
     // Loading
     private ProgressBar progressBar;
+    private View reportContent;
+    private boolean hasReportData;
 
     // Tabs
     private TextView tabToday, tabWeek, tabMonth, tabCustom;
@@ -52,6 +54,8 @@ public class ReportFragment extends Fragment {
 
     // Payment Breakdown Card
     private TextView tvPaymentTotalPill, tvPaymentCodDesc;
+    private TextView tvPaymentCodPercent;
+    private View paymentDonutFrame;
 
     // System Health
     private TextView tvHealthRestaurants, tvHealthPending, tvHealthUsers;
@@ -93,6 +97,7 @@ public class ReportFragment extends Fragment {
 
     private void bindViews(@NonNull View v) {
         progressBar           = v.findViewById(R.id.progress_bar);
+        reportContent         = v.findViewById(R.id.report_content);
 
         tabToday              = v.findViewById(R.id.tab_today);
         tabWeek               = v.findViewById(R.id.tab_week);
@@ -131,6 +136,8 @@ public class ReportFragment extends Fragment {
 
         tvPaymentTotalPill    = v.findViewById(R.id.tv_payment_total_pill);
         tvPaymentCodDesc      = v.findViewById(R.id.tv_payment_cod_desc);
+        tvPaymentCodPercent   = v.findViewById(R.id.tv_payment_cod_percent);
+        paymentDonutFrame     = v.findViewById(R.id.payment_donut_frame);
 
         tvHealthRestaurants   = v.findViewById(R.id.tv_health_restaurants);
         tvHealthPending       = v.findViewById(R.id.tv_health_pending);
@@ -171,10 +178,36 @@ public class ReportFragment extends Fragment {
                 break;
             case 3:
                 setActiveTabStyle(tabCustom);
-                tvHeroTitle.setText("TỔNG GIÁ TRỊ ĐƠN HÀNG (TÙY CHỌN)");
-                Toast.makeText(requireContext(), "Chọn khoảng ngày tùy biến (Đang cập nhật)", Toast.LENGTH_SHORT).show();
+                showCustomDateRangePicker();
                 break;
         }
+    }
+
+    private void showCustomDateRangePicker() {
+        java.util.Calendar initial = java.util.Calendar.getInstance();
+        initial.add(java.util.Calendar.DAY_OF_YEAR, -6);
+        android.app.DatePickerDialog startDialog = new android.app.DatePickerDialog(requireContext(), (picker, year, month, day) -> {
+            java.util.Calendar start = java.util.Calendar.getInstance();
+            start.set(year, month, day, 0, 0, 0);
+            start.set(java.util.Calendar.MILLISECOND, 0);
+            java.util.Calendar endInitial = java.util.Calendar.getInstance();
+            android.app.DatePickerDialog endDialog = new android.app.DatePickerDialog(requireContext(), (endPicker, endYear, endMonth, endDay) -> {
+                java.util.Calendar end = java.util.Calendar.getInstance();
+                end.set(endYear, endMonth, endDay, 23, 59, 59);
+                end.set(java.util.Calendar.MILLISECOND, 999);
+                if (start.after(end)) {
+                    Toast.makeText(requireContext(), "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                selectedTabIndex = 3;
+                tvHeroTitle.setText("TỔNG GIÁ TRỊ ĐƠN HÀNG (TÙY CHỌN)");
+                viewModel.loadCustomReport(start.getTime(), end.getTime());
+            }, endInitial.get(java.util.Calendar.YEAR), endInitial.get(java.util.Calendar.MONTH), endInitial.get(java.util.Calendar.DAY_OF_MONTH));
+            endDialog.setTitle("Chọn ngày kết thúc");
+            endDialog.show();
+        }, initial.get(java.util.Calendar.YEAR), initial.get(java.util.Calendar.MONTH), initial.get(java.util.Calendar.DAY_OF_MONTH));
+        startDialog.setTitle("Chọn ngày bắt đầu");
+        startDialog.show();
     }
 
     private void setActiveTabStyle(TextView tab) {
@@ -192,105 +225,89 @@ public class ReportFragment extends Fragment {
     private void observeViewModel() {
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), loading -> {
             if (progressBar != null) {
-                progressBar.setVisibility(loading != null && loading ? View.VISIBLE : View.GONE);
+                progressBar.setVisibility(Boolean.TRUE.equals(loading) && !hasReportData ? View.VISIBLE : View.GONE);
             }
         });
 
         viewModel.getReportStats().observe(getViewLifecycleOwner(), stats -> {
             if (stats != null) {
                 populateReportData(stats);
+                hasReportData = true;
+                reportContent.setVisibility(View.VISIBLE);
+                progressBar.setVisibility(View.GONE);
+            }
+        });
+        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty() && isAdded()) {
+                if (!hasReportData) {
+                    reportContent.setVisibility(View.VISIBLE);
+                    progressBar.setVisibility(View.GONE);
+                }
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
             }
         });
     }
 
     private void populateReportData(@NonNull ReportStats stats) {
-        // If Firestore data has substantial orders (>2), use real data;
-        // otherwise show the full fidelity analytics matching Stitch mockup.
-        boolean useRealData = stats.totalOrders > 2;
+        long total = stats.totalOrders;
+        long delivered = stats.deliveredOrders;
+        long cancelled = stats.cancelledOrders;
+        long revenue = stats.totalRevenue;
+        String revStr = currencyFormatter.format(revenue) + " đ";
+        tvHeroRevenue.setText(revStr);
+        tvHeroOrderCount.setText(currencyFormatter.format(delivered) + " đơn hoàn tất");
+        tvStatTotalOrders.setText(currencyFormatter.format(total) + " đơn");
+        tvStatRevenue.setText(revStr);
+        tvStatDelivered.setText(currencyFormatter.format(delivered) + " đơn");
+        tvStatCancelled.setText(currencyFormatter.format(cancelled) + " đơn");
+        double delPct = total > 0 ? delivered * 100.0 / total : 0;
+        double canPct = total > 0 ? cancelled * 100.0 / total : 0;
+        tvStatDeliveredPct.setText(String.format(Locale.US, "%.1f%%", delPct));
+        tvStatCancelledPct.setText(String.format(Locale.US, "%.1f%%", canPct));
+        tvPaymentTotalPill.setText("Tổng " + currencyFormatter.format(total) + " đơn");
+        long codCount = stats.paymentMethodCount == null ? 0 : stats.paymentMethodCount.getOrDefault("COD", 0L);
+        double codPercent = total > 0 ? codCount * 100.0 / total : 0;
+        tvPaymentCodDesc.setText(currencyFormatter.format(codCount) + " đơn COD");
+        if (tvPaymentCodPercent != null) tvPaymentCodPercent.setText(String.format(Locale.US, "%.1f%%", codPercent));
+        if (paymentDonutFrame != null) paymentDonutFrame.setVisibility(total > 0 && codCount == total ? View.VISIBLE : View.GONE);
+        renderRevenueChart(stats);
+    }
 
-        if (useRealData) {
-            long total = stats.totalOrders;
-            long delivered = stats.deliveredOrders;
-            long cancelled = stats.cancelledOrders;
-            long revenue = stats.totalRevenue;
-
-            String revStr = currencyFormatter.format(revenue) + " đ";
-            tvHeroRevenue.setText(revStr);
-            tvHeroOrderCount.setText(currencyFormatter.format(delivered) + " đơn thành công");
-
-            tvStatTotalOrders.setText(currencyFormatter.format(total) + " đơn");
-            tvStatRevenue.setText(revStr);
-            tvStatDelivered.setText(currencyFormatter.format(delivered) + " đơn");
-            tvStatCancelled.setText(currencyFormatter.format(cancelled) + " đơn");
-
-            double delPct = total > 0 ? (delivered * 100.0 / total) : 0;
-            double canPct = total > 0 ? (cancelled * 100.0 / total) : 0;
-            tvStatDeliveredPct.setText(String.format(Locale.US, "%.1f%%", delPct));
-            tvStatCancelledPct.setText(String.format(Locale.US, "%.1f%%", canPct));
-
-            tvPaymentTotalPill.setText("Tổng " + currencyFormatter.format(total) + " đơn");
-            tvPaymentCodDesc.setText(currencyFormatter.format(delivered) + " đơn hoàn tất");
-        } else {
-            // Apply Stitch mockup demo analytics based on selected tab
-            switch (selectedTabIndex) {
-                case 0: // Hôm nay
-                    tvHeroRevenue.setText("26.450.000 đ");
-                    tvHeroOrderCount.setText("310 đơn thành công");
-                    tvStatTotalOrders.setText("314 đơn");
-                    tvStatRevenue.setText("26.450.000 đ");
-                    tvStatDelivered.setText("310 đơn");
-                    tvStatDeliveredPct.setText("98.7%");
-                    tvStatCancelled.setText("4 đơn");
-                    tvStatCancelledPct.setText("1.3%");
-                    tvPaymentTotalPill.setText("Tổng 314 đơn");
-                    tvPaymentCodDesc.setText("310 đơn hoàn tất");
-                    tvChartPeakSubtitle.setText("Đỉnh điểm Trưa nay (11.8M đ)");
-                    if (pillPeakT7 != null) pillPeakT7.setText("11.8M ★");
-                    break;
-                case 1: // 7 ngày (exact Stitch screenshot)
-                    tvHeroRevenue.setText("185.400.000 đ");
-                    tvHeroOrderCount.setText("2.114 đơn thành công");
-                    tvStatTotalOrders.setText("2.140 đơn");
-                    tvStatRevenue.setText("185.400.000 đ");
-                    tvStatDelivered.setText("2.114 đơn");
-                    tvStatDeliveredPct.setText("98.8%");
-                    tvStatCancelled.setText("26 đơn");
-                    tvStatCancelledPct.setText("1.2%");
-                    tvPaymentTotalPill.setText("Tổng 2.140 đơn");
-                    tvPaymentCodDesc.setText("2.140 đơn hoàn tất");
-                    tvChartPeakSubtitle.setText("Đỉnh điểm Thứ Bảy (36.2M đ)");
-                    if (pillPeakT7 != null) pillPeakT7.setText("36.2M ★");
-                    break;
-                case 2: // 30 ngày
-                    tvHeroRevenue.setText("784.600.000 đ");
-                    tvHeroOrderCount.setText("8.920 đơn thành công");
-                    tvStatTotalOrders.setText("9.045 đơn");
-                    tvStatRevenue.setText("784.600.000 đ");
-                    tvStatDelivered.setText("8.920 đơn");
-                    tvStatDeliveredPct.setText("98.6%");
-                    tvStatCancelled.setText("125 đơn");
-                    tvStatCancelledPct.setText("1.4%");
-                    tvPaymentTotalPill.setText("Tổng 9.045 đơn");
-                    tvPaymentCodDesc.setText("8.920 đơn hoàn tất");
-                    tvChartPeakSubtitle.setText("Đỉnh điểm Tuần 3 (214M đ)");
-                    if (pillPeakT7 != null) pillPeakT7.setText("52.4M ★");
-                    break;
-                case 3: // Tùy chọn
-                    tvHeroRevenue.setText("185.400.000 đ");
-                    tvHeroOrderCount.setText("2.114 đơn thành công");
-                    tvStatTotalOrders.setText("2.140 đơn");
-                    tvStatRevenue.setText("185.400.000 đ");
-                    tvStatDelivered.setText("2.114 đơn");
-                    tvStatDeliveredPct.setText("98.8%");
-                    tvStatCancelled.setText("26 đơn");
-                    tvStatCancelledPct.setText("1.2%");
-                    tvPaymentTotalPill.setText("Tổng 2.140 đơn");
-                    tvPaymentCodDesc.setText("2.140 đơn hoàn tất");
-                    tvChartPeakSubtitle.setText("Đỉnh điểm Thứ Bảy (36.2M đ)");
-                    if (pillPeakT7 != null) pillPeakT7.setText("36.2M ★");
-                    break;
+    private void renderRevenueChart(@NonNull ReportStats stats) {
+        java.util.List<Long> values = new java.util.ArrayList<>(stats.revenueByDay.values());
+        java.util.List<String> dates = new java.util.ArrayList<>(stats.revenueByDay.keySet());
+        View[] bars = {barColT2, barColT3, barColT4, barColT5, barColT6, barColT7, barColCn};
+        TextView[] labels = {labelColT2, labelColT3, labelColT4, labelColT5, labelColT6, labelColT7, labelColCn};
+        long max = 0;
+        for (Long value : values) if (value != null) max = Math.max(max, value);
+        int first = Math.max(0, values.size() - bars.length);
+        java.text.SimpleDateFormat dayFormat = new java.text.SimpleDateFormat("EEE", Locale.getDefault());
+        java.text.SimpleDateFormat keyFormat = new java.text.SimpleDateFormat("dd/MM", Locale.getDefault());
+        for (int i = 0; i < bars.length; i++) {
+            int index = first + i;
+            boolean visible = index < values.size();
+            if (bars[i] != null) {
+                bars[i].setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+                if (visible) {
+                    int heightDp = max == 0 ? 4 : Math.max(4, Math.round(100f * values.get(index) / max));
+                    ViewGroup.LayoutParams params = bars[i].getLayoutParams();
+                    params.height = (int) (heightDp * getResources().getDisplayMetrics().density);
+                    bars[i].setLayoutParams(params);
+                }
+            }
+            if (labels[i] != null) {
+                if (!visible) labels[i].setVisibility(View.INVISIBLE);
+                else {
+                    labels[i].setVisibility(View.VISIBLE);
+                    try {
+                        java.util.Date date = keyFormat.parse(dates.get(index));
+                        labels[i].setText(date == null ? dates.get(index) : dayFormat.format(date));
+                    } catch (java.text.ParseException e) { labels[i].setText(dates.get(index)); }
+                }
             }
         }
+        if (tvChartPeakSubtitle != null) tvChartPeakSubtitle.setText("Doanh thu đơn hoàn tất theo ngày");
+        if (pillPeakT7 != null) pillPeakT7.setVisibility(View.GONE);
     }
 
     private void loadSystemHealthStats() {
@@ -305,28 +322,27 @@ public class ReportFragment extends Fragment {
                     String status = doc.getString("status");
                     if ("pending".equalsIgnoreCase(status)) {
                         pendingCount++;
-                    } else {
+                    } else if ("active".equalsIgnoreCase(status)) {
                         activeCount++;
                     }
                 }
-                if (activeCount > 0 && tvHealthRestaurants != null) {
-                    tvHealthRestaurants.setText(String.valueOf(activeCount));
-                }
+                if (tvHealthRestaurants != null) tvHealthRestaurants.setText(String.valueOf(activeCount));
                 if (tvHealthPending != null) {
-                    tvHealthPending.setText(String.valueOf(Math.max(1, pendingCount)));
+                    tvHealthPending.setText(String.valueOf(pendingCount));
                 }
             }
-        }).addOnFailureListener(e -> {
-            // Keep default fallback values: 24 active, 1 pending
-        });
+        }).addOnFailureListener(e -> showHealthLoadError());
 
         // Fetch user count
         db.collection("users").get().addOnSuccessListener(snapshot -> {
-            if (snapshot != null && snapshot.size() > 5 && tvHealthUsers != null) {
+            if (snapshot != null && tvHealthUsers != null) {
                 tvHealthUsers.setText(String.valueOf(snapshot.size()));
             }
-        }).addOnFailureListener(e -> {
-            // Keep default fallback value: 142
-        });
+        }).addOnFailureListener(e -> showHealthLoadError());
+    }
+
+    private void showHealthLoadError() {
+        if (!isAdded()) return;
+        Toast.makeText(requireContext(), "Không tải được một số dữ liệu tổng quan từ Firestore.", Toast.LENGTH_SHORT).show();
     }
 }

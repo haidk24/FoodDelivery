@@ -22,6 +22,7 @@ import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.ui.adapter.RestaurantOrderAdapter;
 import com.example.foodorderapp.utils.RestaurantOrderBadge;
+import com.example.foodorderapp.utils.RestaurantSession;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -36,6 +37,7 @@ import java.util.List;
 public class OrderDashboardActivity extends AppCompatActivity {
 
     private String currentRestaurantId;
+    private String currentRestaurantName = "";
     private FirebaseFirestore db;
 
     // Top Bar
@@ -80,8 +82,25 @@ public class OrderDashboardActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
         currentRestaurantId = getIntent().getStringExtra("EXTRA_RESTAURANT_ID");
+        currentRestaurantName = getIntent().getStringExtra("EXTRA_RESTAURANT_NAME");
+        if (currentRestaurantId == null) currentRestaurantId = "";
+        if (currentRestaurantName == null) currentRestaurantName = "";
 
         initViews();
+        FirebaseUser cachedUser = FirebaseAuth.getInstance().getCurrentUser();
+        String cachedUid = cachedUser != null ? cachedUser.getUid() : "";
+        if (currentRestaurantId.isEmpty()) {
+            currentRestaurantId = RestaurantSession.getRestaurantId(this, cachedUid);
+        }
+        if (currentRestaurantName.isEmpty()) {
+            currentRestaurantName = RestaurantSession.getRestaurantName(this, cachedUid);
+        }
+        if (!currentRestaurantName.isEmpty()) tvRestaurantName.setText(currentRestaurantName);
+        String cachedStatus = RestaurantSession.getRestaurantStatus(this, cachedUid);
+        if (!cachedStatus.isEmpty()) {
+            tvRestaurantStatus.setText("active".equals(cachedStatus) ? "Mở cửa" : "Tạm đóng");
+        }
+        ((TextView) findViewById(R.id.tv_restaurant_subtitle)).setText("Quản lý đơn hàng");
         setupTopBar();
         setupSearchAndFilters();
         setupRecyclerView();
@@ -299,21 +318,31 @@ public class OrderDashboardActivity extends AppCompatActivity {
                 return true;
             } else if (id == R.id.nav_menu) {
                 Intent intent = new Intent(getApplicationContext(), MenuActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
+                intent.putExtra("EXTRA_RESTAURANT_NAME", currentRestaurantName);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
-                finish();
                 return true;
             } else if (id == R.id.nav_report) {
                 Intent intent = new Intent(getApplicationContext(), RestaurantReportActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 intent.putExtra("EXTRA_RESTAURANT_ID", currentRestaurantId);
+                intent.putExtra("EXTRA_RESTAURANT_NAME", currentRestaurantName);
                 startActivity(intent);
                 overridePendingTransition(0, 0);
-                finish();
                 return true;
             }
             return false;
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (bottomNavigationView != null) {
+            bottomNavigationView.setSelectedItemId(R.id.nav_order);
+        }
     }
 
     private void resolveRestaurantAndListenOrders() {
@@ -322,6 +351,11 @@ public class OrderDashboardActivity extends AppCompatActivity {
         FirebaseUser authUser = FirebaseAuth.getInstance().getCurrentUser();
         if (authUser == null) {
             showOrdersUnavailable("Vui lòng đăng nhập để xem đơn hàng");
+            return;
+        }
+
+        if (!currentRestaurantId.isEmpty()) {
+            loadRestaurantDetailsAndOrders();
             return;
         }
 
@@ -361,7 +395,13 @@ public class OrderDashboardActivity extends AppCompatActivity {
                                     "active".equals(doc.getString("status")) ? "Mở cửa" : "Tạm đóng");
                             String name = doc.getString("name");
                             if (name != null && !name.trim().isEmpty() && tvRestaurantName != null) {
+                                currentRestaurantName = name.trim();
                                 tvRestaurantName.setText(name);
+                                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                                if (user != null) {
+                                    RestaurantSession.saveRestaurant(this, user.getUid(), currentRestaurantId,
+                                            currentRestaurantName, doc.getString("status"));
+                                }
                             }
                         }
                     });

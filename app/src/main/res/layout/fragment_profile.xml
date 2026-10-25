@@ -158,7 +158,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="0987 654 321"
+                            android:text="Chưa cập nhật"
                             android:textColor="#CCFFFFFF"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -538,7 +538,7 @@
                                 android:layout_marginTop="2dp"
                                 android:ellipsize="end"
                                 android:maxLines="1"
-                                android:text="Cầu Giấy, Hà Nội (Mặc định)"
+                                android:text="Chưa cập nhật địa chỉ"
                                 android:textColor="@color/colorTextSecondary"
                                 android:textSize="12sp" />
                         </LinearLayout>

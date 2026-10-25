@@ -119,11 +119,11 @@ public class Food implements Serializable {
     }
 
     public String getCategory() {
-        return category;
+        return FoodCategory.normalize(category);
     }
 
     public void setCategory(String category) {
-        this.category = category;
+        this.category = FoodCategory.normalize(category);
     }
 
     public String getRestaurantId() {
@@ -185,7 +185,7 @@ public class Food implements Serializable {
         this.newPrice = newPrice;
         this.discountPercent = Math.max(discountPercent, 0);
         this.imageUrl = imageUrl;
-        this.category = category;
+        this.category = FoodCategory.normalize(category);
         this.restaurantId = restaurantId;
         this.isAvailable = isAvailable;
         this.orderCount = orderCount;

@@ -44,8 +44,10 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/detail_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:visibility="gone"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -72,7 +74,7 @@
                         android:id="@+id/tv_detail_name"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Tên nhà hàng"
+                        android:text="—"
                         android:textSize="22sp"
                         android:textStyle="bold"
                         android:textColor="@color/black"/>
@@ -98,7 +100,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="4.5"
+                            android:text="—"
                             android:textStyle="bold"/>
                     </LinearLayout>
 
@@ -122,7 +124,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="Số 123, Đường ABC, Quận XYZ"
+                        android:text="—"
                         android:textColor="@color/black"/>
 
                     <TextView
@@ -142,7 +144,7 @@
                         android:layout_marginTop="4dp"
                         android:paddingHorizontal="8dp"
                         android:paddingVertical="4dp"
-                        android:text="Đang hoạt động"
+                        android:text="—"
                         android:textColor="@color/white"
                         android:background="@drawable/bg_card_border_amber"/>
 
@@ -177,7 +179,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Owner ID: ..."
+                        android:text="—"
                         android:textColor="#3A3A3C"/>
 
                 </LinearLayout>
@@ -230,6 +232,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:visibility="gone"/>
+        android:visibility="visible"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

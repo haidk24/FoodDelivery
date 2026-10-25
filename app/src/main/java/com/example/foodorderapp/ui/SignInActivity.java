@@ -41,6 +41,7 @@ public class SignInActivity extends AppCompatActivity {
     private CircularProgressIndicator signInProgress;
     private AuthViewModel authViewModel;
     private GoogleSignInClient mGoogleSignInClient;
+    private boolean isResolvingSavedSession;
 
     private final ActivityResultLauncher<Intent> googleSignInLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -75,9 +76,26 @@ public class SignInActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_sign_in);
-
         authViewModel = new AuthViewModel();
+
+        boolean hasSavedSession;
+        try {
+            hasSavedSession = FirebaseAuth.getInstance().getCurrentUser() != null;
+        } catch (IllegalStateException ignored) {
+            hasSavedSession = false;
+        }
+        if (hasSavedSession) {
+            isResolvingSavedSession = true;
+            setContentView(R.layout.activity_auth_gate);
+            resolveSavedSession();
+        } else {
+            showSignInForm();
+        }
+    }
+
+    private void showSignInForm() {
+        isResolvingSavedSession = false;
+        setContentView(R.layout.activity_sign_in);
         edtSignInEmail = findViewById(R.id.edtSignInEmail);
         edtSignInPassword = findViewById(R.id.edtSignInPassword);
         btnSignIn = findViewById(R.id.btnSignIn);
@@ -123,21 +141,21 @@ public class SignInActivity extends AppCompatActivity {
         ).show());
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
+    private void resolveSavedSession() {
         try {
-            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-                setLoading(true);
-                authViewModel.getCurrentUserProfile().addOnCompleteListener(task -> {
-                    setLoading(false);
-                    if (task.isSuccessful()) {
-                        handleLoginSuccess(task.getResult());
-                    }
-                });
-            }
+            authViewModel.getCurrentUserProfile().addOnCompleteListener(task -> {
+                if (isFinishing() || isDestroyed() || !isResolvingSavedSession) return;
+                if (task.isSuccessful() && task.getResult() != null) {
+                    handleLoginSuccess(task.getResult());
+                } else {
+                    FirebaseAuth.getInstance().signOut();
+                    showSignInForm();
+                    Toast.makeText(this, "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại.", Toast.LENGTH_LONG).show();
+                }
+            });
         } catch (IllegalStateException ignored) {
             // Firebase is optional in local/dev builds without google-services.json.
+            showSignInForm();
         }
     }
 
@@ -193,7 +211,7 @@ public class SignInActivity extends AppCompatActivity {
         if ("admin".equals(normalizedRole)) {
             intent = new Intent(SignInActivity.this, AdminActivity.class);
         } else if ("restaurant".equals(normalizedRole)) {
-            intent = new Intent(SignInActivity.this, MenuActivity.class);
+            intent = new Intent(SignInActivity.this, RestaurantMainActivity.class);
         } else {
             intent = new Intent(SignInActivity.this, MainActivity.class);
         }

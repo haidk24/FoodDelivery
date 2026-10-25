@@ -160,9 +160,16 @@ public class UserAdapter extends ListAdapter<User, UserAdapter.VH> {
                 tvRoleTag.setBackgroundResource(R.drawable.bg_tag_role_restaurant);
                 tvRoleTag.setTextColor(0xFFC2410C);
             } else {
-                tvRoleTag.setText("Khách");
+                String role = user.getRole();
+                tvRoleTag.setText("customer".equalsIgnoreCase(role) ? "Khách"
+                        : role == null || role.trim().isEmpty() ? "Chưa có vai trò" : role);
                 tvRoleTag.setBackgroundResource(R.drawable.bg_tag_role_customer);
                 tvRoleTag.setTextColor(0xFF475569);
+            }
+            if (!isBanned && "shipper".equalsIgnoreCase(user.getRole())) {
+                tvRoleTag.setText("Tài xế giao hàng");
+            } else if (!isBanned && "admin".equalsIgnoreCase(user.getRole())) {
+                tvRoleTag.setText("Quản trị viên");
             }
 
             // 3. Status Badge
@@ -170,10 +177,14 @@ public class UserAdapter extends ListAdapter<User, UserAdapter.VH> {
                 tvStatusBadge.setText("• Đã khóa");
                 tvStatusBadge.setBackgroundResource(R.drawable.bg_status_banned_pill);
                 tvStatusBadge.setTextColor(0xFFB91C1C);
-            } else {
+            } else if ("active".equalsIgnoreCase(user.getStatus())) {
                 tvStatusBadge.setText("• Hoạt động");
                 tvStatusBadge.setBackgroundResource(R.drawable.bg_status_active_pill);
                 tvStatusBadge.setTextColor(0xFF15803D);
+            } else {
+                tvStatusBadge.setText("• Chưa xác định");
+                tvStatusBadge.setBackgroundResource(R.drawable.bg_status_active_pill);
+                tvStatusBadge.setTextColor(0xFF64748B);
             }
 
             // 4. Email
@@ -184,14 +195,14 @@ public class UserAdapter extends ListAdapter<User, UserAdapter.VH> {
                 layoutStatsRow.setVisibility(View.GONE);
                 layoutStoreNameRow.setVisibility(View.GONE);
                 layoutViolationRow.setVisibility(View.VISIBLE);
-                String reason = user.getBanReason() != null ? user.getBanReason() : "Hủy 4 đơn liên tiếp không lý do";
-                tvViolationText.setText(reason);
+                String reason = user.getBanReason();
+                tvViolationText.setText(reason == null || reason.trim().isEmpty() ? "Tài khoản đã bị khóa" : reason);
             } else if (isRestaurant) {
                 layoutStatsRow.setVisibility(View.GONE);
                 layoutViolationRow.setVisibility(View.GONE);
                 layoutStoreNameRow.setVisibility(View.VISIBLE);
-                String store = user.getRestaurantName() != null ? user.getRestaurantName() : "Mạnh Tiến Quán (Quận 1)";
-                tvStoreName.setText(store);
+                String store = user.getRestaurantName();
+                tvStoreName.setText(store == null || store.trim().isEmpty() ? "Chưa liên kết nhà hàng" : store);
             } else {
                 layoutViolationRow.setVisibility(View.GONE);
                 layoutStoreNameRow.setVisibility(View.GONE);
@@ -199,11 +210,11 @@ public class UserAdapter extends ListAdapter<User, UserAdapter.VH> {
 
                 if (user.getOrderCount() > 0) {
                     tvStatsOrders.setText(user.getOrderCount() + " đơn hàng");
-                    long spent = user.getTotalSpent() > 0 ? user.getTotalSpent() : (user.getOrderCount() * 180000L + 5000L);
+                    long spent = user.getTotalSpent();
                     tvStatsSecondary.setText(formatCurrency(spent));
                 } else {
                     tvStatsOrders.setText("0 đơn hoàn tất");
-                    tvStatsSecondary.setText(user.getJoinTimeText() != null ? user.getJoinTimeText() : "Gia nhập 3 ngày trước");
+                    tvStatsSecondary.setText("Chưa có đơn hàng");
                 }
             }
 
@@ -211,9 +222,8 @@ public class UserAdapter extends ListAdapter<User, UserAdapter.VH> {
             if (isBanned) {
                 tvBottomTag.setVisibility(View.GONE);
                 imgBottomIcon.setVisibility(View.GONE);
-                String date = user.getBannedAt() != null ? user.getBannedAt() : "14/10/2023";
-                String admin = user.getBannedBy() != null ? user.getBannedBy() : "Admin_01";
-                tvBottomText.setText("Khóa từ: " + date + " bởi " + admin);
+                String date = user.getBannedAt();
+                tvBottomText.setText(date == null || date.trim().isEmpty() ? "Tài khoản đã bị khóa" : "Khóa từ: " + date);
                 tvBottomText.setTextColor(0xFF64748B);
 
                 tvBottomLink.setVisibility(View.GONE);
@@ -224,8 +234,7 @@ public class UserAdapter extends ListAdapter<User, UserAdapter.VH> {
                 tvBottomTag.setVisibility(View.VISIBLE);
                 tvBottomTag.setText("Đang mở");
                 imgBottomIcon.setVisibility(View.GONE);
-                int dishes = user.getDishCount() > 0 ? user.getDishCount() : 48;
-                tvBottomText.setText(dishes + " món trong thực đơn");
+                tvBottomText.setText(user.getDishCount() > 0 ? user.getDishCount() + " món trong thực đơn" : "Chưa có dữ liệu thực đơn");
                 tvBottomText.setTextColor(0xFF334155);
 
                 tvBottomLink.setVisibility(View.GONE);
@@ -242,16 +251,13 @@ public class UserAdapter extends ListAdapter<User, UserAdapter.VH> {
                     imgBottomIcon.setVisibility(View.VISIBLE);
                     imgBottomIcon.setImageResource(R.drawable.ic_shopping_bag);
                     imgBottomIcon.setColorFilter(0xFFC2410C);
-                    String lastOrder = user.getLastOrderTime() != null ? user.getLastOrderTime() : "Hôm qua 19:40";
-                    tvBottomText.setText("Đơn gần nhất: " + lastOrder);
+                    tvBottomText.setText("Đã phát sinh đơn hàng");
                     tvBottomText.setTextColor(0xFF334155);
                     tvBottomLink.setText("Xem đơn ›");
                     tvBottomLink.setOnClickListener(v -> listener.onViewOrders(user));
                 } else {
-                    imgBottomIcon.setVisibility(View.VISIBLE);
-                    imgBottomIcon.setImageResource(R.drawable.ic_verified_user);
-                    imgBottomIcon.setColorFilter(0xFF16A34A);
-                    tvBottomText.setText("Đã xác minh số điện thoại");
+                    imgBottomIcon.setVisibility(View.GONE);
+                    tvBottomText.setText("Chưa có đơn hàng");
                     tvBottomText.setTextColor(0xFF334155);
                     tvBottomLink.setText("Chi tiết ›");
                     tvBottomLink.setOnClickListener(v -> listener.onViewDetail(user));

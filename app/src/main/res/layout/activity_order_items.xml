@@ -387,7 +387,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
-                            android:text="0987 654 321"
+                            android:text="Đang tải số điện thoại"
                             android:textColor="@color/colorTextSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>

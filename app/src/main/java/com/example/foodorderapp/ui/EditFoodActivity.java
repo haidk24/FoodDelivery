@@ -25,6 +25,7 @@ import androidx.appcompat.widget.SwitchCompat;
 
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
+import com.example.foodorderapp.data.model.FoodCategory;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -86,16 +87,10 @@ public class EditFoodActivity extends AppCompatActivity {
     private String currentFoodId;
     private String oldImageUrl;
     private Uri newImageUri = null;
-    private String selectedCategory = "Món chính / Đặc sản";
+    private String selectedCategory = FoodCategory.MAIN;
     private final NumberFormat currencyFormatter = NumberFormat.getInstance(new Locale("vi", "VN"));
 
-    private final String[] categoryOptions = new String[]{
-            "Món chính / Đặc sản",
-            "Khai vị",
-            "Đồ uống",
-            "Tráng miệng",
-            "Chưa phân loại"
-    };
+    private final String[] categoryOptions = FoodCategory.OPTIONS;
 
     private final ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -187,9 +182,9 @@ public class EditFoodActivity extends AppCompatActivity {
         edtFoodDescription.setText(desc == null ? "" : desc);
 
         if (category != null && !category.isEmpty()) {
-            selectedCategory = category;
+            selectedCategory = FoodCategory.normalize(category);
         } else {
-            selectedCategory = "Món chính / Đặc sản";
+            selectedCategory = FoodCategory.MAIN;
         }
         tvSelectedCategory.setText(selectedCategory);
 
@@ -330,7 +325,7 @@ public class EditFoodActivity extends AppCompatActivity {
                 new AlertDialog.Builder(this)
                         .setTitle("Chọn danh mục phân loại")
                         .setItems(categoryOptions, (dialog, which) -> {
-                            selectedCategory = categoryOptions[which];
+                            selectedCategory = FoodCategory.normalize(categoryOptions[which]);
                             if (tvSelectedCategory != null) {
                                 tvSelectedCategory.setText(selectedCategory);
                             }

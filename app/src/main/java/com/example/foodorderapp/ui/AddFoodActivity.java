@@ -25,6 +25,7 @@ import androidx.appcompat.widget.SwitchCompat;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
+import com.example.foodorderapp.data.model.FoodCategory;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -69,16 +70,10 @@ public class AddFoodActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private Uri imageUri = null;
     private String currentRestaurantId;
-    private String selectedCategory = "Chưa phân loại";
+    private String selectedCategory = FoodCategory.MAIN;
     private final NumberFormat currencyFormatter = NumberFormat.getInstance(new Locale("vi", "VN"));
 
-    private final String[] categoryOptions = new String[]{
-            "Chưa phân loại (Mặc định)",
-            "Món chính",
-            "Khai vị",
-            "Đồ uống",
-            "Tráng miệng"
-    };
+    private final String[] categoryOptions = FoodCategory.OPTIONS;
 
     private final ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -235,11 +230,7 @@ public class AddFoodActivity extends AppCompatActivity {
                         .setTitle("Chọn danh mục phân loại")
                         .setItems(categoryOptions, (dialog, which) -> {
                             String chosen = categoryOptions[which];
-                            if (which == 0) {
-                                selectedCategory = "Chưa phân loại";
-                            } else {
-                                selectedCategory = chosen;
-                            }
+                            selectedCategory = FoodCategory.normalize(chosen);
                             if (tvSelectedCategory != null) {
                                 tvSelectedCategory.setText(chosen);
                             }

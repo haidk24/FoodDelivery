@@ -1,6 +1,7 @@
 package com.example.foodorderapp.data.model;
 
 import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.Exclude;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,11 +34,19 @@ public class Restaurant {
     }
 
     public String getName() {
-        return name;
+        return cleanText(name);
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = cleanText(name);
+    }
+
+    public String getPhone() {
+        return cleanText(phone);
+    }
+
+    public void setPhone(String phone) {
+        this.phone = cleanText(phone);
     }
 
     public String getImageUrl() {
@@ -104,6 +113,7 @@ public class Restaurant {
         this.foods = foods == null ? new ArrayList<>() : foods;
     }
 
+    @Exclude
     public String getAddressText() {
         if (address == null) {
             return "Chua cap nhat";
@@ -124,9 +134,10 @@ public class Restaurant {
             );
         }
 
-        return String.valueOf(address);
+        return cleanText(String.valueOf(address));
     }
 
+    @Exclude
     public String getInitials() {
         if (name == null || name.trim().isEmpty()) {
             return "?";
@@ -138,6 +149,7 @@ public class Restaurant {
         return (String.valueOf(parts[0].charAt(0)) + String.valueOf(parts[parts.length - 1].charAt(0))).toUpperCase();
     }
 
+    @Exclude
     public String getStatusText() {
         if (status == null) {
             return "Khong xac dinh";
@@ -175,5 +187,9 @@ public class Restaurant {
 
     private String toText(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private String cleanText(String value) {
+        return value == null ? "" : value.trim();
     }
 }

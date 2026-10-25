@@ -30,6 +30,7 @@ public class AdminActivity extends AppCompatActivity {
     private NavController navController;
 
     private TextView tvAdminSubtitle;
+    private TextView notificationBadge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,10 +38,12 @@ public class AdminActivity extends AppCompatActivity {
         setContentView(R.layout.activity_admin);
 
         tvAdminSubtitle = findViewById(R.id.tv_admin_subtitle);
+        notificationBadge = findViewById(R.id.view_notification_dot);
         setupTopBarActions();
 
         // Khởi tạo ViewModel
         viewModel = new ViewModelProvider(this).get(AdminViewModel.class);
+        viewModel.observeRestaurants();
 
         // Setup Navigation
         setupNavigation();
@@ -59,15 +62,7 @@ public class AdminActivity extends AppCompatActivity {
         View btnNotifications = findViewById(R.id.btn_admin_notifications);
         if (btnNotifications != null) {
             btnNotifications.setOnClickListener(v -> {
-                Integer pendingCount = viewModel.getPendingRestaurantCount().getValue();
-                if (pendingCount != null && pendingCount > 0) {
-                    Toast.makeText(this, "Có " + pendingCount + " hồ sơ nhà hàng cần bạn phê duyệt!", Toast.LENGTH_SHORT).show();
-                    if (navController != null) {
-                        navController.navigate(R.id.nav_restaurants);
-                    }
-                } else {
-                    Toast.makeText(this, "Không có thông báo mới.", Toast.LENGTH_SHORT).show();
-                }
+                showPendingRestaurantNotifications();
             });
         }
 
@@ -75,6 +70,31 @@ public class AdminActivity extends AppCompatActivity {
         if (btnProfile != null) {
             btnProfile.setOnClickListener(v -> showAdminProfileDialog());
         }
+    }
+
+    private void showPendingRestaurantNotifications() {
+        java.util.List<com.example.foodorderapp.data.model.Restaurant> pending = viewModel.getPendingRestaurantList().getValue();
+        if (pending == null || pending.isEmpty()) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Thông báo")
+                    .setMessage("Không có hồ sơ nhà hàng đang chờ phê duyệt.")
+                    .setPositiveButton("Đóng", null)
+                    .show();
+            return;
+        }
+        String[] names = new String[pending.size()];
+        for (int i = 0; i < pending.size(); i++) {
+            com.example.foodorderapp.data.model.Restaurant restaurant = pending.get(i);
+            names[i] = (restaurant.name == null || restaurant.name.trim().isEmpty() ? "Nhà hàng mới" : restaurant.name)
+                    + " — hồ sơ chờ phê duyệt";
+        }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Hồ sơ nhà hàng mới (" + pending.size() + ")")
+                .setItems(names, (dialog, which) -> {
+                    if (navController != null) navController.navigate(R.id.nav_restaurants);
+                })
+                .setNegativeButton("Đóng", null)
+                .show();
     }
 
     private void showAdminProfileDialog() {
@@ -181,6 +201,11 @@ public class AdminActivity extends AppCompatActivity {
 
     private void observeBadge() {
         viewModel.getPendingRestaurantCount().observe(this, count -> {
+            int pending = count == null ? 0 : count;
+            if (notificationBadge != null) {
+                notificationBadge.setVisibility(pending > 0 ? View.VISIBLE : View.GONE);
+                notificationBadge.setText(pending > 99 ? "99+" : String.valueOf(pending));
+            }
             if (bottomNav != null && count != null && count > 0) {
                 BadgeDrawable badge = bottomNav.getOrCreateBadge(R.id.nav_restaurants);
                 badge.setNumber(count);

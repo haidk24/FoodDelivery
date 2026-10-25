@@ -33,6 +33,7 @@ public class RestaurantDetailFragment extends Fragment {
     private RatingBar ratingBar;
     private Button btnApprove, btnSuspend, btnReinstate;
     private ProgressBar progressBar;
+    private View detailContent;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -74,6 +75,7 @@ public class RestaurantDetailFragment extends Fragment {
         btnSuspend = v.findViewById(R.id.btn_suspend_detail);
         btnReinstate = v.findViewById(R.id.btn_reinstate_detail);
         progressBar = v.findViewById(R.id.progress_detail);
+        detailContent = v.findViewById(R.id.detail_content);
 
         btnApprove.setOnClickListener(view -> viewModel.approveRestaurant(restaurantId));
         btnSuspend.setOnClickListener(view -> viewModel.suspendRestaurant(restaurantId));
@@ -89,11 +91,15 @@ public class RestaurantDetailFragment extends Fragment {
         viewModel.getSelectedRestaurant().observe(getViewLifecycleOwner(), r -> {
             if (r != null) {
                 displayRestaurant(r);
+                detailContent.setVisibility(View.VISIBLE);
+                progressBar.setVisibility(View.GONE);
             }
         });
 
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), loading -> {
-            progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
+            if (detailContent.getVisibility() != View.VISIBLE) {
+                progressBar.setVisibility(Boolean.TRUE.equals(loading) ? View.VISIBLE : View.GONE);
+            }
         });
 
         viewModel.getActionSuccess().observe(getViewLifecycleOwner(), success -> {
@@ -105,11 +111,11 @@ public class RestaurantDetailFragment extends Fragment {
     }
 
     private void displayRestaurant(Restaurant r) {
-        tvName.setText(r.name);
-        tvRating.setText(String.valueOf(r.rating));
+        tvName.setText(r.name == null || r.name.trim().isEmpty() ? "Chưa cập nhật tên" : r.name);
+        tvRating.setText(r.rating > 0 ? String.valueOf(r.rating) : "Chưa có đánh giá");
         ratingBar.setRating((float) r.rating);
         tvAddress.setText(r.getAddressText());
-        tvOwnerId.setText("Owner ID: " + r.ownerId);
+        tvOwnerId.setText("Owner ID: " + (r.ownerId == null || r.ownerId.trim().isEmpty() ? "Chưa cập nhật" : r.ownerId));
 
         // Hiển thị trạng thái
         tvStatus.setText(r.getStatusText());

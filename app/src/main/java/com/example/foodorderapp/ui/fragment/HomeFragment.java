@@ -29,8 +29,11 @@ import com.example.foodorderapp.R;
 import com.example.foodorderapp.adapter.FoodHomeAdapter;
 import com.example.foodorderapp.data.database.FoodDatabase;
 import com.example.foodorderapp.data.model.Food;
+import com.example.foodorderapp.data.model.FoodCategory;
+import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.data.model.Restaurant;
 import com.example.foodorderapp.ui.activity.FoodDetailActivity;
+import com.example.foodorderapp.utils.OrderNotificationPanel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.chip.Chip;
@@ -39,13 +42,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -64,7 +66,7 @@ public class HomeFragment extends Fragment {
     private MaterialCardView cardAppLogo;
     private TextView tvDeliveryAddress;
     private ImageButton btnNotification;
-    private View badgeNotification;
+    private TextView badgeNotification;
     private MaterialCardView cardUserAvatar;
     private ImageView imgUserAvatar;
 
@@ -113,6 +115,8 @@ public class HomeFragment extends Fragment {
     private String currentQuery = "";
     private String selectedCategory = "Tất cả";
     private int currentSortMode = 0; // 0: Default, 1: Discount %, 2: Bestseller, 3: Price low->high, 4: Price high->low
+    private ListenerRegistration notificationRegistration;
+    private final List<Order> orderNotifications = new ArrayList<>();
 
     public HomeFragment() {
         // Required empty public constructor
@@ -136,6 +140,7 @@ public class HomeFragment extends Fragment {
         setupCategoryChips();
         setupBannerAndShowcaseClicks();
         loadUserInfo();
+        listenOrderNotifications();
 
         // Immediately use memory cache if available to prevent any flashing or swapping
         if (!sCachedRestaurants.isEmpty() && !sCachedFoods.isEmpty()) {
@@ -145,7 +150,6 @@ public class HomeFragment extends Fragment {
             allFoods.addAll(sCachedFoods);
             updateShowcaseRestaurant();
             updatePromoBanner();
-            updateDynamicCategoryChips();
             applyFilters();
         }
 
@@ -230,10 +234,7 @@ public class HomeFragment extends Fragment {
         btnFilter.setOnClickListener(v -> showSortFilterDialog());
 
         btnNotification.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Bạn không có thông báo mới", Toast.LENGTH_SHORT).show();
-            if (badgeNotification != null) {
-                badgeNotification.setVisibility(View.GONE);
-            }
+            OrderNotificationPanel.show(requireContext(), orderNotifications, false);
         });
 
         View.OnClickListener openProfileListener = v -> {
@@ -424,7 +425,6 @@ public class HomeFragment extends Fragment {
 
             updateShowcaseRestaurant();
             updatePromoBanner();
-            updateDynamicCategoryChips();
             applyFilters();
         }
     }
@@ -510,41 +510,6 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void updateDynamicCategoryChips() {
-        if (!isAdded() || getContext() == null || chipGroupCategory == null) return;
-
-        Set<String> categories = new HashSet<>();
-        for (Food food : allFoods) {
-            if (!TextUtils.isEmpty(food.getCategory())) {
-                categories.add(food.getCategory().trim());
-            }
-        }
-
-        for (String cat : categories) {
-            if (TextUtils.isEmpty(cat)) continue;
-
-            boolean alreadyExists = false;
-            for (int i = 0; i < chipGroupCategory.getChildCount(); i++) {
-                View child = chipGroupCategory.getChildAt(i);
-                if (child instanceof Chip) {
-                    Chip chip = (Chip) child;
-                    if (isCategoryMatch(cat, chip.getText().toString().trim())) {
-                        alreadyExists = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!alreadyExists) {
-                Chip newChip = new Chip(requireContext(), null, R.style.Widget_FoodOrder_CategoryChip);
-                newChip.setText(cat);
-                newChip.setCheckable(true);
-                newChip.setClickable(true);
-                chipGroupCategory.addView(newChip);
-            }
-        }
-    }
-
     private void applyFilters() {
         if (!isAdded()) return;
 
@@ -615,30 +580,7 @@ public class HomeFragment extends Fragment {
     }
 
     private boolean isCategoryMatch(String foodCategory, String selectedCategory) {
-        if (TextUtils.isEmpty(selectedCategory) || "Tất cả".equalsIgnoreCase(selectedCategory)) {
-            return true;
-        }
-        if (TextUtils.isEmpty(foodCategory)) {
-            return false;
-        }
-
-        String fCat = foodCategory.trim().toLowerCase(Locale.ROOT);
-        String sCat = selectedCategory.trim().toLowerCase(Locale.ROOT);
-
-        if (fCat.equals(sCat) || fCat.contains(sCat) || sCat.contains(fCat)) {
-            return true;
-        }
-
-        if (sCat.contains("&")) {
-            String[] parts = sCat.split("&");
-            for (String part : parts) {
-                if (fCat.contains(part.trim())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return FoodCategory.matches(foodCategory, selectedCategory);
     }
 
     private String getRestaurantName(String restaurantId) {
@@ -726,5 +668,43 @@ public class HomeFragment extends Fragment {
         } catch (Exception e) {
             Toast.makeText(requireContext(), "Lỗi thêm giỏ hàng: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void listenOrderNotifications() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+        if (notificationRegistration != null) notificationRegistration.remove();
+        notificationRegistration = mFirestore.collection("orders")
+                .whereEqualTo("customerId", user.getUid())
+                .addSnapshotListener((snapshot, error) -> {
+                    if (!isAdded() || error != null || snapshot == null) return;
+                    orderNotifications.clear();
+                    int unread = 0;
+                    for (QueryDocumentSnapshot document : snapshot) {
+                        Order order = document.toObject(Order.class);
+                        if (order == null) continue;
+                        order.setOrderId(document.getId());
+                        orderNotifications.add(order);
+                        String status = Order.normalizeStatus(order.getStatus());
+                        if (Order.STATUS_PENDING.equals(status) || Order.STATUS_PREPARING.equals(status)
+                                || Order.STATUS_SHIPPING.equals(status)) unread++;
+                    }
+                    Collections.sort(orderNotifications, (first, second) -> {
+                        if (first.getCreatedAt() != null && second.getCreatedAt() != null)
+                            return second.getCreatedAt().compareTo(first.getCreatedAt());
+                        return first.getCreatedAt() == null ? 1 : -1;
+                    });
+                    if (badgeNotification != null) {
+                        badgeNotification.setVisibility(unread > 0 ? View.VISIBLE : View.GONE);
+                        badgeNotification.setText(unread > 99 ? "99+" : String.valueOf(unread));
+                    }
+                });
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (notificationRegistration != null) notificationRegistration.remove();
+        notificationRegistration = null;
+        super.onDestroyView();
     }
 }

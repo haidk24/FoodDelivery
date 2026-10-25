@@ -76,6 +76,7 @@ public class DashboardFragment extends Fragment {
         viewModel = new ViewModelProvider(requireActivity()).get(AdminViewModel.class);
 
         bindViews(view);
+        hideRecentOrderCards();
         setupLiveTime();
         setupClickListeners(view);
         observeData();
@@ -150,7 +151,7 @@ public class DashboardFragment extends Fragment {
                     viewModel.approveRestaurant(currentPendingRestaurant.restaurantId);
                     Toast.makeText(requireContext(), "Đang duyệt nhanh cho " + currentPendingRestaurant.name, Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(requireContext(), "Đã duyệt nhanh nhà hàng thành công!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Không có hồ sơ nhà hàng để duyệt.", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -180,14 +181,11 @@ public class DashboardFragment extends Fragment {
             if (pendingList != null && !pendingList.isEmpty()) {
                 currentPendingRestaurant = pendingList.get(0);
                 if (cardActionAlert != null) cardActionAlert.setVisibility(View.VISIBLE);
-                if (tvAlertRestaurantName != null) tvAlertRestaurantName.setText(currentPendingRestaurant.name != null ? currentPendingRestaurant.name : "Tiến Mạnh Quán 2");
-                if (tvAlertDescription != null) tvAlertDescription.setText("Hồ sơ đối tác mới đăng ký giấy phép KD & menu");
+                if (tvAlertRestaurantName != null) tvAlertRestaurantName.setText(currentPendingRestaurant.name != null ? currentPendingRestaurant.name : "Nhà hàng mới");
+                if (tvAlertDescription != null) tvAlertDescription.setText("Hồ sơ nhà hàng đang chờ phê duyệt");
             } else {
                 currentPendingRestaurant = null;
-                // Nếu không có quán chờ duyệt, ẩn card hoặc hiển thị quán mẫu như design
-                if (cardActionAlert != null) cardActionAlert.setVisibility(View.VISIBLE);
-                if (tvAlertRestaurantName != null) tvAlertRestaurantName.setText("Tiến Mạnh Quán 2");
-                if (tvAlertDescription != null) tvAlertDescription.setText("Hồ sơ đối tác mới đăng ký giấy phép KD & menu");
+                if (cardActionAlert != null) cardActionAlert.setVisibility(View.GONE);
             }
         });
 
@@ -221,38 +219,35 @@ public class DashboardFragment extends Fragment {
 
     private void renderStats(AdminStats stats) {
         if (tvTotalUsers != null) {
-            long users = stats.totalUsers > 0 ? stats.totalUsers : 142;
+            long users = stats.totalUsers;
             tvTotalUsers.setText(formatNumber(users) + " người");
             if (tvUsersTag != null) tvUsersTag.setText(formatNumber(users) + " user");
-            if (tvUsersSub != null) tvUsersSub.setText((users > 20 ? (users - 24) : 118) + " khách hàng, 24 chủ quán");
+            if (tvUsersSub != null) tvUsersSub.setText("Tài khoản đã đăng ký");
         }
 
         if (tvTotalRestaurants != null) {
-            long res = stats.totalRestaurants > 0 ? stats.totalRestaurants : 24;
+            long res = stats.totalRestaurants;
             tvTotalRestaurants.setText(formatNumber(res) + " quán");
             if (tvRestaurantsTag != null) tvRestaurantsTag.setText(formatNumber(res) + " quán");
         }
 
         if (tvTotalOrders != null) {
-            long orders = stats.totalOrdersToday > 0 ? stats.totalOrdersToday : 432;
+            long orders = stats.totalOrdersToday;
             tvTotalOrders.setText(formatNumber(orders) + " đơn");
             if (tvTotalOrdersTag != null) tvTotalOrdersTag.setText(formatNumber(orders) + " đơn");
             if (tvOrdersSub != null) {
-                long completed = (long)(orders * 0.89);
-                long processing = orders - completed;
-                tvOrdersSub.setText(completed + " hoàn thành • " + processing + " đang xử lý");
+                tvOrdersSub.setText("Đơn phát sinh hôm nay");
             }
         }
 
         if (tvRevenue != null) {
-            long rev = stats.revenueToday > 0 ? stats.revenueToday : 18_400_000L;
+            long rev = stats.revenueToday;
             tvRevenue.setText(formatRevenue(rev));
             if (tvRevenueSub != null) tvRevenueSub.setText("Từ đơn hoàn tất");
         }
 
         if (tvWeeklyTotal != null) {
-            long weekly = (stats.revenueToday > 0 ? stats.revenueToday * 7 : 184_200_000L);
-            tvWeeklyTotal.setText("Tổng tuần: " + formatCurrency(weekly));
+            tvWeeklyTotal.setText("Tổng tuần: " + formatCurrency(stats.revenueThisWeek));
         }
     }
 
@@ -262,18 +257,30 @@ public class DashboardFragment extends Fragment {
                 .limit(2)
                 .get()
                 .addOnSuccessListener(snapshot -> {
-                    if (snapshot == null || snapshot.isEmpty()) return;
+                    if (snapshot == null || snapshot.isEmpty()) {
+                        hideRecentOrderCards();
+                        return;
+                    }
                     List<DocumentSnapshot> docs = snapshot.getDocuments();
+                    if (cardRecentOrder1 != null) cardRecentOrder1.setVisibility(View.GONE);
+                    if (cardRecentOrder2 != null) cardRecentOrder2.setVisibility(View.GONE);
                     if (!docs.isEmpty()) {
+                        if (cardRecentOrder1 != null) cardRecentOrder1.setVisibility(View.VISIBLE);
                         bindOrderView(docs.get(0), tvOrder1Code, tvOrder1Time, tvOrder1Desc, tvOrder1Amount, tvOrder1Status);
                     }
                     if (docs.size() > 1) {
+                        if (cardRecentOrder2 != null) cardRecentOrder2.setVisibility(View.VISIBLE);
                         bindOrderView(docs.get(1), tvOrder2Code, tvOrder2Time, tvOrder2Desc, tvOrder2Amount, tvOrder2Status);
                     }
                 })
                 .addOnFailureListener(e -> {
-                    // Giữ nguyên sample data chuẩn từ design
+                    hideRecentOrderCards();
                 });
+    }
+
+    private void hideRecentOrderCards() {
+        if (cardRecentOrder1 != null) cardRecentOrder1.setVisibility(View.GONE);
+        if (cardRecentOrder2 != null) cardRecentOrder2.setVisibility(View.GONE);
     }
 
     private void bindOrderView(DocumentSnapshot doc, TextView tvCode, TextView tvTime, TextView tvDesc, TextView tvAmount, TextView tvStatus) {
@@ -290,40 +297,47 @@ public class DashboardFragment extends Fragment {
             if (createdAt instanceof Timestamp) {
                 CharSequence relativeTime = DateUtils.getRelativeTimeSpanString(((Timestamp) createdAt).toDate().getTime());
                 tvTime.setText(relativeTime);
-            }
+            } else tvTime.setText("Chưa có thời gian");
         }
 
         if (tvDesc != null) {
-            String address = doc.getString("address");
-            if (address == null || address.isEmpty()) address = "Hà Nội";
+            Order order = doc.toObject(Order.class);
+            String address = order == null ? "" : order.getDeliveryAddressText();
+            if (address.isEmpty()) {
+                Object legacyAddress = doc.get("address");
+                address = legacyAddress == null ? "" : String.valueOf(legacyAddress);
+            }
+            if (address == null || address.isEmpty()) address = "Chưa cập nhật địa chỉ";
             String paymentMethod = doc.getString("paymentMethod");
-            if (paymentMethod == null || paymentMethod.isEmpty()) paymentMethod = "Tiền mặt";
-            tvDesc.setText("Khách hàng, " + address + " • " + paymentMethod);
+            if (paymentMethod == null || paymentMethod.isEmpty()) paymentMethod = "Chưa cập nhật thanh toán";
+            String customerName = doc.getString("customerName");
+            tvDesc.setText((customerName == null || customerName.isEmpty() ? "Khách hàng" : customerName)
+                    + " • " + address + " • " + paymentMethod);
         }
 
         if (tvAmount != null) {
-            Long total = doc.getLong("totalAmount");
-            if (total != null) {
-                tvAmount.setText(formatCurrency(total));
-            }
+            Object rawTotal = doc.get("totalAmount");
+            if (rawTotal instanceof Number) tvAmount.setText(formatCurrency(((Number) rawTotal).longValue()));
+            else tvAmount.setText("—");
         }
 
         if (tvStatus != null) {
             String status = doc.getString("status");
-            if ("delivered".equals(status)) {
+            String normalizedStatus = Order.normalizeStatus(status);
+            if (Order.STATUS_COMPLETED.equals(normalizedStatus)) {
                 tvStatus.setText("Đã giao");
                 tvStatus.setBackgroundResource(R.drawable.bg_pill_status_green);
                 tvStatus.setTextColor(0xFF16A34A);
-            } else if ("pending".equals(status)) {
+            } else if (Order.STATUS_PENDING.equals(normalizedStatus)) {
                 tvStatus.setText("Chờ xác nhận");
                 tvStatus.setBackgroundResource(R.drawable.bg_pill_status_amber);
                 tvStatus.setTextColor(0xFFD97706);
-            } else if ("shipping".equals(status)) {
+            } else if (Order.STATUS_SHIPPING.equals(normalizedStatus)) {
                 tvStatus.setText("Đang giao");
                 tvStatus.setBackgroundResource(R.drawable.bg_pill_live);
                 tvStatus.setTextColor(0xFF2563EB);
             } else {
-                tvStatus.setText("Đang xử lý");
+                tvStatus.setText(status == null || status.isEmpty() ? "Chưa cập nhật trạng thái" : status);
                 tvStatus.setBackgroundResource(R.drawable.bg_pill_status_amber);
                 tvStatus.setTextColor(0xFFD97706);
             }

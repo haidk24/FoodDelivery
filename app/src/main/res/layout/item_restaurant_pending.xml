@@ -52,7 +52,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Tiến Mạnh Quán 2"
+                        android:text="Đang tải hồ sơ nhà hàng"
                         android:textSize="15sp"
                         android:textStyle="bold"
                         android:textColor="@color/colorTextPrimary"
@@ -112,7 +112,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
-                        android:text="Đăng ký: 25 phút trước"
+                    android:text="Đăng ký: —"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:textColor="#B45309" />
@@ -147,7 +147,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:text="Chủ quán: Vũ Tiến Mạnh • 0987 654 321"
+                    android:text="Chủ quán: Đang tải"
                     android:textSize="12sp"
                     android:textColor="#334155" />
             </LinearLayout>
@@ -257,7 +257,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:text="32 món đăng ký"
+                    android:text="Số món xem trong chi tiết"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:textColor="#1E3A8A" />
