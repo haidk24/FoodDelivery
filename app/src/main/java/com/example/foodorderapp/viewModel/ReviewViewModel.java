@@ -1,4 +1,4 @@
-package com.example.foodorderapp.viewModel;
+package com.example.foodorderapp.viewmodel;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;

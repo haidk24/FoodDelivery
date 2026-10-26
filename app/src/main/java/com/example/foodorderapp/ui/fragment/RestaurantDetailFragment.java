@@ -21,11 +21,11 @@ import androidx.navigation.Navigation;
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Restaurant;
-import com.example.foodorderapp.viewModel.AdminViewModel;
+import com.example.foodorderapp.feature.admin.restaurants.AdminRestaurantsViewModel;
 
 public class RestaurantDetailFragment extends Fragment {
 
-    private AdminViewModel viewModel;
+    private AdminRestaurantsViewModel viewModel;
     private String restaurantId;
 
     private ImageView imgRestaurant;
@@ -52,14 +52,14 @@ public class RestaurantDetailFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        viewModel = new ViewModelProvider(requireActivity()).get(AdminViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(AdminRestaurantsViewModel.class);
 
         initViews(view);
         setupToolbar(view);
         observeData();
 
         if (restaurantId != null) {
-            viewModel.loadRestaurantDetail(restaurantId);
+            viewModel.loadDetail(restaurantId);
         }
     }
 
@@ -77,9 +77,9 @@ public class RestaurantDetailFragment extends Fragment {
         progressBar = v.findViewById(R.id.progress_detail);
         detailContent = v.findViewById(R.id.detail_content);
 
-        btnApprove.setOnClickListener(view -> viewModel.approveRestaurant(restaurantId));
-        btnSuspend.setOnClickListener(view -> viewModel.suspendRestaurant(restaurantId));
-        btnReinstate.setOnClickListener(view -> viewModel.reinstateRestaurant(restaurantId));
+        btnApprove.setOnClickListener(view -> viewModel.approve(restaurantId));
+        btnSuspend.setOnClickListener(view -> viewModel.suspend(restaurantId));
+        btnReinstate.setOnClickListener(view -> viewModel.reinstate(restaurantId));
     }
 
     private void setupToolbar(View v) {
@@ -88,7 +88,7 @@ public class RestaurantDetailFragment extends Fragment {
     }
 
     private void observeData() {
-        viewModel.getSelectedRestaurant().observe(getViewLifecycleOwner(), r -> {
+        viewModel.getSelected().observe(getViewLifecycleOwner(), r -> {
             if (r != null) {
                 displayRestaurant(r);
                 detailContent.setVisibility(View.VISIBLE);
@@ -96,7 +96,7 @@ public class RestaurantDetailFragment extends Fragment {
             }
         });
 
-        viewModel.getIsLoading().observe(getViewLifecycleOwner(), loading -> {
+        viewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
             if (detailContent.getVisibility() != View.VISIBLE) {
                 progressBar.setVisibility(Boolean.TRUE.equals(loading) ? View.VISIBLE : View.GONE);
             }
@@ -105,7 +105,7 @@ public class RestaurantDetailFragment extends Fragment {
         viewModel.getActionSuccess().observe(getViewLifecycleOwner(), success -> {
             if (Boolean.TRUE.equals(success)) {
                 Toast.makeText(requireContext(), "Thao tác thành công", Toast.LENGTH_SHORT).show();
-                viewModel.loadRestaurantDetail(restaurantId); // Refresh dữ liệu
+                viewModel.loadDetail(restaurantId); // Refresh dữ liệu
             }
         });
     }

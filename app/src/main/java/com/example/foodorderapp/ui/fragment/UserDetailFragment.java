@@ -20,7 +20,7 @@ import androidx.navigation.Navigation;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.User;
-import com.example.foodorderapp.viewModel.AdminViewModel;
+import com.example.foodorderapp.feature.admin.users.AdminUsersViewModel;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -28,7 +28,7 @@ import java.util.Locale;
 
 public class UserDetailFragment extends Fragment {
 
-    private AdminViewModel viewModel;
+    private AdminUsersViewModel viewModel;
     private User currentUser;
 
     // Views
@@ -50,7 +50,7 @@ public class UserDetailFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(requireActivity())
-                .get(AdminViewModel.class);
+                .get(AdminUsersViewModel.class);
 
         bindViews(view);
         setupListeners(view);
@@ -60,7 +60,7 @@ public class UserDetailFragment extends Fragment {
         if (getArguments() != null) {
             String uid = getArguments().getString("uid", "");
             if (!uid.isEmpty()) {
-                viewModel.loadUserDetail(uid);
+                viewModel.loadDetail(uid);
             }
         }
     }
@@ -108,7 +108,7 @@ public class UserDetailFragment extends Fragment {
             }
         });
 
-        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), err -> {
+        viewModel.getError().observe(getViewLifecycleOwner(), err -> {
             if (err != null && !err.isEmpty()) {
                 Toast.makeText(requireContext(), err, Toast.LENGTH_SHORT).show();
             }
@@ -161,12 +161,12 @@ public class UserDetailFragment extends Fragment {
                 showConfirmDialog(
                         "Mở khóa tài khoản",
                         "Mở khóa \"" + user.getDisplayName() + "\"?",
-                        () -> viewModel.unbanUser(user.getUid()));
+                        () -> viewModel.unban(user.getUid()));
             } else {
                 showConfirmDialog(
                         "Khóa tài khoản",
                         "Khóa \"" + user.getDisplayName() + "\"?\nHọ sẽ không thể đăng nhập.",
-                        () -> viewModel.banUser(user.getUid()));
+                        () -> viewModel.ban(user.getUid()));
             }
         });
 
@@ -192,6 +192,11 @@ public class UserDetailFragment extends Fragment {
         etPhone.setText(user.getPhone());
         etPhone.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
         layout.addView(etPhone);
+
+        EditText etVehicle = new EditText(requireContext());
+        etVehicle.setHint("Phương tiện giao hàng (nếu là tài xế)");
+        etVehicle.setText(user.getVehicleDescription());
+        layout.addView(etVehicle);
 
         // Role Spinner
         TextView tvRoleLabel = new TextView(requireContext());
@@ -222,6 +227,7 @@ public class UserDetailFragment extends Fragment {
         builder.setPositiveButton("Lưu", (dialog, which) -> {
             String newName = etName.getText().toString().trim();
             String newPhone = etPhone.getText().toString().trim();
+            String newVehicle = etVehicle.getText().toString().trim();
             String newRole = roles[spinnerRole.getSelectedItemPosition()];
 
             if (newName.isEmpty()) {
@@ -231,8 +237,9 @@ public class UserDetailFragment extends Fragment {
 
             user.setDisplayName(newName);
             user.setPhone(newPhone);
+            user.setVehicleDescription(newVehicle);
             user.setRole(newRole);
-            viewModel.updateUser(user);
+            viewModel.update(user);
         });
 
         builder.setNegativeButton("Hủy", null);

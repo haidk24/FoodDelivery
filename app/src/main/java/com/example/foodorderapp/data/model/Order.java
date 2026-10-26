@@ -12,7 +12,14 @@ public class Order {
     private String customerPhone;
     private String customerAddress;
     private String restaurantId;
+    /** Snapshot at checkout so historical orders do not need an adapter-side lookup. */
+    private String restaurantName;
+    private String restaurantAddress;
     private String shipperId;
+    /** Snapshot of the assigned shipper, retained with the order for historical accuracy. */
+    private String shipperName;
+    private String shipperPhone;
+    private String shipperVehicle;
     private List<CartItem> items; // Kiểu array[map]
     private double totalAmount;
     private String status;
@@ -133,6 +140,11 @@ public class Order {
         this.restaurantId = restaurantId;
     }
 
+    public String getRestaurantName() { return cleanText(restaurantName); }
+    public void setRestaurantName(String restaurantName) { this.restaurantName = cleanText(restaurantName); }
+    public String getRestaurantAddress() { return cleanText(restaurantAddress); }
+    public void setRestaurantAddress(String restaurantAddress) { this.restaurantAddress = cleanText(restaurantAddress); }
+
     public String getShipperId() {
         return shipperId;
     }
@@ -140,6 +152,13 @@ public class Order {
     public void setShipperId(String shipperId) {
         this.shipperId = shipperId;
     }
+
+    public String getShipperName() { return cleanText(shipperName); }
+    public void setShipperName(String shipperName) { this.shipperName = cleanText(shipperName); }
+    public String getShipperPhone() { return cleanText(shipperPhone); }
+    public void setShipperPhone(String shipperPhone) { this.shipperPhone = cleanText(shipperPhone); }
+    public String getShipperVehicle() { return cleanText(shipperVehicle); }
+    public void setShipperVehicle(String shipperVehicle) { this.shipperVehicle = cleanText(shipperVehicle); }
 
     public List<CartItem> getItems() {
         return items;
@@ -242,6 +261,7 @@ public class Order {
     private Date confirmedAt;
     private Date shippingAt;
     private Date deliveredAt;
+    private Date shipperAssignedAt;
 
     public Order() {}
 
@@ -268,4 +288,7 @@ public class Order {
     public void setDeliveredAt(Date deliveredAt) {
         this.deliveredAt = deliveredAt;
     }
+
+    public Date getShipperAssignedAt() { return shipperAssignedAt; }
+    public void setShipperAssignedAt(Date shipperAssignedAt) { this.shipperAssignedAt = shipperAssignedAt; }
 }

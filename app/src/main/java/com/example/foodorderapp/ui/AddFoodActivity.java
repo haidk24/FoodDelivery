@@ -12,7 +12,6 @@ import android.util.Base64;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,14 +21,14 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.FoodCategory;
+import com.example.foodorderapp.feature.restaurant.menu.RestaurantMenuViewModel;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -67,7 +66,7 @@ public class AddFoodActivity extends AppCompatActivity {
     private ProgressBar progressBarSave;
 
     // State & Data
-    private FirebaseFirestore db;
+    private RestaurantMenuViewModel menuViewModel;
     private Uri imageUri = null;
     private String currentRestaurantId;
     private String selectedCategory = FoodCategory.MAIN;
@@ -95,7 +94,7 @@ public class AddFoodActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_food);
 
-        db = FirebaseFirestore.getInstance();
+        menuViewModel = new ViewModelProvider(this).get(RestaurantMenuViewModel.class);
         currentRestaurantId = getIntent().getStringExtra("EXTRA_RESTAURANT_ID");
 
         initViews();
@@ -276,29 +275,9 @@ public class AddFoodActivity extends AppCompatActivity {
             return;
         }
 
-        String uid = user.getUid();
-        db.collection("users").document(uid).get().addOnSuccessListener(doc -> {
-            String rId = doc.getString("restaurantId");
-            if (rId != null && !rId.trim().isEmpty()) {
-                currentRestaurantId = rId.trim();
-            } else {
-                db.collection("restaurants").whereEqualTo("ownerId", uid).limit(1).get()
-                        .addOnSuccessListener(snap -> {
-                            if (!snap.isEmpty()) {
-                                currentRestaurantId = snap.getDocuments().get(0).getId();
-                            } else {
-                                currentRestaurantId = "";
-                                Toast.makeText(this, "Không tìm thấy nhà hàng của tài khoản này", Toast.LENGTH_LONG).show();
-                            }
-                        })
-                        .addOnFailureListener(e -> {
-                            currentRestaurantId = "";
-                            Toast.makeText(this, "Không tải được thông tin nhà hàng", Toast.LENGTH_LONG).show();
-                        });
-            }
-        }).addOnFailureListener(e -> {
-            currentRestaurantId = "";
-            Toast.makeText(this, "Không tải được tài khoản nhà hàng", Toast.LENGTH_LONG).show();
+        menuViewModel.resolveRestaurantId(user.getUid(), (restaurantId, error) -> {
+            currentRestaurantId = restaurantId;
+            if (error != null) Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
 
@@ -378,11 +357,8 @@ public class AddFoodActivity extends AppCompatActivity {
             return;
         }
 
-        DocumentReference newFoodRef = db.collection("restaurants")
-                .document(currentRestaurantId).collection("foods").document();
-
         Food newFood = new Food(
-                newFoodRef.getId(),
+                "",
                 name,
                 description,
                 newPrice,
@@ -396,16 +372,16 @@ public class AddFoodActivity extends AppCompatActivity {
                 currentRestaurantId
         );
 
-        newFoodRef.set(newFood)
-                .addOnSuccessListener(aVoid -> {
+        menuViewModel.create(currentRestaurantId, newFood, error -> {
+            if (error == null) {
                     Toast.makeText(this, "Đã thêm món \"" + name + "\" vào thực đơn thành công!", Toast.LENGTH_SHORT).show();
                     setResult(RESULT_OK);
                     finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Lỗi khi lưu: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            } else {
+                    Toast.makeText(this, "Lỗi khi lưu: " + error.getMessage(), Toast.LENGTH_LONG).show();
                     setSavingState(false, "LƯU MÓN ĂN");
-                });
+            }
+        });
     }
 
     private void setSavingState(boolean isSaving, String message) {

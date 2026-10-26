@@ -1,7 +1,6 @@
 package com.example.foodorderapp.ui.adapter;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Paint;
@@ -14,7 +13,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -25,9 +23,6 @@ import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.FoodCategory;
-import com.example.foodorderapp.ui.EditFoodActivity;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -49,6 +44,12 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     public interface OnFoodCountChangedListener {
         void onCountChanged(int activeCount, int hiddenCount, int totalCount, int mainCount, int appCount, int drinkCount, int dessertCount);
     }
+    public interface OnFoodActionListener {
+        void onEdit(Food food);
+        void onSetAvailability(Food food, boolean available);
+        void onDelete(Food food);
+    }
+    private OnFoodActionListener actionListener;
 
     public FoodAdapter(Context context, List<Food> foodList, String restaurantId) {
         this.context = context;
@@ -72,6 +73,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
         this.countListener = listener;
         notifyCountChanged();
     }
+    public void setActionListener(OnFoodActionListener listener) { actionListener = listener; }
 
     public void updateData(List<Food> newFoods) {
         if (newFoods != originalList) {
@@ -279,43 +281,11 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
     }
 
     private void updateFoodAvailability(Food food, boolean available) {
-        if (restaurantId == null || restaurantId.isEmpty() || food.getFoodId() == null) {
-            Toast.makeText(context, "Không xác định được nhà hàng!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("restaurants")
-                .document(restaurantId)
-                .collection("foods")
-                .document(food.getFoodId())
-                .update("isAvailable", available)
-                .addOnSuccessListener(aVoid -> {
-                    food.setAvailable(available);
-                    filter(currentQuery, currentCategory);
-                    String msg = available ? "Đã mở bán lại món: " + food.getName() : "Đã tạm ẩn món: " + food.getName();
-                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(context, "Cập nhật trạng thái thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    notifyDataSetChanged();
-                });
+        if (actionListener != null) actionListener.onSetAvailability(food, available);
     }
 
     private void openEditFood(Food food) {
-        Intent intent = new Intent(context, EditFoodActivity.class);
-        intent.putExtra("EXTRA_RESTAURANT_ID", restaurantId);
-        intent.putExtra("EXTRA_FOOD_ID", food.getFoodId());
-        intent.putExtra("EXTRA_NAME", food.getName());
-        intent.putExtra("EXTRA_PRICE", food.getPrice());
-        intent.putExtra("EXTRA_OLD_PRICE", food.getOldPrice());
-        intent.putExtra("EXTRA_NEW_PRICE", food.getNewPrice());
-        intent.putExtra("EXTRA_DISCOUNT", food.getDiscountPercent());
-        intent.putExtra("EXTRA_DESC", food.getDescription());
-        intent.putExtra("EXTRA_IMAGE_URL", food.getImageUrl());
-        intent.putExtra("EXTRA_CATEGORY", food.getCategory());
-        intent.putExtra("EXTRA_IS_AVAILABLE", food.isAvailable());
-        context.startActivity(intent);
+        if (actionListener != null) actionListener.onEdit(food);
     }
 
     private void confirmDeleteFood(Food food) {
@@ -323,16 +293,7 @@ public class FoodAdapter extends RecyclerView.Adapter<FoodAdapter.FoodViewHolder
                 .setTitle("Xóa món ăn")
                 .setMessage("Bạn có chắc chắn muốn xóa món \"" + food.getName() + "\" khỏi thực đơn?")
                 .setPositiveButton("Xóa", (dialog, which) -> {
-                    if (restaurantId.isEmpty() || food.getFoodId() == null) return;
-                    FirebaseFirestore.getInstance().collection("restaurants")
-                            .document(restaurantId).collection("foods").document(food.getFoodId())
-                            .delete()
-                            .addOnSuccessListener(aVoid -> {
-                                originalList.remove(food);
-                                filter(currentQuery, currentCategory);
-                                Toast.makeText(context, "Đã xóa món thành công!", Toast.LENGTH_SHORT).show();
-                            })
-                            .addOnFailureListener(e -> Toast.makeText(context, "Lỗi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    if (actionListener != null) actionListener.onDelete(food);
                 })
                 .setNegativeButton("Hủy", null)
                 .show();

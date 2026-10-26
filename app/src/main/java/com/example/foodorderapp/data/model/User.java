@@ -6,6 +6,8 @@ public class User {
     private String email;
     private String phone ;
     private String address;
+    /** Vehicle text is optional and is used only when this user is a shipper. */
+    private String vehicleDescription;
     private String role;       // customer | restaurant | shipper | admin
     private String status;     // active | banned
     private int orderCount;
@@ -63,8 +65,13 @@ public class User {
         this.address = cleanText(address);
     }
 
+    public String getVehicleDescription() { return cleanText(vehicleDescription); }
+    public void setVehicleDescription(String vehicleDescription) {
+        this.vehicleDescription = cleanText(vehicleDescription);
+    }
+
     public String getRole() {
-        return role;
+        return cleanText(role);
     }
 
     public void setRole(String role) {
@@ -72,7 +79,7 @@ public class User {
     }
 
     public String getStatus() {
-        return status;
+        return cleanText(status);
     }
 
     public void setStatus(String status) {

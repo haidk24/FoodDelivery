@@ -19,17 +19,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
-import com.example.foodorderapp.data.model.FoodCategory;
+import com.example.foodorderapp.feature.restaurant.menu.RestaurantMenuViewModel;
 import com.example.foodorderapp.ui.AddFoodActivity;
+import com.example.foodorderapp.ui.EditFoodActivity;
 import com.example.foodorderapp.ui.adapter.FoodAdapter;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +36,7 @@ import java.util.List;
 public class RestaurantMenuFragment extends Fragment {
     private static final String ARG_RESTAURANT_ID = "restaurant_id";
     private final List<Food> foods = new ArrayList<>();
-    private FirebaseFirestore db;
-    private ListenerRegistration foodsRegistration;
+    private RestaurantMenuViewModel menuViewModel;
     private FoodAdapter adapter;
     private String restaurantId = "";
     private String selectedCategory = "Tất cả";
@@ -63,14 +61,14 @@ public class RestaurantMenuFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle state) {
         View root = inflater.inflate(R.layout.activity_menu, container, false);
-        db = FirebaseFirestore.getInstance();
+        menuViewModel = new ViewModelProvider(this).get(RestaurantMenuViewModel.class);
         if (getArguments() != null) restaurantId = value(getArguments().getString(ARG_RESTAURANT_ID));
         prepareEmbeddedLayout(root);
         bind(root);
         setupRecycler();
         setupFilters(root);
         root.findViewById(R.id.fabAddFood).setOnClickListener(v -> addFood());
-        if (!restaurantId.isEmpty()) listenFoods();
+        if (!restaurantId.isEmpty()) observeFoods();
         return root;
     }
 
@@ -107,6 +105,22 @@ public class RestaurantMenuFragment extends Fragment {
     private void setupRecycler() {
         recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new FoodAdapter(requireContext(), foods, restaurantId);
+        adapter.setActionListener(new FoodAdapter.OnFoodActionListener() {
+            @Override public void onEdit(Food food) { editFood(food); }
+            @Override public void onSetAvailability(Food food, boolean available) {
+                menuViewModel.setAvailable(food.getFoodId(), available, error -> {
+                    if (!isAdded()) return;
+                    if (error != null) Toast.makeText(requireContext(), "Cập nhật trạng thái thất bại: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                    else Toast.makeText(requireContext(), available ? "Đã mở bán lại món" : "Đã tạm ẩn món", Toast.LENGTH_SHORT).show();
+                });
+            }
+            @Override public void onDelete(Food food) {
+                menuViewModel.delete(food.getFoodId(), error -> {
+                    if (!isAdded()) return;
+                    Toast.makeText(requireContext(), error == null ? "Đã xóa món thành công" : "Lỗi xóa: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
         adapter.setCountListener((active, hidden, total, main, appetizer, drink, dessert) -> {
             activeCount.setText(active + " món đang bán");
             hiddenCount.setText(hidden + " món tạm ẩn");
@@ -174,38 +188,57 @@ public class RestaurantMenuFragment extends Fragment {
         startActivity(intent);
     }
 
+    private void editFood(Food food) {
+        Intent intent = new Intent(requireContext(), EditFoodActivity.class);
+        intent.putExtra("EXTRA_RESTAURANT_ID", restaurantId);
+        intent.putExtra("EXTRA_FOOD_ID", food.getFoodId());
+        intent.putExtra("EXTRA_NAME", food.getName());
+        intent.putExtra("EXTRA_PRICE", food.getPrice());
+        intent.putExtra("EXTRA_OLD_PRICE", food.getOldPrice());
+        intent.putExtra("EXTRA_NEW_PRICE", food.getNewPrice());
+        intent.putExtra("EXTRA_DISCOUNT", food.getDiscountPercent());
+        intent.putExtra("EXTRA_DESC", food.getDescription());
+        intent.putExtra("EXTRA_IMAGE_URL", food.getImageUrl());
+        intent.putExtra("EXTRA_CATEGORY", food.getCategory());
+        intent.putExtra("EXTRA_IS_AVAILABLE", food.isAvailable());
+        startActivity(intent);
+    }
+
     public void setRestaurantId(String id) {
         String next = value(id);
         if (next.equals(restaurantId)) return;
         restaurantId = next;
         if (adapter != null) adapter.setRestaurantId(next);
-        if (isAdded() && !next.isEmpty()) listenFoods();
+        if (isAdded() && !next.isEmpty()) observeFoods();
     }
 
-    private void listenFoods() {
-        if (foodsRegistration != null) foodsRegistration.remove();
+    private void observeFoods() {
         progress.setVisibility(View.VISIBLE);
-        foodsRegistration = db.collection("restaurants").document(restaurantId).collection("foods")
-                .addSnapshotListener((snapshot, error) -> {
-                    if (!isAdded()) return;
-                    progress.setVisibility(View.GONE);
-                    if (error != null || snapshot == null) return;
-                    foods.clear();
-                    for (QueryDocumentSnapshot doc : snapshot) {
-                        Food food = doc.toObject(Food.class);
-                        food.setFoodId(doc.getId());
-                        String rawCategory = doc.getString("category");
-                        String normalizedCategory = FoodCategory.normalize(rawCategory);
-                        food.setCategory(normalizedCategory);
-                        if (!normalizedCategory.equals(rawCategory)) {
-                            doc.getReference().update("category", normalizedCategory);
-                        }
-                        foods.add(food);
-                    }
-                    adapter.updateData(foods);
-                    adapter.setAvailabilityFilter(availabilityFilter);
-                    adapter.filter(searchQuery, selectedCategory);
-                });
+        menuViewModel.getFoods().observe(getViewLifecycleOwner(), values -> {
+            if (Boolean.TRUE.equals(menuViewModel.getLoading().getValue())) return;
+            renderFoods(values);
+        });
+        menuViewModel.getError().observe(getViewLifecycleOwner(), message -> {
+            if (message == null) return;
+            progress.setVisibility(View.GONE);
+            Toast.makeText(requireContext(), "Không tải được thực đơn: " + message, Toast.LENGTH_LONG).show();
+        });
+        menuViewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
+            if (loading == null) return;
+            progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+            if (!loading && menuViewModel.getError().getValue() == null) renderFoods(menuViewModel.getFoods().getValue());
+        });
+        menuViewModel.observeRestaurant(restaurantId);
+    }
+
+    private void renderFoods(List<Food> values) {
+        if (adapter == null) return;
+        progress.setVisibility(View.GONE);
+        foods.clear();
+        if (values != null) foods.addAll(values);
+        adapter.updateData(foods);
+        adapter.setAvailabilityFilter(availabilityFilter);
+        adapter.filter(searchQuery, selectedCategory);
     }
 
     private int dp(int value) {
@@ -215,8 +248,6 @@ public class RestaurantMenuFragment extends Fragment {
     private static String value(String text) { return text == null ? "" : text.trim(); }
 
     @Override public void onDestroyView() {
-        if (foodsRegistration != null) foodsRegistration.remove();
-        foodsRegistration = null;
         super.onDestroyView();
     }
 }

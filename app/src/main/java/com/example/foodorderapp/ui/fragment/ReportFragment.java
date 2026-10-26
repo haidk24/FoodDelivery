@@ -11,7 +11,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -19,8 +18,6 @@ import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.ReportStats;
 import com.example.foodorderapp.data.repository.ReportRepository;
 import com.example.foodorderapp.ui.admin.ReportViewModel;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -89,7 +86,13 @@ public class ReportFragment extends Fragment {
         bindViews(view);
         setupTabs();
         observeViewModel();
-        loadSystemHealthStats();
+        viewModel.getSystemHealth().observe(getViewLifecycleOwner(), stats -> {
+            if (stats == null) return;
+            if (tvHealthRestaurants != null) tvHealthRestaurants.setText(String.valueOf(stats.activeRestaurants));
+            if (tvHealthPending != null) tvHealthPending.setText(String.valueOf(stats.pendingRestaurants));
+            if (tvHealthUsers != null) tvHealthUsers.setText(String.valueOf(stats.users));
+        });
+        viewModel.loadSystemHealth();
 
         // Trigger default 7 days tab
         selectTab(1);
@@ -310,39 +313,4 @@ public class ReportFragment extends Fragment {
         if (pillPeakT7 != null) pillPeakT7.setVisibility(View.GONE);
     }
 
-    private void loadSystemHealthStats() {
-        // Fetch active/pending restaurant count from Firestore
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-        db.collection("restaurants").get().addOnSuccessListener(snapshot -> {
-            if (snapshot != null && !snapshot.isEmpty()) {
-                int activeCount = 0;
-                int pendingCount = 0;
-                for (DocumentSnapshot doc : snapshot.getDocuments()) {
-                    String status = doc.getString("status");
-                    if ("pending".equalsIgnoreCase(status)) {
-                        pendingCount++;
-                    } else if ("active".equalsIgnoreCase(status)) {
-                        activeCount++;
-                    }
-                }
-                if (tvHealthRestaurants != null) tvHealthRestaurants.setText(String.valueOf(activeCount));
-                if (tvHealthPending != null) {
-                    tvHealthPending.setText(String.valueOf(pendingCount));
-                }
-            }
-        }).addOnFailureListener(e -> showHealthLoadError());
-
-        // Fetch user count
-        db.collection("users").get().addOnSuccessListener(snapshot -> {
-            if (snapshot != null && tvHealthUsers != null) {
-                tvHealthUsers.setText(String.valueOf(snapshot.size()));
-            }
-        }).addOnFailureListener(e -> showHealthLoadError());
-    }
-
-    private void showHealthLoadError() {
-        if (!isAdded()) return;
-        Toast.makeText(requireContext(), "Không tải được một số dữ liệu tổng quan từ Firestore.", Toast.LENGTH_SHORT).show();
-    }
 }

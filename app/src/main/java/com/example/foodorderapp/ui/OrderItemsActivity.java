@@ -18,20 +18,19 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
-import com.example.foodorderapp.data.database.FoodDatabase;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
+import com.example.foodorderapp.feature.restaurant.RestaurantInfoViewModel;
 import com.google.android.material.button.MaterialButton;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -58,19 +57,21 @@ public class OrderItemsActivity extends AppCompatActivity {
     private TextView tvSubtotal, tvShippingFee, tvDiscount, tvOrderTotal, tvPaymentMethod;
     private MaterialButton btnCancelOrder, btnPrimaryAction;
 
-    private FirebaseFirestore db;
-    private ListenerRegistration orderListener;
+    private OrdersViewModel ordersViewModel;
+    private RestaurantInfoViewModel restaurantViewModel;
     private String orderId;
     private Order currentOrder;
-    private String restaurantPhone = "0987654321";
+    private String restaurantPhone = "";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_order_items);
 
-        db = FirebaseFirestore.getInstance();
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
+        restaurantViewModel = new ViewModelProvider(this).get(RestaurantInfoViewModel.class);
         initViews();
+        observeRestaurant();
 
         orderId = getIntent().getStringExtra("EXTRA_ORDER_ID");
         if (orderId == null || orderId.trim().isEmpty()) {
@@ -104,6 +105,10 @@ public class OrderItemsActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> onBackPressed());
 
         btnCallRestaurant.setOnClickListener(v -> {
+            if (TextUtils.isEmpty(restaurantPhone)) {
+                Toast.makeText(this, "Nhà hàng chưa cập nhật số điện thoại", Toast.LENGTH_SHORT).show();
+                return;
+            }
             try {
                 Intent callIntent = new Intent(Intent.ACTION_DIAL);
                 callIntent.setData(Uri.parse("tel:" + restaurantPhone));
@@ -114,6 +119,16 @@ public class OrderItemsActivity extends AppCompatActivity {
         });
 
         listenOrderRealtime();
+    }
+
+    private void observeRestaurant() {
+        restaurantViewModel.getRestaurant().observe(this, restaurant -> {
+            if (restaurant == null) return;
+            if (!TextUtils.isEmpty(restaurant.getName())) tvRestaurantName.setText(restaurant.getName());
+            String address = restaurant.getAddressText();
+            if (!TextUtils.isEmpty(address) && !"Chua cap nhat".equals(address)) tvRestaurantAddress.setText(address);
+            restaurantPhone = restaurant.getPhone();
+        });
     }
 
     private void initViews() {
@@ -150,17 +165,12 @@ public class OrderItemsActivity extends AppCompatActivity {
     }
 
     private void listenOrderRealtime() {
-        orderListener = db.collection("orders").document(orderId)
-                .addSnapshotListener((snapshot, error) -> {
-                    if (error != null || snapshot == null || !snapshot.exists()) {
-                        return;
-                    }
-                    currentOrder = snapshot.toObject(Order.class);
-                    if (currentOrder != null) {
-                        currentOrder.setOrderId(snapshot.getId());
-                        populateOrderDetails(currentOrder);
-                    }
-                });
+        ordersViewModel.getOrders().observe(this, orders -> {
+            if (orders == null || orders.isEmpty()) return;
+            currentOrder = orders.get(0);
+            populateOrderDetails(currentOrder);
+        });
+        ordersViewModel.observeOrder(orderId);
     }
 
     private void populateOrderDetails(Order order) {
@@ -241,23 +251,10 @@ public class OrderItemsActivity extends AppCompatActivity {
             tvUnit.setText(item.getQuantity() + "x • " + formatCurrency(item.getPrice()) + " / phần");
             tvTotal.setText(formatCurrency(item.getPrice() * item.getQuantity()));
 
-            // Load dish thumbnail
-            if (!TextUtils.isEmpty(item.getFoodId())) {
-                db.collection("foods").document(item.getFoodId()).get()
-                        .addOnSuccessListener(foodDoc -> {
-                            if (foodDoc != null && foodDoc.exists()) {
-                                String imgUrl = foodDoc.getString("imageUrl");
-                                if (!TextUtils.isEmpty(imgUrl)) {
-                                    Glide.with(this)
-                                            .load(imgUrl)
-                                            .placeholder(R.drawable.banh)
-                                            .error(R.drawable.banh)
-                                            .into(ivDish);
-                                }
-                            }
-                        })
-                        .addOnFailureListener(e -> {});
-            }
+            if (!TextUtils.isEmpty(item.getImageUrl())) {
+                Glide.with(this).load(item.getImageUrl()).placeholder(R.drawable.banh)
+                        .error(R.drawable.banh).into(ivDish);
+            } else ivDish.setImageResource(R.drawable.banh);
 
             layoutDishesContainer.addView(dishView);
         }
@@ -331,19 +328,7 @@ public class OrderItemsActivity extends AppCompatActivity {
     }
 
     private void loadRestaurantInfo(String resId) {
-        db.collection("restaurants").document(resId).get()
-                .addOnSuccessListener(doc -> {
-                    if (doc != null && doc.exists()) {
-                        com.example.foodorderapp.data.model.Restaurant r = doc.toObject(com.example.foodorderapp.data.model.Restaurant.class);
-                        String name = r != null && !TextUtils.isEmpty(r.getName()) ? r.getName() : doc.getString("name");
-                        String address = r != null ? r.getAddressText() : "Chưa cập nhật";
-                        String phone = r != null ? r.getPhone() : "";
-                        if (!TextUtils.isEmpty(name)) tvRestaurantName.setText(name);
-                        if (!TextUtils.isEmpty(address) && !"Chua cap nhat".equals(address)) tvRestaurantAddress.setText(address);
-                        if (!TextUtils.isEmpty(phone)) restaurantPhone = phone;
-                    }
-                })
-                .addOnFailureListener(e -> {});
+        restaurantViewModel.load(resId);
     }
 
     private void setupActionButtons(Order order) {
@@ -387,19 +372,10 @@ public class OrderItemsActivity extends AppCompatActivity {
                 .setTitle("Hủy đơn hàng")
                 .setMessage("Bạn có chắc chắn muốn hủy đơn hàng #" + (order.getOrderId().length() > 8 ? order.getOrderId().substring(0, 8) : order.getOrderId()) + " không?")
                 .setPositiveButton("Hủy đơn", (dialog, which) -> {
-                    db.collection("orders").document(order.getOrderId())
-                            .update("status", "cancelled")
-                            .addOnSuccessListener(aVoid -> {
-                                if (!TextUtils.isEmpty(order.getRestaurantId())) {
-                                    db.collection("restaurants").document(order.getRestaurantId())
-                                            .collection("orders").document(order.getOrderId())
-                                            .update("status", "cancelled");
-                                }
-                                Toast.makeText(this, "Đã hủy đơn hàng thành công", Toast.LENGTH_SHORT).show();
-                            })
-                            .addOnFailureListener(e -> {
-                                Toast.makeText(this, "Hủy đơn thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            });
+                    ordersViewModel.updateStatus(order, Order.STATUS_CANCELLED, error -> {
+                        if (error == null) Toast.makeText(this, "Đã hủy đơn hàng thành công", Toast.LENGTH_SHORT).show();
+                        else Toast.makeText(this, "Hủy đơn thất bại: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
                 })
                 .setNegativeButton("Đóng", null)
                 .show();
@@ -413,6 +389,8 @@ public class OrderItemsActivity extends AppCompatActivity {
         }
 
         new Thread(() -> {
+            com.example.foodorderapp.data.repository.CartRepository cartRepository =
+                    new com.example.foodorderapp.data.repository.CartRepository(this);
             for (CartItem item : items) {
                 if (item == null) continue;
                 Food food = new Food();
@@ -420,9 +398,9 @@ public class OrderItemsActivity extends AppCompatActivity {
                 food.setName(item.getName());
                 food.setPrice(item.getPrice());
                 food.setNewPrice(item.getPrice());
-                food.setCount(item.getQuantity());
+                food.setImageUrl(item.getImageUrl());
                 food.setRestaurantId(order.getRestaurantId());
-                FoodDatabase.getInstance(this).foodDao().insertFood(food);
+                cartRepository.addOrIncrement(food, item.getQuantity());
             }
             runOnUiThread(() -> {
                 Toast.makeText(this, "Đã thêm các món vào giỏ hàng! 🛒", Toast.LENGTH_SHORT).show();
@@ -439,12 +417,4 @@ public class OrderItemsActivity extends AppCompatActivity {
         return TextUtils.isEmpty(value) ? fallback : value.trim();
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (orderListener != null) {
-            orderListener.remove();
-            orderListener = null;
-        }
-    }
 }

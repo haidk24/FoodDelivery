@@ -14,15 +14,15 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Restaurant;
+import com.example.foodorderapp.feature.restaurant.registration.RestaurantRegistrationViewModel;
+import com.example.foodorderapp.viewmodel.AuthViewModel;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,8 +36,9 @@ public class RegisterRestaurantFragment extends Fragment {
     private LinearLayout layoutForm, layoutPending;
     private TextView tvTitle;
 
-    private FirebaseFirestore db;
     private FirebaseAuth auth;
+    private RestaurantRegistrationViewModel registrationViewModel;
+    private AuthViewModel authViewModel;
 
     @Nullable
     @Override
@@ -49,10 +50,12 @@ public class RegisterRestaurantFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
+        registrationViewModel = new ViewModelProvider(this).get(RestaurantRegistrationViewModel.class);
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
         initViews(view);
+        observeViewModel();
         checkRegistrationStatus();
         setupListeners();
     }
@@ -74,58 +77,39 @@ public class RegisterRestaurantFragment extends Fragment {
     private void checkRegistrationStatus() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
+        registrationViewModel.loadExisting(user.getUid());
+    }
 
-        setLoading(true);
-        // Kiểm tra xem user này đã có nhà hàng nào đang "pending" hoặc "active" chưa
-        db.collection("restaurants")
-                .whereEqualTo("ownerId", user.getUid())
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    setLoading(false);
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        boolean hasPending = false;
-                        boolean hasActive = false;
-
-                        for (com.google.firebase.firestore.DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
-                            String status = doc.getString("status");
-                            if ("pending".equals(status)) hasPending = true;
-                            if ("active".equals(status)) hasActive = true;
-                        }
-
-                        if (hasActive) {
-                            Toast.makeText(getContext(), "Bạn đã có nhà hàng đang hoạt động!", Toast.LENGTH_SHORT).show();
-                            getActivity().onBackPressed();
-                        } else if (hasPending) {
-                            showPendingUI();
-                        } else {
-                            showFormUI();
-                            loadUserPhone();
-                        }
-                    } else {
-                        showFormUI();
-                        loadUserPhone();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    setLoading(false);
-                    showFormUI();
-                    loadUserPhone();
-                });
+    private void observeViewModel() {
+        registrationViewModel.getLoading().observe(getViewLifecycleOwner(), this::setLoading);
+        registrationViewModel.getExistingRestaurant().observe(getViewLifecycleOwner(), restaurant -> {
+            if (restaurant != null && "active".equals(restaurant.status)) {
+                Toast.makeText(getContext(), "Bạn đã có nhà hàng đang hoạt động!", Toast.LENGTH_SHORT).show();
+                if (getActivity() != null) getActivity().onBackPressed();
+            } else if (restaurant != null && "pending".equals(restaurant.status)) {
+                showPendingUI();
+            } else {
+                showFormUI();
+                loadUserPhone();
+            }
+        });
+        registrationViewModel.getSubmitted().observe(getViewLifecycleOwner(), done -> {
+            if (Boolean.TRUE.equals(done)) {
+                showPendingUI();
+                Toast.makeText(getContext(), "Gửi yêu cầu thành công!", Toast.LENGTH_SHORT).show();
+            }
+        });
+        registrationViewModel.getError().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && !message.isEmpty()) {
+                Toast.makeText(getContext(), "Lỗi: " + message, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadUserPhone() {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user != null) {
-            db.collection("users").document(user.getUid()).get()
-                    .addOnSuccessListener(documentSnapshot -> {
-                        if (documentSnapshot.exists()) {
-                            String phone = documentSnapshot.getString("phone");
-                            if (phone != null && !phone.isEmpty()) {
-                                edtPhone.setText(phone);
-                            }
-                        }
-                    });
-        }
+        authViewModel.getCurrentUserProfile().addOnSuccessListener(profile -> {
+            if (profile != null && !profile.getPhone().isEmpty()) edtPhone.setText(profile.getPhone());
+        });
     }
 
     private void showPendingUI() {
@@ -170,33 +154,13 @@ public class RegisterRestaurantFragment extends Fragment {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
 
-        setLoading(true);
-
         Map<String, Object> address = new HashMap<>();
         address.put("street", edtStreet.getText().toString().trim());
         address.put("district", edtDistrict.getText().toString().trim());
         address.put("city", edtCity.getText().toString().trim());
 
-        Restaurant restaurant = new Restaurant();
-        restaurant.ownerId = user.getUid();
-        restaurant.name = edtName.getText().toString().trim();
-        restaurant.phone = edtPhone.getText().toString().trim();
-        restaurant.address = address;
-        restaurant.hasLicence = cbLicence.isChecked();
-        restaurant.status = "pending";
-        restaurant.rating = 0.0;
-        restaurant.createdAt = FieldValue.serverTimestamp();
-
-        db.collection("restaurants").add(restaurant)
-                .addOnSuccessListener(documentReference -> {
-                    setLoading(false);
-                    showPendingUI();
-                    Toast.makeText(getContext(), "Gửi yêu cầu thành công!", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    setLoading(false);
-                    Toast.makeText(getContext(), "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+        registrationViewModel.submit(user.getUid(), edtName.getText().toString().trim(),
+                edtPhone.getText().toString().trim(), address, cbLicence.isChecked());
     }
 
     private void setLoading(boolean isLoading) {

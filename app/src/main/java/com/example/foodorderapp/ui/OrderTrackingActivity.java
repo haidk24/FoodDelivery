@@ -14,17 +14,17 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
+import com.example.foodorderapp.feature.restaurant.RestaurantInfoViewModel;
 import com.google.android.material.button.MaterialButton;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -50,19 +50,20 @@ public class OrderTrackingActivity extends AppCompatActivity {
     private TextView tvSummaryRestaurant, tvSummaryDishes, tvSummaryTotal;
     private MaterialButton btnViewOrderDetails;
 
-    private FirebaseFirestore db;
-    private ListenerRegistration orderListener;
+    private OrdersViewModel ordersViewModel;
+    private RestaurantInfoViewModel restaurantViewModel;
     private String orderId;
     private Order currentOrder;
-    private String shipperPhone = "0987654321";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_order_tracking);
 
-        db = FirebaseFirestore.getInstance();
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
+        restaurantViewModel = new ViewModelProvider(this).get(RestaurantInfoViewModel.class);
         initViews();
+        observeRestaurant();
 
         orderId = getIntent().getStringExtra("EXTRA_ORDER_ID");
         if (orderId == null || orderId.trim().isEmpty()) {
@@ -88,18 +89,10 @@ public class OrderTrackingActivity extends AppCompatActivity {
 
         btnBack.setOnClickListener(v -> onBackPressed());
 
-        btnCallShipper.setOnClickListener(v -> {
-            try {
-                Intent callIntent = new Intent(Intent.ACTION_DIAL);
-                callIntent.setData(Uri.parse("tel:" + shipperPhone));
-                startActivity(callIntent);
-            } catch (Exception e) {
-                Toast.makeText(this, "Số điện thoại tài xế: " + shipperPhone, Toast.LENGTH_SHORT).show();
-            }
-        });
+        btnCallShipper.setOnClickListener(v -> callAssignedShipper());
 
         btnChatShipper.setOnClickListener(v -> {
-            Toast.makeText(this, "Đang kết nối tin nhắn với tài xế An...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Đơn hàng chưa có kênh nhắn tin với tài xế", Toast.LENGTH_SHORT).show();
         });
 
         btnViewOrderDetails.setOnClickListener(v -> {
@@ -117,6 +110,14 @@ public class OrderTrackingActivity extends AppCompatActivity {
         });
 
         listenOrderRealtime();
+    }
+
+    private void observeRestaurant() {
+        restaurantViewModel.getRestaurant().observe(this, restaurant -> {
+            if (restaurant == null || TextUtils.isEmpty(restaurant.getName())) return;
+            tvSummaryRestaurant.setText(restaurant.getName());
+            tvMapRestaurantLabel.setText(restaurant.getName());
+        });
     }
 
     private void initViews() {
@@ -155,17 +156,12 @@ public class OrderTrackingActivity extends AppCompatActivity {
     }
 
     private void listenOrderRealtime() {
-        orderListener = db.collection("orders").document(orderId)
-                .addSnapshotListener((snapshot, error) -> {
-                    if (error != null || snapshot == null || !snapshot.exists()) {
-                        return;
-                    }
-                    currentOrder = snapshot.toObject(Order.class);
-                    if (currentOrder != null) {
-                        currentOrder.setOrderId(snapshot.getId());
-                        populateTracking(currentOrder);
-                    }
-                });
+        ordersViewModel.getOrders().observe(this, orders -> {
+            if (orders == null || orders.isEmpty()) return;
+            currentOrder = orders.get(0);
+            populateTracking(currentOrder);
+        });
+        ordersViewModel.observeOrder(orderId);
     }
 
     private void populateTracking(Order order) {
@@ -191,8 +187,32 @@ public class OrderTrackingActivity extends AppCompatActivity {
         }
 
         tvSummaryTotal.setText(formatCurrency(order.getTotalAmount()));
-
+        bindShipper(order);
         updateStepperStages(order);
+    }
+
+    private void bindShipper(Order order) {
+        boolean assigned = !TextUtils.isEmpty(order.getShipperId());
+        String name = order.getShipperName();
+        String vehicle = order.getShipperVehicle();
+        String phone = order.getShipperPhone();
+        tvShipperName.setText(!TextUtils.isEmpty(name) ? name
+                : assigned ? "Tài xế đã được phân công" : "Chưa có tài xế được phân công");
+        tvShipperBike.setText(!TextUtils.isEmpty(vehicle) ? vehicle
+                : assigned ? "Chưa cập nhật phương tiện" : "Quán sẽ cập nhật khi bàn giao đơn");
+        boolean canCall = !TextUtils.isEmpty(phone);
+        btnCallShipper.setEnabled(canCall);
+        btnCallShipper.setAlpha(canCall ? 1f : 0.5f);
+        btnChatShipper.setEnabled(false);
+        btnChatShipper.setAlpha(0.5f);
+    }
+
+    private void callAssignedShipper() {
+        if (currentOrder == null || TextUtils.isEmpty(currentOrder.getShipperPhone())) {
+            Toast.makeText(this, "Tài xế chưa có số điện thoại liên hệ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + currentOrder.getShipperPhone())));
     }
 
     private void updateStepperStages(Order order) {
@@ -235,7 +255,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 tvStep4Title.setTextColor(colorTextSecondary);
                 tvStep4Time.setText("Chờ hoàn tất");
 
-                tvTrackingEta.setText("Quán đang chế biến • Dự kiến giao trong 25-30 phút");
+                tvTrackingEta.setText("Quán đang chế biến món ăn");
                 break;
 
             case Order.STATUS_SHIPPING:
@@ -259,7 +279,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 tvStep4Title.setTextColor(colorTextSecondary);
                 tvStep4Time.setText("Chờ nhận hàng");
 
-                tvTrackingEta.setText("Tài xế cách bạn 1.2 km • ~8 phút nữa");
+                tvTrackingEta.setText("Đơn hàng đang được giao đến bạn");
                 break;
 
             case Order.STATUS_COMPLETED:
@@ -318,31 +338,11 @@ public class OrderTrackingActivity extends AppCompatActivity {
     }
 
     private void loadRestaurantInfo(String resId) {
-        db.collection("restaurants").document(resId).get()
-                .addOnSuccessListener(doc -> {
-                    if (doc != null && doc.exists()) {
-                        com.example.foodorderapp.data.model.Restaurant restaurant =
-                                doc.toObject(com.example.foodorderapp.data.model.Restaurant.class);
-                        String name = restaurant != null ? restaurant.getName() : "";
-                        if (!TextUtils.isEmpty(name)) {
-                            tvSummaryRestaurant.setText(name);
-                            tvMapRestaurantLabel.setText(name);
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> {});
+        restaurantViewModel.load(resId);
     }
 
     private String formatCurrency(double amount) {
         return NumberFormat.getCurrencyInstance(new Locale("vi", "VN")).format(amount);
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (orderListener != null) {
-            orderListener.remove();
-            orderListener = null;
-        }
-    }
 }

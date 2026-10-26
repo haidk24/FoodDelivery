@@ -14,17 +14,17 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
-import com.example.foodorderapp.data.database.FoodDatabase;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.Restaurant;
+import com.example.foodorderapp.feature.customer.fooddetail.FoodDetailViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -102,16 +102,40 @@ public class FoodDetailActivity extends AppCompatActivity {
     private int currentQuantity = 1;
     private boolean isFavorite = false;
     private final NumberFormat priceFormatter = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
+    private FoodDetailViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_food_detail);
 
+        viewModel = new ViewModelProvider(this).get(FoodDetailViewModel.class);
         initViews();
+        observeViewModel();
         setupListeners();
         loadUserInfo();
         getIntentData();
+    }
+
+    private void observeViewModel() {
+        viewModel.getRestaurant().observe(this, restaurant -> {
+            if (restaurant == null) return;
+            String name = restaurant.getName();
+            tvRestaurantName.setText(TextUtils.isEmpty(name) ? "Chưa cập nhật tên quán" : name);
+            if (!TextUtils.isEmpty(restaurant.getImageUrl())) {
+                Glide.with(this).load(restaurant.getImageUrl())
+                        .placeholder(R.drawable.banghoa).error(R.drawable.banghoa)
+                        .centerCrop().into(imgRestaurantLogo);
+            }
+            tvRestaurantRating.setText(restaurant.getRating() > 0
+                    ? String.format(Locale.US, "%.1f", restaurant.getRating()) : "--");
+        });
+        viewModel.getRestaurantError().observe(this, error -> {
+            if (error == null || error.trim().isEmpty()) return;
+            tvRestaurantName.setText("Không tải được thông tin quán");
+            tvRestaurantRating.setText("--");
+            tvRestaurantReviews.setText("");
+        });
     }
 
     private void initViews() {
@@ -272,41 +296,7 @@ public class FoodDetailActivity extends AppCompatActivity {
             return;
         }
 
-        FirebaseFirestore.getInstance()
-                .collection("restaurants")
-                .document(restaurantId.trim())
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (doc != null && doc.exists()) {
-                        Restaurant restaurant = doc.toObject(Restaurant.class);
-                        String name = restaurant != null ? restaurant.getName() : "";
-                        if (!TextUtils.isEmpty(name)) {
-                            tvRestaurantName.setText(name);
-                        }
-                        String imgUrl = restaurant != null ? restaurant.getImageUrl() : "";
-                        if (!TextUtils.isEmpty(imgUrl)) {
-                            Glide.with(this)
-                                    .load(imgUrl)
-                                    .placeholder(R.drawable.banghoa)
-                                    .error(R.drawable.banghoa)
-                                    .centerCrop()
-                                    .into(imgRestaurantLogo);
-                        }
-                        Double rating = doc.getDouble("rating");
-                        if (rating != null && rating > 0) {
-                            tvRestaurantRating.setText(String.format(Locale.US, "%.1f", rating));
-                        }
-                    } else {
-                        tvRestaurantName.setText("Không tìm thấy quán");
-                        tvRestaurantRating.setText("--");
-                        tvRestaurantReviews.setText("");
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    tvRestaurantName.setText("Không tải được thông tin quán");
-                    tvRestaurantRating.setText("--");
-                    tvRestaurantReviews.setText("");
-                });
+        viewModel.loadRestaurant(restaurantId.trim());
     }
 
     private void updateOptionChipUI(LinearLayout chipLayout, ImageView icon, TextView text, boolean isSelected) {
@@ -379,15 +369,7 @@ public class FoodDetailActivity extends AppCompatActivity {
         if (isOptNoHerbsSelected) selectedNotes.add("Không rau thơm");
         if (isOptExtraSauceSelected) selectedNotes.add("Thêm nước chấm");
 
-        List<Food> list = FoodDatabase.getInstance(this).foodDao().checkFoodInCart(food.getFoodId());
-        if (list != null && !list.isEmpty()) {
-            Food foodInCart = list.get(0);
-            foodInCart.setCount(foodInCart.getCount() + quantity);
-            FoodDatabase.getInstance(this).foodDao().updateFood(foodInCart);
-        } else {
-            food.setCount(quantity);
-            FoodDatabase.getInstance(this).foodDao().insertFood(food);
-        }
+        viewModel.addToCart(food, quantity);
 
         String noteMsg = selectedNotes.isEmpty() ? "" : " (" + TextUtils.join(", ", selectedNotes) + ")";
         Toast.makeText(this, "Đã thêm " + quantity + " phần " + food.getName() + noteMsg + " vào giỏ hàng!", Toast.LENGTH_SHORT).show();

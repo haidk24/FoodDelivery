@@ -13,7 +13,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
@@ -23,7 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Restaurant;
 import com.example.foodorderapp.ui.admin.adapter.RestaurantAdapter;
-import com.example.foodorderapp.viewModel.AdminViewModel;
+import com.example.foodorderapp.feature.admin.restaurants.AdminRestaurantsViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +34,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
     private static final int TAB_ACTIVE    = 1;
     private static final int TAB_SUSPENDED = 2;
 
-    private AdminViewModel viewModel;
+    private AdminRestaurantsViewModel viewModel;
     private RestaurantAdapter adapter;
 
     // Views
@@ -74,7 +73,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        viewModel = new ViewModelProvider(requireActivity()).get(AdminViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(AdminRestaurantsViewModel.class);
 
         bindViews(view);
         setupRecyclerView();
@@ -82,7 +81,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
         setupSearch();
         observeViewModel();
 
-        viewModel.observeRestaurants();
+        viewModel.observe();
     }
 
     private void bindViews(View v) {
@@ -170,30 +169,30 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
     }
 
     private void observeViewModel() {
-        viewModel.getIsLoading().observe(getViewLifecycleOwner(), loading -> {
+        viewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
             if (progressBar != null && Boolean.TRUE.equals(loading)) {
                 progressBar.setVisibility(View.VISIBLE);
             }
         });
 
-        viewModel.getPendingRestaurantList().observe(getViewLifecycleOwner(), list -> {
+        viewModel.getPending().observe(getViewLifecycleOwner(), list -> {
             cachedPendingList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
             tvBadgePending.setText(String.valueOf(cachedPendingList.size()));
             if (currentTab == TAB_PENDING) applyFilterAndDisplay();
         });
 
-        viewModel.getRestaurantsLoaded().observe(getViewLifecycleOwner(), loaded -> {
+        viewModel.getLoaded().observe(getViewLifecycleOwner(), loaded -> {
             hasLoadedRestaurantData = Boolean.TRUE.equals(loaded);
             if (hasLoadedRestaurantData) applyFilterAndDisplay();
         });
 
-        viewModel.getActiveRestaurantList().observe(getViewLifecycleOwner(), list -> {
+        viewModel.getActive().observe(getViewLifecycleOwner(), list -> {
             cachedActiveList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
             tvBadgeActive.setText(String.valueOf(cachedActiveList.size()));
             if (currentTab == TAB_ACTIVE) applyFilterAndDisplay();
         });
 
-        viewModel.getSuspendedRestaurantList().observe(getViewLifecycleOwner(), list -> {
+        viewModel.getSuspended().observe(getViewLifecycleOwner(), list -> {
             cachedSuspendedList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
             tvBadgeSuspended.setText(String.valueOf(cachedSuspendedList.size()));
             if (currentTab == TAB_SUSPENDED) applyFilterAndDisplay();
@@ -205,7 +204,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
             }
         });
 
-        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), err -> {
+        viewModel.getError().observe(getViewLifecycleOwner(), err -> {
             if (err != null && !err.isEmpty()) {
                 Toast.makeText(requireContext(), err, Toast.LENGTH_SHORT).show();
             }
@@ -255,7 +254,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
     @Override
     public void onApprove(Restaurant r) {
         if (r.restaurantId != null) {
-            viewModel.approveRestaurant(r.restaurantId);
+            viewModel.approve(r.restaurantId);
         } else {
             Toast.makeText(requireContext(), "Thiếu mã nhà hàng nên không thể cập nhật.", Toast.LENGTH_SHORT).show();
         }
@@ -264,7 +263,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
     @Override
     public void onSuspend(Restaurant r) {
         if (r.restaurantId != null) {
-            viewModel.suspendRestaurant(r.restaurantId);
+            viewModel.suspend(r.restaurantId);
         } else {
             Toast.makeText(requireContext(), "Thiếu mã nhà hàng nên không thể cập nhật.", Toast.LENGTH_SHORT).show();
         }
@@ -273,7 +272,7 @@ public class RestaurantApprovalFragment extends Fragment implements RestaurantAd
     @Override
     public void onReinstate(Restaurant r) {
         if (r.restaurantId != null) {
-            viewModel.reinstateRestaurant(r.restaurantId);
+            viewModel.reinstate(r.restaurantId);
         } else {
             Toast.makeText(requireContext(), "Thiếu mã nhà hàng nên không thể cập nhật.", Toast.LENGTH_SHORT).show();
         }

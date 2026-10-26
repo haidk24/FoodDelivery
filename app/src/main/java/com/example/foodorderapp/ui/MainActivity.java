@@ -15,11 +15,13 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.ViewModelProvider;
 
 import androidx.core.content.ContextCompat;
 import com.example.foodorderapp.R;
-import com.example.foodorderapp.data.database.FoodDatabase;
-import com.example.foodorderapp.data.model.Food;
+import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.feature.customer.cart.CartViewModel;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
 import com.example.foodorderapp.ui.fragment.HomeFragment;
 import com.example.foodorderapp.ui.fragment.MyOrderFragment;
 import com.example.foodorderapp.ui.fragment.RegisterRestaurantFragment;
@@ -29,12 +31,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
 
-import java.util.List;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -46,6 +43,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ShoppingcartFragment cartFragment;
     private MyOrderFragment orderFragment;
     private Fragment activeFragment;
+    private OrdersViewModel ordersViewModel;
+    private CartViewModel cartViewModel;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -71,6 +70,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         initFragments(savedInstanceState);
 
         bottomNavigationView = findViewById(R.id.bottom_navigation);
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
+        cartViewModel = new ViewModelProvider(this).get(CartViewModel.class);
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
@@ -87,21 +88,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         });
 
         updateCartBadge();
-        listenToActiveOrdersCount();
+        observeActiveOrdersBadge();
     }
-
-    private ListenerRegistration activeOrdersListener;
 
     public void updateCartBadge() {
         if (bottomNavigationView == null) return;
         try {
-            List<Food> list = FoodDatabase.getInstance(this).foodDao().getListFoodCart();
-            int count = 0;
-            if (list != null) {
-                for (Food f : list) {
-                    count += f.getCount();
-                }
-            }
+            int count = cartViewModel.getItemCount();
             BadgeDrawable cartBadge = bottomNavigationView.getOrCreateBadge(R.id.nav_cart);
             cartBadge.setBackgroundColor(ContextCompat.getColor(this, R.color.colorPrimary));
             cartBadge.setBadgeTextColor(ContextCompat.getColor(this, R.color.white));
@@ -114,30 +107,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } catch (Exception ignored) {}
     }
 
-    private void listenToActiveOrdersCount() {
+    private void observeActiveOrdersBadge() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null || bottomNavigationView == null) return;
-        if (activeOrdersListener != null) {
-            activeOrdersListener.remove();
-        }
-
-        activeOrdersListener = FirebaseFirestore.getInstance()
-                .collection("orders")
-                .whereEqualTo("customerId", user.getUid())
-                .addSnapshotListener((snapshots, e) -> {
-                    if (e != null || snapshots == null) return;
+        ordersViewModel.getOrders().observe(this, orders -> {
+                    if (orders == null || Boolean.TRUE.equals(ordersViewModel.getLoading().getValue())) return;
                     int activeCount = 0;
-                    for (DocumentSnapshot doc : snapshots.getDocuments()) {
-                        String status = doc.getString("status");
-                        if (status != null) {
-                            String s = com.example.foodorderapp.data.model.Order.normalizeStatus(status);
-                            if (com.example.foodorderapp.data.model.Order.STATUS_PENDING.equals(s) 
-                                    || com.example.foodorderapp.data.model.Order.STATUS_PREPARING.equals(s) 
-                                    || com.example.foodorderapp.data.model.Order.STATUS_CONFIRMED.equals(s) 
-                                    || com.example.foodorderapp.data.model.Order.STATUS_SHIPPING.equals(s)) {
-                                activeCount++;
-                            }
-                        }
+                    for (Order order : orders) {
+                        String status = Order.normalizeStatus(order.getStatus());
+                        if (Order.STATUS_PENDING.equals(status) || Order.STATUS_PREPARING.equals(status)
+                                || Order.STATUS_CONFIRMED.equals(status) || Order.STATUS_SHIPPING.equals(status)) activeCount++;
                     }
                     try {
                         BadgeDrawable orderBadge = bottomNavigationView.getOrCreateBadge(R.id.nav_myorder);
@@ -151,22 +130,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         }
                     } catch (Exception ignored) {}
                 });
+        ordersViewModel.observeCustomer(user.getUid());
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         updateCartBadge();
-        listenToActiveOrdersCount();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (activeOrdersListener != null) {
-            activeOrdersListener.remove();
-            activeOrdersListener = null;
-        }
     }
 
     private void initFragments(Bundle savedInstanceState) {

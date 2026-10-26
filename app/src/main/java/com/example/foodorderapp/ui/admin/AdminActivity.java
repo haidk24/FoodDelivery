@@ -10,22 +10,22 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.NavigationUI;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.ui.SignInActivity;
-import com.example.foodorderapp.viewModel.AdminViewModel;
+import com.example.foodorderapp.feature.admin.dashboard.AdminDashboardViewModel;
+import com.example.foodorderapp.feature.admin.restaurants.AdminRestaurantsViewModel;
 import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 
 public class AdminActivity extends AppCompatActivity {
 
-    private AdminViewModel viewModel;
+    private AdminDashboardViewModel dashboardViewModel;
+    private AdminRestaurantsViewModel restaurantsViewModel;
     private BottomNavigationView bottomNav;
     private NavController navController;
 
@@ -42,8 +42,9 @@ public class AdminActivity extends AppCompatActivity {
         setupTopBarActions();
 
         // Khởi tạo ViewModel
-        viewModel = new ViewModelProvider(this).get(AdminViewModel.class);
-        viewModel.observeRestaurants();
+        dashboardViewModel = new ViewModelProvider(this).get(AdminDashboardViewModel.class);
+        restaurantsViewModel = new ViewModelProvider(this).get(AdminRestaurantsViewModel.class);
+        restaurantsViewModel.observe();
 
         // Setup Navigation
         setupNavigation();
@@ -73,7 +74,7 @@ public class AdminActivity extends AppCompatActivity {
     }
 
     private void showPendingRestaurantNotifications() {
-        java.util.List<com.example.foodorderapp.data.model.Restaurant> pending = viewModel.getPendingRestaurantList().getValue();
+        java.util.List<com.example.foodorderapp.data.model.Restaurant> pending = restaurantsViewModel.getPending().getValue();
         if (pending == null || pending.isEmpty()) {
             new androidx.appcompat.app.AlertDialog.Builder(this)
                     .setTitle("Thông báo")
@@ -191,7 +192,7 @@ public class AdminActivity extends AppCompatActivity {
     }
 
     private void checkAdminRole() {
-        viewModel.getCurrentUserRole().observe(this, role -> {
+        dashboardViewModel.getCurrentUserRole().observe(this, role -> {
             if (role != null && !role.equals("admin") && !getIntent().getBooleanExtra("preview_mode", false)) {
                 Toast.makeText(this, "Bạn không có quyền truy cập khu vực Quản trị!", Toast.LENGTH_LONG).show();
                 finish();
@@ -200,7 +201,7 @@ public class AdminActivity extends AppCompatActivity {
     }
 
     private void observeBadge() {
-        viewModel.getPendingRestaurantCount().observe(this, count -> {
+        restaurantsViewModel.getPendingCount().observe(this, count -> {
             int pending = count == null ? 0 : count;
             if (notificationBadge != null) {
                 notificationBadge.setVisibility(pending > 0 ? View.VISIBLE : View.GONE);
@@ -217,10 +218,13 @@ public class AdminActivity extends AppCompatActivity {
     }
 
     private void observeStates() {
-        viewModel.getErrorMessage().observe(this, error -> {
+        dashboardViewModel.getError().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
             }
+        });
+        restaurantsViewModel.getError().observe(this, error -> {
+            if (error != null && !error.isEmpty()) Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
         });
     }
 }

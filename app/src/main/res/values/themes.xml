@@ -15,15 +15,5 @@
         <item name="fontFamily">@font/plus_jakarta_sans</item>
     </style>
 
-    <!-- Style cho hàng thông tin -->
-    <style name="InfoRow">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:orientation">horizontal</item>
-        <item name="android:paddingTop">8dp</item>
-        <item name="android:paddingBottom">8dp</item>
-        <item name="android:gravity">center_vertical</item>
-    </style>
-
     <style name="Theme.FoodOrderApp" parent="Base.Theme.FoodOrderApp" />
 </resources>

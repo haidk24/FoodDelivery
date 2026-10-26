@@ -21,34 +21,34 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.adapter.FoodHomeAdapter;
-import com.example.foodorderapp.data.database.FoodDatabase;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.FoodCategory;
 import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.data.model.Restaurant;
 import com.example.foodorderapp.ui.activity.FoodDetailActivity;
 import com.example.foodorderapp.utils.OrderNotificationPanel;
+import com.example.foodorderapp.feature.customer.cart.CartViewModel;
+import com.example.foodorderapp.feature.customer.home.HomeViewModel;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
+import com.example.foodorderapp.viewmodel.AuthViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HomeFragment — Refactored to match Warm Culinary Modern (Stitch) design:
@@ -104,9 +104,10 @@ public class HomeFragment extends Fragment {
     private TextView tvSeeAll;
 
     // Data
-    private FirebaseFirestore mFirestore;
-    private static final List<Restaurant> sCachedRestaurants = new ArrayList<>();
-    private static final List<Food> sCachedFoods = new ArrayList<>();
+    private HomeViewModel homeViewModel;
+    private CartViewModel cartViewModel;
+    private OrdersViewModel ordersViewModel;
+    private AuthViewModel authViewModel;
     private final List<Restaurant> allRestaurants = new ArrayList<>();
     private final List<Food> allFoods = new ArrayList<>();
     private final List<Food> displayedFoods = new ArrayList<>();
@@ -115,7 +116,6 @@ public class HomeFragment extends Fragment {
     private String currentQuery = "";
     private String selectedCategory = "Tất cả";
     private int currentSortMode = 0; // 0: Default, 1: Discount %, 2: Bestseller, 3: Price low->high, 4: Price high->low
-    private ListenerRegistration notificationRegistration;
     private final List<Order> orderNotifications = new ArrayList<>();
 
     public HomeFragment() {
@@ -132,9 +132,13 @@ public class HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        mFirestore = FirebaseFirestore.getInstance();
+        homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
+        cartViewModel = new ViewModelProvider(this).get(CartViewModel.class);
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
         initViews(view);
+        observeViewModels();
         setupFoodRecyclerView();
         setupSearchAndFilter();
         setupCategoryChips();
@@ -142,18 +146,41 @@ public class HomeFragment extends Fragment {
         loadUserInfo();
         listenOrderNotifications();
 
-        // Immediately use memory cache if available to prevent any flashing or swapping
-        if (!sCachedRestaurants.isEmpty() && !sCachedFoods.isEmpty()) {
+        homeViewModel.load();
+    }
+
+    private void observeViewModels() {
+        homeViewModel.getData().observe(getViewLifecycleOwner(), data -> {
             allRestaurants.clear();
-            allRestaurants.addAll(sCachedRestaurants);
             allFoods.clear();
-            allFoods.addAll(sCachedFoods);
+            if (data != null) {
+                allRestaurants.addAll(data.restaurants);
+                allFoods.addAll(data.foods);
+            }
             updateShowcaseRestaurant();
             updatePromoBanner();
             applyFilters();
-        }
-
-        loadDataFromFirestore();
+        });
+        homeViewModel.getError().observe(getViewLifecycleOwner(), message -> {
+            if (isAdded() && !TextUtils.isEmpty(message)) {
+                Toast.makeText(requireContext(), "Lỗi tải dữ liệu: " + message, Toast.LENGTH_SHORT).show();
+            }
+        });
+        ordersViewModel.getOrders().observe(getViewLifecycleOwner(), orders -> {
+            orderNotifications.clear();
+            int unread = 0;
+            if (orders != null) for (Order order : orders) {
+                if (order == null) continue;
+                orderNotifications.add(order);
+                String status = Order.normalizeStatus(order.getStatus());
+                if (Order.STATUS_PENDING.equals(status) || Order.STATUS_PREPARING.equals(status)
+                        || Order.STATUS_SHIPPING.equals(status)) unread++;
+            }
+            if (badgeNotification != null) {
+                badgeNotification.setVisibility(unread > 0 ? View.VISIBLE : View.GONE);
+                badgeNotification.setText(unread > 99 ? "99+" : String.valueOf(unread));
+            }
+        });
     }
 
     private void initViews(View view) {
@@ -308,17 +335,12 @@ public class HomeFragment extends Fragment {
         if (tvDeliveryAddress != null) {
             tvDeliveryAddress.setText("Giao tới: Đang tải...");
             if (user != null) {
-                mFirestore.collection("users").document(user.getUid()).get()
-                        .addOnSuccessListener(documentSnapshot -> {
+                authViewModel.getCurrentUserProfile()
+                        .addOnSuccessListener(profile -> {
                             if (!isAdded()) return;
-                            if (documentSnapshot != null && documentSnapshot.exists()) {
-                                String address = documentSnapshot.getString("address");
-                                if (!TextUtils.isEmpty(address)) {
-                                    tvDeliveryAddress.setText("Giao tới: " + address);
-                                } else {
-                                    tvDeliveryAddress.setText("Giao tới: Vị trí của bạn");
-                                }
-                            }
+                            String address = profile == null ? "" : profile.getAddress();
+                            tvDeliveryAddress.setText(!TextUtils.isEmpty(address)
+                                    ? "Giao tới: " + address : "Giao tới: Chưa cập nhật địa chỉ");
                         });
 
                 if (user.getPhotoUrl() != null && getContext() != null && imgUserAvatar != null) {
@@ -331,106 +353,14 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void loadDataFromFirestore() {
-        mFirestore.collection("restaurants")
-                .whereEqualTo("status", "active")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!isAdded()) return;
-
-                    allRestaurants.clear();
-                    allFoods.clear();
-
-                    if (queryDocumentSnapshots.isEmpty()) {
-                        applyFilters();
-                        return;
-                    }
-
-                    AtomicInteger pendingRequests = new AtomicInteger(queryDocumentSnapshots.size());
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Restaurant parsed = document.toObject(Restaurant.class);
-                        final Restaurant restaurant = parsed != null ? parsed : new Restaurant();
-                        restaurant.setId(document.getId());
-                        if (document.getString("name") != null) {
-                            restaurant.setName(document.getString("name"));
-                        }
-                        if (document.getString("imageUrl") != null) {
-                            restaurant.setImageUrl(document.getString("imageUrl"));
-                        }
-                        if (document.get("address") != null) {
-                            restaurant.address = document.get("address");
-                        }
-                        Double ratingVal = document.getDouble("rating");
-                        if (ratingVal != null) {
-                            restaurant.setRating(ratingVal);
-                        }
-
-                        document.getReference().collection("foods").get()
-                                .addOnSuccessListener(foodSnapshots -> {
-                                    List<Food> foodList = new ArrayList<>();
-                                    for (QueryDocumentSnapshot foodDoc : foodSnapshots) {
-                                        Food food = foodDoc.toObject(Food.class);
-                                        if (food == null) continue;
-                                        if (!food.isAvailable()) continue;
-
-                                        if (TextUtils.isEmpty(food.getFoodId())) {
-                                            food.setFoodId(foodDoc.getId());
-                                        }
-                                        food.setRestaurantId(document.getId());
-                                        foodList.add(food);
-                                        allFoods.add(food);
-                                    }
-
-                                    if (!foodList.isEmpty()) {
-                                        restaurant.setFoods(foodList);
-                                        allRestaurants.add(restaurant);
-                                    }
-                                    onDataLoaded(pendingRequests);
-                                })
-                                .addOnFailureListener(e -> onDataLoaded(pendingRequests));
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    if (getContext() != null) {
-                        Toast.makeText(getContext(), "Lỗi tải dữ liệu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                });
-    }
-
-    private void onDataLoaded(AtomicInteger pendingRequests) {
-        if (pendingRequests.decrementAndGet() == 0) {
-            // Sort restaurants deterministically (by rating DESC, then name ASC)
-            Collections.sort(allRestaurants, (a, b) -> {
-                int ratingCmp = Double.compare(b.getRating(), a.getRating());
-                if (ratingCmp != 0) return ratingCmp;
-                String n1 = a.getName() != null ? a.getName() : "";
-                String n2 = b.getName() != null ? b.getName() : "";
-                return n1.compareTo(n2);
-            });
-
-            // Sort foods deterministically (by discount % DESC, then name ASC)
-            Collections.sort(allFoods, (a, b) -> {
-                int discCmp = Integer.compare(b.getDiscountPercent(), a.getDiscountPercent());
-                if (discCmp != 0) return discCmp;
-                String n1 = a.getName() != null ? a.getName() : "";
-                String n2 = b.getName() != null ? b.getName() : "";
-                return n1.compareTo(n2);
-            });
-
-            // Update in-memory cache
-            sCachedRestaurants.clear();
-            sCachedRestaurants.addAll(allRestaurants);
-            sCachedFoods.clear();
-            sCachedFoods.addAll(allFoods);
-
-            updateShowcaseRestaurant();
-            updatePromoBanner();
-            applyFilters();
-        }
-    }
-
     private void updateShowcaseRestaurant() {
-        if (!isAdded() || allRestaurants.isEmpty()) return;
+        if (!isAdded()) return;
+        if (allRestaurants.isEmpty()) {
+            featuredRestaurant = null;
+            cardRestaurantShowcase.setVisibility(View.GONE);
+            return;
+        }
+        cardRestaurantShowcase.setVisibility(View.VISIBLE);
 
         // Pick highest rated restaurant, or first one
         Restaurant bestRestaurant = allRestaurants.get(0);
@@ -449,10 +379,11 @@ public class HomeFragment extends Fragment {
         if (!TextUtils.isEmpty(addrText) && !"Chua cap nhat".equals(addrText)) {
             tvRestaurantAddress.setText(addrText);
         } else {
-            tvRestaurantAddress.setText("Nhà hàng chất lượng cao");
+            tvRestaurantAddress.setText("Chưa cập nhật địa chỉ");
         }
-        double rating = featuredRestaurant.getRating() > 0 ? featuredRestaurant.getRating() : 5.0;
-        tvRestaurantRating.setText(String.format(Locale.US, "%.1f", rating));
+        tvRestaurantRating.setText(featuredRestaurant.getRating() > 0
+                ? String.format(Locale.US, "%.1f", featuredRestaurant.getRating()) : "--");
+        tvRestaurantReviews.setText("");
 
         if (!TextUtils.isEmpty(featuredRestaurant.getImageUrl()) && getContext() != null) {
             Glide.with(this)
@@ -482,7 +413,7 @@ public class HomeFragment extends Fragment {
             tvBannerTitle.setText("Giảm " + bestDeal.getDiscountPercent() + "%");
             tvBannerSubtitle.setText("Ưu đãi đặc biệt cho " + bestDeal.getName());
             if (tvPromoCode != null) {
-                tvPromoCode.setText("MÃ: GIAM" + bestDeal.getDiscountPercent());
+                tvPromoCode.setVisibility(View.GONE);
             }
             if (!TextUtils.isEmpty(bestDeal.getImageUrl()) && getContext() != null) {
                 Glide.with(this)
@@ -497,7 +428,7 @@ public class HomeFragment extends Fragment {
             tvBannerTitle.setText("Món Ngon Mỗi Ngày");
             tvBannerSubtitle.setText("Khám phá các món ăn ngon");
             if (tvPromoCode != null) {
-                tvPromoCode.setText("FREESHIP");
+                tvPromoCode.setVisibility(View.GONE);
             }
             if (featuredBannerFood != null && !TextUtils.isEmpty(featuredBannerFood.getImageUrl()) && getContext() != null) {
                 Glide.with(this)
@@ -649,18 +580,7 @@ public class HomeFragment extends Fragment {
     private void addFoodToCart(Food food) {
         if (food == null || getContext() == null) return;
         try {
-            List<Food> list = FoodDatabase.getInstance(requireContext())
-                    .foodDao()
-                    .checkFoodInCart(food.getFoodId());
-
-            if (list != null && !list.isEmpty()) {
-                Food foodInCart = list.get(0);
-                foodInCart.setCount(foodInCart.getCount() + 1);
-                FoodDatabase.getInstance(requireContext()).foodDao().updateFood(foodInCart);
-            } else {
-                food.setCount(1);
-                FoodDatabase.getInstance(requireContext()).foodDao().insertFood(food);
-            }
+            cartViewModel.addOrIncrement(food, 1);
             if (getActivity() instanceof MainActivity) {
                 ((MainActivity) getActivity()).updateCartBadge();
             }
@@ -673,38 +593,6 @@ public class HomeFragment extends Fragment {
     private void listenOrderNotifications() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
-        if (notificationRegistration != null) notificationRegistration.remove();
-        notificationRegistration = mFirestore.collection("orders")
-                .whereEqualTo("customerId", user.getUid())
-                .addSnapshotListener((snapshot, error) -> {
-                    if (!isAdded() || error != null || snapshot == null) return;
-                    orderNotifications.clear();
-                    int unread = 0;
-                    for (QueryDocumentSnapshot document : snapshot) {
-                        Order order = document.toObject(Order.class);
-                        if (order == null) continue;
-                        order.setOrderId(document.getId());
-                        orderNotifications.add(order);
-                        String status = Order.normalizeStatus(order.getStatus());
-                        if (Order.STATUS_PENDING.equals(status) || Order.STATUS_PREPARING.equals(status)
-                                || Order.STATUS_SHIPPING.equals(status)) unread++;
-                    }
-                    Collections.sort(orderNotifications, (first, second) -> {
-                        if (first.getCreatedAt() != null && second.getCreatedAt() != null)
-                            return second.getCreatedAt().compareTo(first.getCreatedAt());
-                        return first.getCreatedAt() == null ? 1 : -1;
-                    });
-                    if (badgeNotification != null) {
-                        badgeNotification.setVisibility(unread > 0 ? View.VISIBLE : View.GONE);
-                        badgeNotification.setText(unread > 99 ? "99+" : String.valueOf(unread));
-                    }
-                });
-    }
-
-    @Override
-    public void onDestroyView() {
-        if (notificationRegistration != null) notificationRegistration.remove();
-        notificationRegistration = null;
-        super.onDestroyView();
+        ordersViewModel.observeCustomer(user.getUid());
     }
 }

@@ -8,13 +8,14 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.User;
-import com.example.foodorderapp.viewModel.AuthViewModel;
+import com.example.foodorderapp.viewmodel.AuthViewModel;
 
 public class SignUpActivity extends AppCompatActivity {
     private Button btnSignUp;
@@ -27,7 +28,7 @@ public class SignUpActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_sign_up);
 
-        authViewModel = new AuthViewModel();
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
         btnSignUp = findViewById(R.id.btnSignUp);
         edtEmail = findViewById(R.id.edtEmail);
         edtPassword = findViewById(R.id.edtPassword);

@@ -1,4 +1,6 @@
-package com.example.foodorderapp.viewModel;
+package com.example.foodorderapp.viewmodel;
+
+import androidx.lifecycle.ViewModel;
 
 import com.example.foodorderapp.data.model.User;
 import com.example.foodorderapp.data.repository.AuthRepository;
@@ -6,8 +8,8 @@ import com.google.android.gms.tasks.Task;
 
 import java.util.Map;
 
-public class AuthViewModel {
-    private AuthRepository authRepository;
+public class AuthViewModel extends ViewModel {
+    private final AuthRepository authRepository;
 
     public AuthViewModel() {
         authRepository = new AuthRepository();

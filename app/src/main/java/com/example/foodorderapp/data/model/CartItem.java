@@ -5,6 +5,7 @@ public class CartItem {
     private String name;
     private double price;
     private int quantity;
+    private String imageUrl;
 
     public CartItem() {} // Bắt buộc
 
@@ -39,5 +40,8 @@ public class CartItem {
     public void setFoodId(String foodId) {
         this.foodId = foodId;
     }
-// Cần tạo các Getter/Setter
+
+    public String getImageUrl() { return imageUrl; }
+
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

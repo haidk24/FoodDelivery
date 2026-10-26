@@ -18,26 +18,23 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.data.model.User;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
 import com.example.foodorderapp.ui.adapter.RestaurantOrderAdapter;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 public class RestaurantOrdersFragment extends Fragment {
     private static final String ARG_RESTAURANT_ID = "restaurant_id";
     private final List<Order> orders = new ArrayList<>();
-    private FirebaseFirestore db;
-    private ListenerRegistration registration;
+    private OrdersViewModel ordersViewModel;
     private RestaurantOrderAdapter adapter;
     private String restaurantId = "";
     private String selectedStatus = "Tất cả";
@@ -51,6 +48,7 @@ public class RestaurantOrdersFragment extends Fragment {
     private ImageView clearSearch;
     private TextView chipAll, chipPending, chipPreparing, chipDelivering, chipCompleted, urgentCount;
     private TextView emptyTitle, emptySubtitle;
+    private Order pendingShipperAssignmentOrder;
 
     public static RestaurantOrdersFragment newInstance(String id) {
         RestaurantOrdersFragment fragment = new RestaurantOrdersFragment();
@@ -64,13 +62,13 @@ public class RestaurantOrdersFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle state) {
         View root = inflater.inflate(R.layout.activity_order_dashboard, container, false);
-        db = FirebaseFirestore.getInstance();
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
         if (getArguments() != null) restaurantId = value(getArguments().getString(ARG_RESTAURANT_ID));
         prepareEmbeddedLayout(root);
         bind(root);
         setupRecycler();
         setupFilters(root);
-        if (!restaurantId.isEmpty()) listenOrders();
+        observeOrders();
         return root;
     }
 
@@ -104,6 +102,15 @@ public class RestaurantOrdersFragment extends Fragment {
     private void setupRecycler() {
         recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new RestaurantOrderAdapter(requireContext(), orders);
+        adapter.setOrderActionListener((order, newStatus) -> ordersViewModel.updateStatus(order, newStatus, error -> {
+            if (!isAdded()) return;
+            if (error != null) Toast.makeText(requireContext(), "Không cập nhật được đơn hàng: " + error.getMessage(), Toast.LENGTH_LONG).show();
+            else Toast.makeText(requireContext(), "Đã cập nhật trạng thái đơn hàng", Toast.LENGTH_SHORT).show();
+        }));
+        adapter.setShipperAssignmentRequestListener(order -> {
+            pendingShipperAssignmentOrder = order;
+            ordersViewModel.loadAvailableShippers();
+        });
         adapter.setSummaryListener((total, pending, preparing, delivering, completed) -> {
             chipAll.setText("Tất cả (" + total + ")");
             chipPending.setText("Chờ xác nhận " + pending);
@@ -114,6 +121,43 @@ public class RestaurantOrdersFragment extends Fragment {
             empty.setVisibility(adapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
         });
         recycler.setAdapter(adapter);
+        ordersViewModel.getAvailableShippers().observe(getViewLifecycleOwner(), shippers -> {
+            if (pendingShipperAssignmentOrder == null) return;
+            showShipperPicker(pendingShipperAssignmentOrder, shippers);
+            pendingShipperAssignmentOrder = null;
+        });
+    }
+
+    private void showShipperPicker(Order order, List<User> shippers) {
+        if (!isAdded()) return;
+        if (shippers == null || shippers.isEmpty()) {
+            Toast.makeText(requireContext(), "Chưa có tài xế hoạt động để bàn giao đơn", Toast.LENGTH_LONG).show();
+            return;
+        }
+        String[] labels = new String[shippers.size()];
+        for (int index = 0; index < shippers.size(); index++) {
+            User shipper = shippers.get(index);
+            String phone = shipper.getPhone().isEmpty() ? "chưa có số điện thoại" : shipper.getPhone();
+            String vehicle = shipper.getVehicleDescription().isEmpty() ? "chưa cập nhật phương tiện"
+                    : shipper.getVehicleDescription();
+            labels[index] = shipper.getDisplayName() + " • " + phone + "\n" + vehicle;
+        }
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Chọn tài xế giao đơn")
+                .setItems(labels, (dialog, selected) -> startDelivery(order, shippers.get(selected)))
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void startDelivery(Order order, User shipper) {
+        ordersViewModel.startDelivery(order, shipper, error -> {
+            if (!isAdded()) return;
+            if (error != null) {
+                Toast.makeText(requireContext(), "Không thể bàn giao đơn: " + error.getMessage(), Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(requireContext(), "Đã bàn giao đơn cho " + shipper.getDisplayName(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setupFilters(View root) {
@@ -183,42 +227,41 @@ public class RestaurantOrdersFragment extends Fragment {
         String next = value(id);
         if (next.equals(restaurantId)) return;
         restaurantId = next;
-        if (isAdded() && !next.isEmpty()) listenOrders();
+        if (isAdded()) observeOrders();
     }
 
-    private void listenOrders() {
-        if (registration != null) registration.remove();
+    private void observeOrders() {
+        if (restaurantId.isEmpty()) return;
         progress.setVisibility(View.VISIBLE);
-        registration = db.collection("restaurants").document(restaurantId).collection("orders")
-                .addSnapshotListener((snapshot, error) -> {
-                    if (!isAdded()) return;
-                    progress.setVisibility(View.GONE);
-                    if (error != null || snapshot == null) {
-                        showUnavailable(error == null ? "Không tải được đơn hàng" : error.getMessage());
-                        return;
-                    }
-                    emptyTitle.setText("Chưa có đơn hàng nào");
-                    emptySubtitle.setText("Các đơn hàng mới sẽ xuất hiện tại đây");
-                    orders.clear();
-                    for (QueryDocumentSnapshot doc : snapshot) {
-                        Order order = doc.toObject(Order.class);
-                        order.setOrderId(doc.getId());
-                        if (order.getRestaurantId() == null || order.getRestaurantId().isEmpty()) {
-                            order.setRestaurantId(restaurantId);
-                        }
-                        orders.add(order);
-                    }
-                    Collections.sort(orders, (first, second) -> compareDates(first.getCreatedAt(), second.getCreatedAt()));
-                    adapter.updateData(orders);
-                    adapter.setAdvancedFilters(daysFilter, paymentFilter);
-                    adapter.filter(searchQuery, selectedStatus);
-                });
+        ordersViewModel.getOrders().observe(getViewLifecycleOwner(), value -> {
+            if (!isAdded()) return;
+            if (Boolean.TRUE.equals(ordersViewModel.getLoading().getValue())) return;
+            renderOrders(value);
+        });
+        ordersViewModel.getError().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && isAdded()) {
+                progress.setVisibility(View.GONE);
+                showUnavailable(message);
+            }
+        });
+        ordersViewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
+            if (loading == null) return;
+            progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+            if (!loading && ordersViewModel.getError().getValue() == null) renderOrders(ordersViewModel.getOrders().getValue());
+        });
+        ordersViewModel.observeRestaurant(restaurantId);
     }
 
-    private int compareDates(Date first, Date second) {
-        if (first != null && second != null) return second.compareTo(first);
-        if (first != null) return -1;
-        return second != null ? 1 : 0;
+    private void renderOrders(List<Order> value) {
+        if (adapter == null) return;
+        progress.setVisibility(View.GONE);
+        orders.clear();
+        if (value != null) orders.addAll(value);
+        emptyTitle.setText("Chưa có đơn hàng nào");
+        emptySubtitle.setText("Các đơn hàng mới sẽ xuất hiện tại đây");
+        adapter.updateData(orders);
+        adapter.setAdvancedFilters(daysFilter, paymentFilter);
+        adapter.filter(searchQuery, selectedStatus);
     }
 
     private void showUnavailable(String message) {
@@ -231,9 +274,5 @@ public class RestaurantOrdersFragment extends Fragment {
 
     private static String value(String text) { return text == null ? "" : text.trim(); }
 
-    @Override public void onDestroyView() {
-        if (registration != null) registration.remove();
-        registration = null;
-        super.onDestroyView();
-    }
+    @Override public void onDestroyView() { super.onDestroyView(); }
 }

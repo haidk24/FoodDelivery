@@ -24,13 +24,15 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.foodorderapp.R;
+import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.data.model.User;
 import com.example.foodorderapp.ui.admin.adapter.UserAdapter;
-import com.example.foodorderapp.viewModel.AdminViewModel;
+import com.example.foodorderapp.feature.admin.users.AdminUsersViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.text.NumberFormat;
 
 public class UserListFragment extends Fragment implements UserAdapter.Listener {
 
@@ -39,7 +41,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
     private static final String FILTER_RESTAURANT = "restaurant";
     private static final String FILTER_BANNED     = "banned";
 
-    private AdminViewModel viewModel;
+    private AdminUsersViewModel viewModel;
     private UserAdapter adapter;
 
     // Metrics
@@ -85,7 +87,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        viewModel = new ViewModelProvider(requireActivity()).get(AdminViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(AdminUsersViewModel.class);
 
         bindViews(view);
         setupRecyclerView();
@@ -95,7 +97,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
         observeViewModel();
 
         // Load data
-        viewModel.loadFirstPageUsers("all");
+        viewModel.loadUsers("all");
     }
 
     private void bindViews(View v) {
@@ -223,13 +225,13 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
     }
 
     private void observeViewModel() {
-        viewModel.getIsLoading().observe(getViewLifecycleOwner(), loading -> {
+        viewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
             if (progressUserList != null) {
                 progressUserList.setVisibility(Boolean.TRUE.equals(loading) ? View.VISIBLE : View.GONE);
             }
         });
 
-        viewModel.getUserList().observe(getViewLifecycleOwner(), users -> {
+        viewModel.getUsers().observe(getViewLifecycleOwner(), users -> {
             allLoadedUsers.clear();
             if (users != null) {
                 allLoadedUsers.addAll(users);
@@ -241,11 +243,11 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
         viewModel.getActionSuccess().observe(getViewLifecycleOwner(), ok -> {
             if (Boolean.TRUE.equals(ok)) {
                 Toast.makeText(requireContext(), "Thao tác thành công!", Toast.LENGTH_SHORT).show();
-                viewModel.loadFirstPageUsers("all");
+                viewModel.loadUsers("all");
             }
         });
 
-        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), err -> {
+        viewModel.getError().observe(getViewLifecycleOwner(), err -> {
             if (err != null && !err.isEmpty()) {
                 Toast.makeText(requireContext(), err, Toast.LENGTH_SHORT).show();
             }
@@ -378,19 +380,18 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                         newUser.setRole("customer");
                         newUser.setStatus("active");
                         newUser.setCreatedAt(com.google.firebase.Timestamp.now());
-                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                                .collection("users").document(uid).set(newUser)
-                                .addOnSuccessListener(unused -> {
+                        viewModel.createProfile(newUser, error -> {
+                            if (error == null) {
                                     finalSecondaryApp.delete();
                                     if (isAdded()) Toast.makeText(requireContext(), "Đã tạo tài khoản người dùng.", Toast.LENGTH_SHORT).show();
-                                    viewModel.loadFirstPageUsers("all");
-                                })
-                                .addOnFailureListener(error -> {
+                                    viewModel.loadUsers("all");
+                            } else {
                                     result.getUser().delete().addOnCompleteListener(deleteTask -> {
                                         finalSecondaryApp.delete();
                                         if (isAdded()) Toast.makeText(requireContext(), "Không lưu được hồ sơ Firestore nên đã hủy tài khoản vừa tạo: " + error.getMessage(), Toast.LENGTH_LONG).show();
                                     });
-                                });
+                            }
+                        });
                     })
                     .addOnFailureListener(error -> {
                         finalSecondaryApp.delete();
@@ -426,17 +427,15 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
     public void onViewOrders(User user) {
         if (user.getUid() == null) return;
         Toast.makeText(requireContext(), "Đang tải đơn hàng...", Toast.LENGTH_SHORT).show();
-        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("orders")
-                .whereEqualTo("customerId", user.getUid()).get()
-                .addOnSuccessListener(snapshot -> {
+        viewModel.loadOrders(user.getUid(), (orders, error) -> {
+            if (error == null) {
                     if (!isAdded()) return;
                     java.util.List<String> rows = new ArrayList<>();
-                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
-                        String id = doc.getString("orderId");
-                        if (id == null) id = doc.getId();
-                        String status = doc.getString("status");
-                        Object rawAmount = doc.get("totalAmount");
-                        String amountText = rawAmount instanceof Number ? ((Number) rawAmount).longValue() + " đ" : "—";
+                    NumberFormat currency = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
+                    for (Order order : orders) {
+                        String id = order.getOrderId() == null ? "" : order.getOrderId();
+                        String status = order.getStatus();
+                        String amountText = currency.format(order.getTotalAmount()) + " đ";
                         rows.add("#" + (id.length() > 8 ? id.substring(0, 8) : id)
                                 + " • " + (status == null ? "Chưa cập nhật trạng thái" : status)
                                 + " • " + amountText);
@@ -444,10 +443,10 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                     if (rows.isEmpty()) rows.add("Không tìm thấy đơn hàng của tài khoản này.");
                     new AlertDialog.Builder(requireContext()).setTitle("Đơn hàng của " + user.getDisplayName())
                             .setItems(rows.toArray(new String[0]), null).setPositiveButton("Đóng", null).show();
-                })
-                .addOnFailureListener(error -> {
-                    if (isAdded()) Toast.makeText(requireContext(), "Không tải được đơn hàng: " + error.getMessage(), Toast.LENGTH_LONG).show();
-                });
+            } else if (isAdded()) {
+                Toast.makeText(requireContext(), "Không tải được đơn hàng: " + error.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     @Override
@@ -463,7 +462,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
 
                     user.setRole(selectedRole);
                     if (user.getUid() != null) {
-                        viewModel.updateUser(user);
+                        viewModel.update(user);
                     }
                 })
                 .setNegativeButton("Hủy", null)
@@ -477,7 +476,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                 .setMessage("Bạn có chắc chắn muốn mở khóa tài khoản cho " + user.getDisplayName() + "?")
                 .setPositiveButton("Mở khóa", (dialog, which) -> {
                     if (user.getUid() != null) {
-                        viewModel.unbanUser(user.getUid());
+                        viewModel.unban(user.getUid());
                     }
                 })
                 .setNegativeButton("Hủy", null)
@@ -522,7 +521,7 @@ public class UserListFragment extends Fragment implements UserAdapter.Listener {
                 .setMessage("Khóa tài khoản của " + user.getDisplayName() + " do vi phạm?")
                 .setPositiveButton("Khóa", (dialog, which) -> {
                     if (user.getUid() != null) {
-                        viewModel.banUser(user.getUid());
+            viewModel.ban(user.getUid());
                     }
                 })
                 .setNegativeButton("Hủy", null)

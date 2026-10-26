@@ -18,6 +18,7 @@ public class ReportViewModel extends ViewModel {
             = new MutableLiveData<>(false);
     private final MutableLiveData<String>      errorMessage
             = new MutableLiveData<>();
+    private final MutableLiveData<ReportRepository.SystemHealthStats> systemHealth = new MutableLiveData<>();
 
     // Kỳ hiện tại đang chọn
     private ReportRepository.Period currentPeriod
@@ -28,6 +29,13 @@ public class ReportViewModel extends ViewModel {
 
     public void setRestaurantScope(String restaurantId) {
         this.restaurantScopeId = restaurantId;
+    }
+
+    public void loadSystemHealth() {
+        repo.loadSystemHealth((stats, error) -> {
+            if (error != null) errorMessage.postValue("Không tải được dữ liệu tổng quan: " + error.getMessage());
+            else systemHealth.postValue(stats);
+        });
     }
 
     public void loadReport(ReportRepository.Period period) {
@@ -54,4 +62,5 @@ public class ReportViewModel extends ViewModel {
     public LiveData<ReportStats> getReportStats() { return reportStats; }
     public LiveData<Boolean>     getIsLoading()   { return isLoading; }
     public LiveData<String>      getErrorMessage(){ return errorMessage; }
+    public LiveData<ReportRepository.SystemHealthStats> getSystemHealth() { return systemHealth; }
 }

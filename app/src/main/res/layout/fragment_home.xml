@@ -75,7 +75,7 @@
                         android:id="@+id/tv_delivery_address"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Giao tới: Cầu Giấy, Hà Nội"
+                        android:text="Giao tới: Đang tải..."
                         android:textSize="11sp"
                         android:textColor="@color/colorTextSecondary"
                         android:layout_marginStart="2dp"
@@ -281,7 +281,7 @@
                             android:paddingHorizontal="10dp"
                             android:paddingVertical="3dp"
                             android:background="@drawable/bg_badge_banner_deal"
-                            android:text="🔥 DEAL ĐỘC QUYỀN"
+                            android:text="ƯU ĐÃI"
                             android:textSize="10sp"
                             android:textStyle="bold"
                             android:textColor="@color/white" />
@@ -291,7 +291,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="Giảm 50%"
+                            android:text="Đang tải ưu đãi"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:textColor="@color/white" />
@@ -301,7 +301,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Cho đơn hàng đầu tiên hôm nay"
+                            android:text=""
                             android:textSize="12sp"
                             android:textColor="#E6FFFFFF"
                             android:maxLines="1"
@@ -366,7 +366,8 @@
                                 android:layout_height="wrap_content"
                                 android:paddingHorizontal="8dp"
                                 android:paddingVertical="3dp"
-                                android:text="MÃ: NEW50"
+                                android:text=""
+                                android:visibility="gone"
                                 android:textSize="10sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/colorOnSecondaryFixed" />
@@ -576,7 +577,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="2dp"
-                                    android:text="Chi nhánh Hoàn Kiếm, Hà Nội"
+                                    android:text=""
                                     android:textSize="11sp"
                                     android:textColor="@color/colorTextSecondary"
                                     android:maxLines="1"
@@ -614,7 +615,7 @@
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:layout_marginStart="2dp"
-                                            android:text="4.8"
+                                            android:text="--"
                                             android:textSize="11sp"
                                             android:textStyle="bold"
                                             android:textColor="@color/badge_amber_text" />
@@ -622,7 +623,8 @@
                                             android:id="@+id/tv_restaurant_reviews"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:text="(1.2k+)"
+                                            android:text=""
+                                            android:visibility="gone"
                                             android:textSize="10sp"
                                             android:textColor="@color/colorOnSecondaryFixedVariant" />
                                     </LinearLayout>
@@ -650,7 +652,8 @@
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:layout_marginStart="3dp"
-                                            android:text="Đang mở cửa"
+                                            android:text=""
+                                            android:visibility="gone"
                                             android:textSize="10sp"
                                             android:textStyle="bold"
                                             android:textColor="@color/badge_green_text" />
@@ -662,7 +665,8 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="5dp"
-                                    android:text="• 15–25 phút"
+                                    android:text=""
+                                    android:visibility="gone"
                                     android:textSize="10sp"
                                     android:singleLine="true"
                                     android:textColor="@color/colorTextSecondary" />

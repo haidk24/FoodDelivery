@@ -12,35 +12,31 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.CartItem;
+import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.feature.customer.cart.CartViewModel;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
 import com.example.foodorderapp.ui.MainActivity;
-import com.example.foodorderapp.ui.OrderItemsActivity;
 import com.example.foodorderapp.ui.OrderTrackingActivity;
+import com.example.foodorderapp.ui.OrderItemsActivity;
+import com.example.foodorderapp.ui.ReviewActivity;
 import com.example.foodorderapp.ui.adapter.OrderAdapter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -69,8 +65,8 @@ public class MyOrderFragment extends Fragment {
     private String currentFilter = "all";
     private String currentSearchKeyword = "";
 
-    private ListenerRegistration orderListener;
-    private boolean fallbackNoticeShown;
+    private OrdersViewModel ordersViewModel;
+    private CartViewModel cartViewModel;
 
     public MyOrderFragment() {}
 
@@ -85,6 +81,8 @@ public class MyOrderFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         initViews(view);
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
+        cartViewModel = new ViewModelProvider(this).get(CartViewModel.class);
         setupTabs();
         setupSearch();
         setupSupportAction();
@@ -99,7 +97,17 @@ public class MyOrderFragment extends Fragment {
 
             @Override
             public void onReviewOrder(Order order) {
-                orderAdapter.openReviewScreen(order);
+                openReview(order);
+            }
+
+            @Override
+            public void onViewOrderDetails(Order order) {
+                openOrderDetails(order);
+            }
+
+            @Override
+            public void onReorder(Order order) {
+                reorder(order);
             }
         });
         rvOrders.setAdapter(orderAdapter);
@@ -260,98 +268,29 @@ public class MyOrderFragment extends Fragment {
         btnContactSupport.setOnClickListener(supportAction);
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        if (orderListener != null) {
-            orderListener.remove();
-            orderListener = null;
-        }
-    }
-
     private void loadMyOrders() {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             showEmptyState(true);
             return;
         }
-
-        if (orderListener != null) {
-            orderListener.remove();
-        }
-
-        startOrderListener(currentUser.getUid(), true);
+        ordersViewModel.getOrders().observe(getViewLifecycleOwner(), newOrders -> {
+            if (Boolean.TRUE.equals(ordersViewModel.getLoading().getValue())) return;
+            renderOrders(newOrders);
+        });
+        ordersViewModel.getError().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && allOrders.isEmpty()) showEmptyState(true);
+        });
+        ordersViewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
+            if (Boolean.FALSE.equals(loading)) renderOrders(ordersViewModel.getOrders().getValue());
+        });
+        ordersViewModel.observeCustomer(FirebaseAuth.getInstance().getCurrentUser().getUid());
     }
 
-    private void startOrderListener(String customerId, boolean useOrderedQuery) {
-        Query query = FirebaseFirestore.getInstance()
-                .collection("orders")
-                .whereEqualTo("customerId", customerId);
-
-        if (useOrderedQuery) {
-            query = query.orderBy("createdAt", Query.Direction.DESCENDING);
-        }
-
-        orderListener = query.addSnapshotListener((snapshots, error) -> {
-            if (error != null) {
-                if (useOrderedQuery && shouldFallbackToUnordered(error)) {
-                    if (orderListener != null) {
-                        orderListener.remove();
-                        orderListener = null;
-                    }
-                    startOrderListener(customerId, false);
-                    return;
-                }
-
-                if (allOrders.isEmpty()) {
-                    showEmptyState(true);
-                }
-                return;
-            }
-
-            if (snapshots == null) {
-                if (allOrders.isEmpty()) {
-                    showEmptyState(true);
-                }
-                return;
-            }
-
-            List<Order> newOrders = new ArrayList<>();
-            snapshots.getDocuments().forEach(doc -> {
-                Order order = doc.toObject(Order.class);
-                if (order != null) {
-                    order.setOrderId(doc.getId());
-                    newOrders.add(order);
-                }
-            });
-
-            // Always sort deterministically by createdAt DESC with orderId tie-breaker
-            Collections.sort(newOrders, (left, right) -> {
-                Date d1 = left.getCreatedAt();
-                Date d2 = right.getCreatedAt();
-                if (d1 != null && d2 != null) {
-                    int cmp = d2.compareTo(d1);
-                    if (cmp != 0) return cmp;
-                } else if (d1 != null) {
-                    return -1;
-                } else if (d2 != null) {
-                    return 1;
-                }
-                String id1 = left.getOrderId() != null ? left.getOrderId() : "";
-                String id2 = right.getOrderId() != null ? right.getOrderId() : "";
-                return id2.compareTo(id1);
-            });
-
-            allOrders.clear();
-            allOrders.addAll(newOrders);
-
-            updateFilterCounts();
-            applyFilterAndSearch();
-
-            if (!useOrderedQuery && !fallbackNoticeShown && getContext() != null) {
-                fallbackNoticeShown = true;
-            }
-        });
+    private void renderOrders(List<Order> value) {
+        allOrders.clear();
+        if (value != null) allOrders.addAll(value);
+        updateFilterCounts();
+        applyFilterAndSearch();
     }
 
     private void updateFilterCounts() {
@@ -432,25 +371,19 @@ public class MyOrderFragment extends Fragment {
         showEmptyState(filteredOrders.isEmpty());
     }
 
-    private boolean shouldFallbackToUnordered(Exception error) {
-        if (!(error instanceof FirebaseFirestoreException)) {
-            return false;
-        }
-        FirebaseFirestoreException.Code code = ((FirebaseFirestoreException) error).getCode();
-        return code == FirebaseFirestoreException.Code.FAILED_PRECONDITION
-                || code == FirebaseFirestoreException.Code.INVALID_ARGUMENT;
-    }
-
-    private void openOrderDetail(Order order) {
-        Intent intent = new Intent(requireContext(), OrderItemsActivity.class);
-        intent.putExtra("EXTRA_ORDER_ID", order.getOrderId());
-        intent.putExtra("EXTRA_TOTAL", order.getTotalAmount());
-        intent.putExtra("EXTRA_STATUS", order.getStatus());
-        intent.putExtra("EXTRA_CUSTOMER_NAME", order.getCustomerName());
-        intent.putExtra("EXTRA_CUSTOMER_PHONE", order.getCustomerPhone());
-        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getDeliveryAddressText());
-        intent.putExtra("EXTRA_RESTAURANT_ID", order.getRestaurantId());
-        intent.putStringArrayListExtra("EXTRA_ITEM_LINES", buildItemLines(order));
+    private void openReview(Order order) {
+        if (order == null || !Order.STATUS_COMPLETED.equals(Order.normalizeStatus(order.getStatus()))) return;
+        String customerId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid() : order.getCustomerId();
+        List<CartItem> items = order.getItems();
+        String title = items == null || items.isEmpty() || items.get(0) == null
+                ? "Đơn hàng #" + (order.getOrderId() == null ? "" : order.getOrderId())
+                : items.get(0).getName() + (items.size() > 1 ? " và " + (items.size() - 1) + " món khác" : "");
+        Intent intent = new Intent(requireContext(), ReviewActivity.class);
+        intent.putExtra("orderId", order.getOrderId());
+        intent.putExtra("customerId", customerId);
+        intent.putExtra("restaurantId", order.getRestaurantId());
+        intent.putExtra("foodName", title);
         startActivity(intent);
     }
 
@@ -466,26 +399,35 @@ public class MyOrderFragment extends Fragment {
         startActivity(intent);
     }
 
-    private ArrayList<String> buildItemLines(Order order) {
-        ArrayList<String> itemLines = new ArrayList<>();
-        List<CartItem> items = order.getItems();
-        if (items == null || items.isEmpty()) {
-            itemLines.add("Không có dữ liệu món ăn trong đơn này.");
-            return itemLines;
-        }
+    private void openOrderDetails(Order order) {
+        if (order == null || TextUtils.isEmpty(order.getOrderId())) return;
+        Intent intent = new Intent(requireContext(), OrderItemsActivity.class);
+        intent.putExtra("EXTRA_ORDER_ID", order.getOrderId());
+        intent.putExtra("EXTRA_TOTAL", order.getTotalAmount());
+        intent.putExtra("EXTRA_STATUS", order.getStatus());
+        intent.putExtra("EXTRA_CUSTOMER_NAME", order.getCustomerName());
+        intent.putExtra("EXTRA_CUSTOMER_PHONE", order.getCustomerPhone());
+        intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getDeliveryAddressText());
+        intent.putExtra("EXTRA_RESTAURANT_ID", order.getRestaurantId());
+        startActivity(intent);
+    }
 
-        for (int i = 0; i < items.size(); i++) {
-            CartItem item = items.get(i);
+    private void reorder(Order order) {
+        if (order == null || order.getItems() == null || order.getItems().isEmpty()) return;
+        for (CartItem item : order.getItems()) {
             if (item == null) continue;
-            String itemName = item.getName() == null || item.getName().trim().isEmpty() ? "Món ăn" : item.getName().trim();
-            int quantity = Math.max(item.getQuantity(), 0);
-            itemLines.add((i + 1) + ". " + itemName + "  x" + quantity);
+            Food food = new Food();
+            food.setFoodId(item.getFoodId());
+            food.setName(item.getName());
+            food.setPrice(item.getPrice());
+            food.setNewPrice(item.getPrice());
+            food.setImageUrl(item.getImageUrl());
+            food.setRestaurantId(order.getRestaurantId());
+            cartViewModel.addOrIncrement(food, item.getQuantity());
         }
-
-        if (itemLines.isEmpty()) {
-            itemLines.add("Không có dữ liệu món ăn trong đơn này.");
-        }
-        return itemLines;
+        if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).updateCartBadge();
+        BottomNavigationView navigation = requireActivity().findViewById(R.id.bottom_navigation);
+        if (navigation != null) navigation.setSelectedItemId(R.id.nav_cart);
     }
 
     private void showEmptyState(boolean isEmpty) {

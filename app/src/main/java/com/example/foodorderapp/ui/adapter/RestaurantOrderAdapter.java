@@ -22,7 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Order;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.example.foodorderapp.data.model.OrderFilter;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -37,13 +37,21 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
         void onSummaryChanged(int total, int pending, int preparing, int delivering, int completed);
     }
 
+    public interface OnOrderActionListener {
+        void onUpdateStatus(Order order, String newStatus);
+    }
+    public interface OnShipperAssignmentRequestListener {
+        void onRequestShipperAssignment(Order order);
+    }
+
     private final Context context;
     private final List<Order> originalList;
     private final List<Order> displayedList;
     private final NumberFormat currencyFormatter = NumberFormat.getInstance(new Locale("vi", "VN"));
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm - dd/MM", Locale.getDefault());
     private OnOrderSummaryChangedListener summaryListener;
-    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private OnOrderActionListener orderActionListener;
+    private OnShipperAssignmentRequestListener shipperAssignmentRequestListener;
     private int daysFilter; // 0 = all dates
     private String paymentFilter = "Tất cả";
     private String summaryQuery = "";
@@ -60,6 +68,14 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
     public void setSummaryListener(OnOrderSummaryChangedListener listener) {
         this.summaryListener = listener;
         notifySummaryChanged();
+    }
+
+    public void setOrderActionListener(OnOrderActionListener listener) {
+        this.orderActionListener = listener;
+    }
+
+    public void setShipperAssignmentRequestListener(OnShipperAssignmentRequestListener listener) {
+        this.shipperAssignmentRequestListener = listener;
     }
 
     public void updateData(List<Order> newOrders) {
@@ -89,51 +105,9 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
         String rawQ = query == null ? "" : query.trim().toLowerCase();
         String normQ = stripAccents(rawQ);
         summaryQuery = rawQ;
-        long startTime = 0;
-        long endTime = Long.MAX_VALUE;
-        if (daysFilter > 0) {
-            java.util.Calendar start = java.util.Calendar.getInstance();
-            start.set(java.util.Calendar.HOUR_OF_DAY, 0);
-            start.set(java.util.Calendar.MINUTE, 0);
-            start.set(java.util.Calendar.SECOND, 0);
-            start.set(java.util.Calendar.MILLISECOND, 0);
-            start.add(java.util.Calendar.DAY_OF_YEAR, 1);
-            endTime = start.getTimeInMillis();
-            start.add(java.util.Calendar.DAY_OF_YEAR, -daysFilter);
-            startTime = start.getTimeInMillis();
-        }
-
+        long now = System.currentTimeMillis();
         for (Order o : originalList) {
-            String orderId = o.getOrderId() != null ? o.getOrderId().toLowerCase() : "";
-            String customerName = o.getCustomerName() != null ? o.getCustomerName().toLowerCase() : "";
-            String customerNameNorm = stripAccents(customerName);
-
-            boolean matchesQuery = rawQ.isEmpty()
-                    || orderId.contains(rawQ)
-                    || customerName.contains(rawQ)
-                    || customerNameNorm.contains(normQ);
-
-            boolean matchesStatus = true;
-            String st = Order.normalizeStatus(o.getStatus());
-            if (statusFilter != null && !statusFilter.isEmpty() && !statusFilter.equalsIgnoreCase("Tất cả")) {
-                if (statusFilter.equalsIgnoreCase("Chờ xác nhận")) {
-                    matchesStatus = Order.STATUS_PENDING.equals(st);
-                } else if (statusFilter.equalsIgnoreCase("Đang chuẩn bị")) {
-                    matchesStatus = Order.STATUS_PREPARING.equals(st);
-                } else if (statusFilter.equalsIgnoreCase("Đang giao hàng")) {
-                    matchesStatus = Order.STATUS_SHIPPING.equals(st);
-                } else if (statusFilter.equalsIgnoreCase("Đã hoàn thành")) {
-                    matchesStatus = Order.STATUS_COMPLETED.equals(st);
-                }
-            }
-
-            boolean matchesDate = daysFilter == 0 || (o.getCreatedAt() != null
-                    && o.getCreatedAt().getTime() >= startTime
-                    && o.getCreatedAt().getTime() < endTime);
-            boolean isCod = o.isCodPayment();
-            boolean matchesPayment = "Tất cả".equals(paymentFilter)
-                    || ("COD".equals(paymentFilter) == isCod);
-            if (matchesQuery && matchesStatus && matchesDate && matchesPayment) {
+            if (OrderFilter.matches(o, rawQ, statusFilter, daysFilter, paymentFilter, now)) {
                 displayedList.add(o);
             }
         }
@@ -163,25 +137,8 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
     }
 
     private boolean matchesSummaryScope(Order order) {
-        if (daysFilter > 0) {
-            java.util.Calendar start = java.util.Calendar.getInstance();
-            start.set(java.util.Calendar.HOUR_OF_DAY, 0);
-            start.set(java.util.Calendar.MINUTE, 0);
-            start.set(java.util.Calendar.SECOND, 0);
-            start.set(java.util.Calendar.MILLISECOND, 0);
-            start.add(java.util.Calendar.DAY_OF_YEAR, 1);
-            Date end = start.getTime();
-            start.add(java.util.Calendar.DAY_OF_YEAR, -daysFilter);
-            if (order.getCreatedAt() == null || order.getCreatedAt().before(start.getTime())
-                    || !order.getCreatedAt().before(end)) return false;
-        }
-        boolean cod = order.isCodPayment();
-        if (!"Tất cả".equals(paymentFilter) && ("COD".equals(paymentFilter) != cod)) return false;
-        if (summaryQuery.isEmpty()) return true;
-        String id = order.getOrderId() == null ? "" : order.getOrderId().toLowerCase(Locale.ROOT);
-        String name = order.getCustomerName() == null ? "" : order.getCustomerName().toLowerCase(Locale.ROOT);
-        return id.contains(summaryQuery) || name.contains(summaryQuery)
-                || stripAccents(name).contains(stripAccents(summaryQuery));
+        return OrderFilter.matchesSummaryScope(order, summaryQuery, daysFilter, paymentFilter,
+                System.currentTimeMillis());
     }
 
     @NonNull
@@ -232,7 +189,7 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
             holder.btnActionPrimary.setVisibility(View.VISIBLE);
             holder.btnActionPrimary.setText("✓ XÁC NHẬN ĐƠN");
             holder.btnActionPrimary.setBackgroundResource(R.drawable.bg_btn_confirm_order);
-            holder.btnActionPrimary.setOnClickListener(v -> updateOrderStatus(order, Order.STATUS_PREPARING));
+            holder.btnActionPrimary.setOnClickListener(v -> requestStatusUpdate(order, Order.STATUS_PREPARING));
 
         } else if (Order.STATUS_PREPARING.equals(status)) {
             holder.viewStatusAccentLine.setBackgroundColor(Color.parseColor("#EA580C"));
@@ -247,7 +204,7 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
             holder.btnActionPrimary.setVisibility(View.VISIBLE);
             holder.btnActionPrimary.setText("🛵 GIAO CHO SHIPPER");
             holder.btnActionPrimary.setBackgroundResource(R.drawable.bg_btn_handover_shipper);
-            holder.btnActionPrimary.setOnClickListener(v -> updateOrderStatus(order, Order.STATUS_SHIPPING));
+            holder.btnActionPrimary.setOnClickListener(v -> requestShipperAssignment(order));
 
         } else if (Order.STATUS_SHIPPING.equals(status)) {
             holder.viewStatusAccentLine.setBackgroundColor(Color.parseColor("#16A34A"));
@@ -262,7 +219,7 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
             holder.btnActionPrimary.setVisibility(View.VISIBLE);
             holder.btnActionPrimary.setText("✓ HOÀN TẤT ĐƠN");
             holder.btnActionPrimary.setBackgroundResource(R.drawable.bg_btn_finish_order);
-            holder.btnActionPrimary.setOnClickListener(v -> updateOrderStatus(order, Order.STATUS_COMPLETED));
+            holder.btnActionPrimary.setOnClickListener(v -> requestStatusUpdate(order, Order.STATUS_COMPLETED));
 
         } else if (Order.STATUS_CANCELLED.equals(status)) {
             holder.viewStatusAccentLine.setBackgroundColor(Color.parseColor("#EF4444"));
@@ -340,39 +297,17 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
         holder.tvTotalPriceValue.setText(currencyFormatter.format(order.getTotalAmount()) + " đ");
     }
 
-    private void updateOrderStatus(Order order, String newStatus) {
-        if (order.getOrderId() == null || order.getOrderId().isEmpty()) {
-            Toast.makeText(context, "Đơn hàng không có mã hợp lệ", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void requestStatusUpdate(Order order, String newStatus) {
+        if (orderActionListener != null) orderActionListener.onUpdateStatus(order, newStatus);
+        else Toast.makeText(context, "Không thể cập nhật đơn hàng lúc này", Toast.LENGTH_SHORT).show();
+    }
 
-        java.util.Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("status", newStatus);
-        Date now = new Date();
-        if (Order.STATUS_PREPARING.equals(newStatus)) {
-            updates.put("confirmedAt", now);
-        } else if (Order.STATUS_SHIPPING.equals(newStatus)) {
-            updates.put("shippingAt", now);
-        } else if (Order.STATUS_COMPLETED.equals(newStatus)) {
-            updates.put("deliveredAt", now);
+    private void requestShipperAssignment(Order order) {
+        if (shipperAssignmentRequestListener != null) {
+            shipperAssignmentRequestListener.onRequestShipperAssignment(order);
+        } else {
+            Toast.makeText(context, "Chưa tải được danh sách tài xế", Toast.LENGTH_SHORT).show();
         }
-
-        com.google.firebase.firestore.WriteBatch batch = db.batch();
-        batch.update(db.collection("orders").document(order.getOrderId()), updates);
-        if (order.getRestaurantId() != null && !order.getRestaurantId().isEmpty()) {
-            batch.update(db.collection("restaurants").document(order.getRestaurantId()).collection("orders").document(order.getOrderId()), updates);
-        }
-
-        batch.commit()
-                .addOnSuccessListener(aVoid -> {
-                    order.setStatus(newStatus);
-                    notifyDataSetChanged();
-                    notifySummaryChanged();
-                    Toast.makeText(context, "Đã cập nhật: " + getStatusDisplayText(newStatus), Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(context, "Không cập nhật được đơn hàng", Toast.LENGTH_SHORT).show();
-                });
     }
 
     private String getStatusDisplayText(String status) {

@@ -58,7 +58,7 @@
                             android:id="@+id/tvOrderId"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="#ORDER123"
+                            android:text="#—"
                             android:textColor="@color/colorTextPrimary"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -68,7 +68,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="22:53 • 12/04"
+                            android:text="—"
                             android:textColor="@color/colorTextSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -105,7 +105,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="3dp"
-                            android:text="Hoàn Kiếm, Hà Nội"
+                            android:text="Đang tải địa chỉ"
                             android:textColor="@color/colorTextSecondary"
                             android:textSize="11sp"
                             android:maxLines="1"
@@ -128,7 +128,7 @@
                         android:background="@drawable/bg_pill_status_shipping"
                         android:paddingHorizontal="10dp"
                         android:paddingVertical="4dp"
-                        android:text="● Đang giao hàng"
+                        android:text="Đang tải"
                         android:textColor="@color/colorTertiary"
                         android:textSize="11sp"
                         android:textStyle="bold" />
@@ -139,7 +139,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="★ Đã đánh giá 5.0"
+                        android:text="★ Đã đánh giá"
                         android:textColor="@color/colorSecondary"
                         android:textSize="11sp"
                         android:textStyle="bold"
@@ -178,7 +178,7 @@
                         android:id="@+id/tvOrderDishesSummary"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1x Gỏi cuốn tôm thịt, 1x Bún chả..."
+                        android:text="Đang tải món"
                         android:textColor="@color/colorTextPrimary"
                         android:textSize="13sp"
                         android:textStyle="bold"
@@ -190,7 +190,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="2 món • Kèm nước mắm ớt"
+                        android:text=""
                         android:textColor="@color/colorTextSecondary"
                         android:textSize="11sp"
                         android:maxLines="1"
@@ -209,7 +209,7 @@
                         android:id="@+id/tvPaymentLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Thu hộ COD"
+                        android:text=""
                         android:textColor="@color/colorTextSecondary"
                         android:textSize="10sp" />
 
@@ -218,7 +218,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="1dp"
-                        android:text="115.000 đ"
+                        android:text="—"
                         android:textColor="@color/colorPrimary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -274,7 +274,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:layout_weight="1"
-                        android:text="Tài xế: Nguyễn Văn An (29B1-884.21)"
+                        android:text="Đang giao hàng"
                         android:textColor="@color/colorTextPrimary"
                         android:textSize="12sp"
                         android:textStyle="bold"
@@ -285,7 +285,7 @@
                         android:id="@+id/tv_shipper_eta"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="~ 8 phút nữa"
+                        android:text="Đang cập nhật"
                         android:textColor="@color/colorPrimary"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -299,7 +299,7 @@
                     android:layout_height="4dp"
                     android:layout_marginTop="6dp"
                     android:max="100"
-                    android:progress="75"
+                    android:progress="0"
                     android:progressTint="@color/colorPrimary" />
 
                 <LinearLayout
@@ -314,7 +314,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Đang tới: Số 3 Cầu Giấy, Hà Nội"
+                        android:text="Đang cập nhật địa chỉ giao"
                         android:textColor="@color/colorTextSecondary"
                         android:textSize="11sp"
                         android:maxLines="1"
@@ -324,7 +324,8 @@
                         android:id="@+id/btn_call_shipper"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Gọi tài xế"
+                        android:text=""
+                        android:visibility="gone"
                         android:textColor="@color/colorPrimary"
                         android:textSize="12sp"
                         android:textStyle="bold"
@@ -364,7 +365,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="+20 xu"
+                    android:text=""
+                    android:visibility="gone"
                     android:textColor="@color/colorSecondary"
                     android:textSize="11sp"
                     android:textStyle="bold" />

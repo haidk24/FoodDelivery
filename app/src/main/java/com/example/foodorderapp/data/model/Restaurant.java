@@ -115,18 +115,23 @@ public class Restaurant {
 
     @Exclude
     public String getAddressText() {
-        if (address == null) {
-            return "Chua cap nhat";
-        }
+        String snapshot = getAddressSnapshotText();
+        return snapshot.isEmpty() ? "Chua cap nhat" : snapshot;
+    }
+
+    /** Address suitable for persisting with an order; never returns a placeholder. */
+    @Exclude
+    public String getAddressSnapshotText() {
+        if (address == null) return "";
 
         if (address instanceof Address) {
             Address a = (Address) address;
-            return joinAddressParts(a.getStreet(), a.getWard(), a.getDistrict(), a.getCity());
+            return joinAddressPartsOrEmpty(a.getStreet(), a.getWard(), a.getDistrict(), a.getCity());
         }
 
         if (address instanceof Map) {
             Map<?, ?> map = (Map<?, ?>) address;
-            return joinAddressParts(
+            return joinAddressPartsOrEmpty(
                     toText(map.get("street")),
                     toText(map.get("ward")),
                     toText(map.get("district")),
@@ -167,12 +172,17 @@ public class Restaurant {
     }
 
     private String joinAddressParts(String street, String ward, String district, String city) {
+        String value = joinAddressPartsOrEmpty(street, ward, district, city);
+        return value.isEmpty() ? "Chua cap nhat" : value;
+    }
+
+    private String joinAddressPartsOrEmpty(String street, String ward, String district, String city) {
         StringBuilder builder = new StringBuilder();
         appendPart(builder, street);
         appendPart(builder, ward);
         appendPart(builder, district);
         appendPart(builder, city);
-        return builder.length() == 0 ? "Chua cap nhat" : builder.toString();
+        return builder.toString();
     }
 
     private void appendPart(StringBuilder builder, String part) {

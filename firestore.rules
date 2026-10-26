@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function currentUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return signedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && currentUser().data.role == 'admin'
+          && currentUser().data.status == 'active';
+    }
+
+    function ownsRestaurant(restaurantId) {
+      return signedIn()
+          && exists(/databases/$(database)/documents/restaurants/$(restaurantId))
+          && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.ownerId == request.auth.uid;
+    }
+
+    function isCustomerOrder(order) {
+      return signedIn() && order.data.customerId == request.auth.uid;
+    }
+
+    function hasOnlyOwnProfileChanges() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'displayName', 'phone', 'address', 'vehicleDescription'
+      ]);
+    }
+
+    function validCustomerOrderCreate(restaurantId) {
+      return signedIn()
+          && request.resource.data.customerId == request.auth.uid
+          && request.resource.data.restaurantId == restaurantId
+          && request.resource.data.status == 'pending'
+          && (!request.resource.data.keys().hasAny(['shipperId'])
+              || request.resource.data.shipperId == null)
+          && request.resource.data.restaurantName is string
+          && request.resource.data.restaurantName.size() > 0
+          && request.resource.data.restaurantAddress is string
+          && request.resource.data.restaurantAddress.size() > 0;
+    }
+
+    function customerCancelsOwnOrder() {
+      return isCustomerOrder(resource)
+          && resource.data.status in ['pending', 'preparing']
+          && request.resource.data.status == 'cancelled'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+    }
+
+    function restaurantChangesOrder(restaurantId) {
+      return ownsRestaurant(restaurantId)
+          && request.resource.data.customerId == resource.data.customerId
+          && request.resource.data.restaurantId == resource.data.restaurantId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'confirmedAt', 'shippingAt', 'deliveredAt',
+            'shipperId', 'shipperName', 'shipperPhone', 'shipperVehicle', 'shipperAssignedAt',
+            'reviewed', 'reviewedAt'
+          ]);
+    }
+
+    match /users/{userId} {
+      allow create: if signedIn() && request.auth.uid == userId
+          && request.resource.data.role == 'customer'
+          && request.resource.data.status == 'active';
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow update: if isAdmin() || (request.auth.uid == userId && hasOnlyOwnProfileChanges());
+      allow delete: if isAdmin();
+    }
+
+    match /restaurants/{restaurantId} {
+      allow read: if signedIn() && (resource.data.status == 'active' || ownsRestaurant(restaurantId) || isAdmin());
+      allow create: if signedIn()
+          && request.resource.data.ownerId == request.auth.uid
+          && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin()
+          || (ownsRestaurant(restaurantId)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+              && request.resource.data.status == 'closed');
+
+      match /foods/{foodId} {
+        allow read: if signedIn() && (
+          get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.status == 'active'
+          || ownsRestaurant(restaurantId) || isAdmin());
+        allow create, update, delete: if ownsRestaurant(restaurantId) || isAdmin();
+      }
+
+      match /orders/{orderId} {
+        allow read: if isAdmin() || ownsRestaurant(restaurantId) || isCustomerOrder(resource);
+        allow create: if validCustomerOrderCreate(restaurantId)
+            && existsAfter(/databases/$(database)/documents/orders/$(orderId))
+            && getAfter(/databases/$(database)/documents/orders/$(orderId)).data == request.resource.data;
+        allow update: if isAdmin() || customerCancelsOwnOrder() || restaurantChangesOrder(restaurantId);
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAdmin() || isCustomerOrder(resource)
+          || ownsRestaurant(resource.data.restaurantId);
+      allow create: if validCustomerOrderCreate(request.resource.data.restaurantId)
+          && existsAfter(/databases/$(database)/documents/restaurants/$(request.resource.data.restaurantId)/orders/$(orderId))
+          && getAfter(/databases/$(database)/documents/restaurants/$(request.resource.data.restaurantId)/orders/$(orderId)).data == request.resource.data;
+      allow update: if isAdmin() || customerCancelsOwnOrder()
+          || restaurantChangesOrder(resource.data.restaurantId);
+      allow delete: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+          && request.resource.data.customerId == request.auth.uid
+          && exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId))
+          && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.customerId == request.auth.uid
+          && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'completed';
+      allow update, delete: if isAdmin();
+    }
+  }
+}

@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.foodorderapp.data.model.ReportStats;
 import com.example.foodorderapp.data.model.Order;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.AggregateSource;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
@@ -26,6 +27,40 @@ public class ReportRepository {
 
     // ── Enum kỳ báo cáo ──────────────────────────────────────────
     public enum Period { TODAY, WEEK, MONTH }
+
+    public static class SystemHealthStats {
+        public final long activeRestaurants;
+        public final long pendingRestaurants;
+        public final long users;
+        public SystemHealthStats(long activeRestaurants, long pendingRestaurants, long users) {
+            this.activeRestaurants = activeRestaurants;
+            this.pendingRestaurants = pendingRestaurants;
+            this.users = users;
+        }
+    }
+    public interface SystemHealthCallback {
+        void onResult(SystemHealthStats stats, Exception error);
+    }
+
+    public void loadSystemHealth(SystemHealthCallback callback) {
+        long[] values = new long[3];
+        AtomicInteger remaining = new AtomicInteger(3);
+        java.util.concurrent.atomic.AtomicReference<Exception> failure = new java.util.concurrent.atomic.AtomicReference<>();
+        Runnable complete = () -> {
+            if (remaining.decrementAndGet() != 0) return;
+            Exception error = failure.get();
+            callback.onResult(error == null ? new SystemHealthStats(values[0], values[1], values[2]) : null, error);
+        };
+        db.collection("restaurants").whereEqualTo("status", "active").count().get(AggregateSource.SERVER)
+                .addOnSuccessListener(result -> { values[0] = result.getCount(); complete.run(); })
+                .addOnFailureListener(error -> { failure.compareAndSet(null, error); complete.run(); });
+        db.collection("restaurants").whereEqualTo("status", "pending").count().get(AggregateSource.SERVER)
+                .addOnSuccessListener(result -> { values[1] = result.getCount(); complete.run(); })
+                .addOnFailureListener(error -> { failure.compareAndSet(null, error); complete.run(); });
+        db.collection("users").count().get(AggregateSource.SERVER)
+                .addOnSuccessListener(result -> { values[2] = result.getCount(); complete.run(); })
+                .addOnFailureListener(error -> { failure.compareAndSet(null, error); complete.run(); });
+    }
 
     // ── Load toàn bộ thống kê theo kỳ ────────────────────────────
     public void loadStats(

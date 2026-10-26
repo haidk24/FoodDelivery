@@ -19,22 +19,22 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
-import java.util.Locale;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
-import com.example.foodorderapp.data.model.User;
+import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
 import com.example.foodorderapp.ui.MainActivity;
 import com.example.foodorderapp.ui.SignInActivity;
+import com.example.foodorderapp.viewmodel.AuthViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ProfileFragment extends Fragment {
 
@@ -56,7 +56,8 @@ public class ProfileFragment extends Fragment {
     private MaterialButton btnLogout;
 
     private FirebaseAuth mAuth;
-    private FirebaseFirestore mFirestore;
+    private AuthViewModel authViewModel;
+    private OrdersViewModel ordersViewModel;
     private SharedPreferences sharedPreferences;
 
     public ProfileFragment() {
@@ -74,7 +75,8 @@ public class ProfileFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         mAuth = FirebaseAuth.getInstance();
-        mFirestore = FirebaseFirestore.getInstance();
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
         if (getContext() != null) {
             sharedPreferences = getContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE);
         }
@@ -186,65 +188,33 @@ public class ProfileFragment extends Fragment {
         }
 
         // Fetch user doc from Firestore
-        mFirestore.collection("users").document(user.getUid())
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (doc.exists()) {
-                        User profile = doc.toObject(User.class);
-                        String firestoreName = profile != null ? profile.getDisplayName() : "";
-                        if (firestoreName != null && !firestoreName.isEmpty()) {
-                            tvProfileName.setText(firestoreName);
-                        }
-                        String phone = profile != null ? profile.getPhone() : "";
-                        if (phone != null && !phone.isEmpty()) {
-                            tvProfilePhone.setText(phone);
-                        }
-                        String address = profile != null ? profile.getAddress() : "";
-                        if (address != null && !address.isEmpty()) {
-                            tvProfileAddress.setText(address);
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    // Ignore errors, keep auth fallback
-                });
+        authViewModel.getCurrentUserProfile().addOnSuccessListener(profile -> {
+            if (profile == null || !isAdded()) return;
+            if (profile.getDisplayName() != null && !profile.getDisplayName().isEmpty()) tvProfileName.setText(profile.getDisplayName());
+            if (profile.getPhone() != null && !profile.getPhone().isEmpty()) tvProfilePhone.setText(profile.getPhone());
+            if (profile.getAddress() != null && !profile.getAddress().isEmpty()) tvProfileAddress.setText(profile.getAddress());
+        });
     }
 
     private void loadOrdersStats() {
         FirebaseUser user = mAuth.getCurrentUser();
         if (user == null) return;
 
-        mFirestore.collection("orders")
-                .whereEqualTo("customerId", user.getUid())
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    int completed = 0;
-                    int shipping = 0;
-                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                        String status = doc.getString("status");
-                        if (status != null) {
-                            String s = status.toLowerCase(Locale.ROOT);
-                            if (s.contains("hoàn tất") || s.contains("completed") || s.contains("thành công") || s.contains("hoan_tat")) {
-                                completed++;
-                            } else if (s.contains("đang giao") || s.contains("shipping") || s.contains("dang_giao") || s.contains("delivering") || s.contains("preparing")) {
-                                shipping++;
-                            }
-                        }
-                    }
-
-                    tvTotalOrdersCount.setText(String.valueOf(completed));
-
-                    if (shipping > 0) {
-                        badgeShippingContainer.setVisibility(View.VISIBLE);
-                        tvBadgeShippingText.setText(shipping + " đang xử lý");
-                    } else {
-                        badgeShippingContainer.setVisibility(View.GONE);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    tvTotalOrdersCount.setText("0");
-                    badgeShippingContainer.setVisibility(View.GONE);
-                });
+        ordersViewModel.getOrders().observe(getViewLifecycleOwner(), orders -> {
+            if (!isAdded() || orders == null || Boolean.TRUE.equals(ordersViewModel.getLoading().getValue())) return;
+            int completed = 0;
+            int processing = 0;
+            for (Order order : orders) {
+                String status = Order.normalizeStatus(order.getStatus());
+                if (Order.STATUS_COMPLETED.equals(status)) completed++;
+                else if (Order.STATUS_PENDING.equals(status) || Order.STATUS_PREPARING.equals(status)
+                        || Order.STATUS_CONFIRMED.equals(status) || Order.STATUS_SHIPPING.equals(status)) processing++;
+            }
+            tvTotalOrdersCount.setText(String.valueOf(completed));
+            badgeShippingContainer.setVisibility(processing > 0 ? View.VISIBLE : View.GONE);
+            if (processing > 0) tvBadgeShippingText.setText(processing + " đang xử lý");
+        });
+        ordersViewModel.observeCustomer(user.getUid());
     }
 
     private void showEditProfileDialog() {
@@ -285,8 +255,10 @@ public class ProfileFragment extends Fragment {
                         .setDisplayName(newName)
                         .build());
 
-                mFirestore.collection("users").document(user.getUid())
-                        .update("displayName", newName, "phone", newPhone);
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("displayName", newName);
+                updates.put("phone", newPhone);
+                authViewModel.updateFields(user.getUid(), updates);
             }
 
             tvProfileName.setText(newName);
@@ -331,8 +303,9 @@ public class ProfileFragment extends Fragment {
 
                 FirebaseUser user = mAuth.getCurrentUser();
                 if (user != null) {
-                    mFirestore.collection("users").document(user.getUid())
-                            .update("address", newAddress);
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("address", newAddress);
+                    authViewModel.updateFields(user.getUid(), updates);
                 }
 
                 Toast.makeText(getContext(), "Đã cập nhật địa chỉ giao hàng!", Toast.LENGTH_SHORT).show();

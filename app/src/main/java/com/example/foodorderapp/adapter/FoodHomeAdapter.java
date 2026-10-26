@@ -15,7 +15,6 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.text.NumberFormat;
 import java.util.List;

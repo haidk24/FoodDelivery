@@ -19,21 +19,18 @@ import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.AdminStats;
 import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.data.model.Restaurant;
-import com.example.foodorderapp.viewModel.AdminViewModel;
-import com.google.firebase.Timestamp;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
+import com.example.foodorderapp.feature.admin.dashboard.AdminDashboardViewModel;
+import com.example.foodorderapp.feature.admin.restaurants.AdminRestaurantsViewModel;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 public class DashboardFragment extends Fragment {
 
-    private AdminViewModel viewModel;
+    private AdminDashboardViewModel dashboardViewModel;
+    private AdminRestaurantsViewModel restaurantsViewModel;
 
     // Loading & Live Time
     private ProgressBar progressBar;
@@ -73,16 +70,18 @@ public class DashboardFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        viewModel = new ViewModelProvider(requireActivity()).get(AdminViewModel.class);
+        dashboardViewModel = new ViewModelProvider(requireActivity()).get(AdminDashboardViewModel.class);
+        restaurantsViewModel = new ViewModelProvider(requireActivity()).get(AdminRestaurantsViewModel.class);
 
         bindViews(view);
         hideRecentOrderCards();
         setupLiveTime();
         setupClickListeners(view);
         observeData();
-        loadRecentOrders();
+        observeRecentOrders();
+        dashboardViewModel.loadRecentOrders();
 
-        viewModel.observeRestaurants();
+        restaurantsViewModel.observe();
     }
 
     private void bindViews(View v) {
@@ -148,7 +147,7 @@ public class DashboardFragment extends Fragment {
         if (btnAlertQuickApprove != null) {
             btnAlertQuickApprove.setOnClickListener(v -> {
                 if (currentPendingRestaurant != null && currentPendingRestaurant.restaurantId != null) {
-                    viewModel.approveRestaurant(currentPendingRestaurant.restaurantId);
+                    restaurantsViewModel.approve(currentPendingRestaurant.restaurantId);
                     Toast.makeText(requireContext(), "Đang duyệt nhanh cho " + currentPendingRestaurant.name, Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(requireContext(), "Không có hồ sơ nhà hàng để duyệt.", Toast.LENGTH_SHORT).show();
@@ -166,18 +165,18 @@ public class DashboardFragment extends Fragment {
     }
 
     private void observeData() {
-        viewModel.getIsLoading().observe(getViewLifecycleOwner(), loading -> {
+        dashboardViewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
             if (progressBar != null) {
                 progressBar.setVisibility(Boolean.TRUE.equals(loading) ? View.VISIBLE : View.GONE);
             }
         });
 
-        viewModel.getAdminStats().observe(getViewLifecycleOwner(), stats -> {
+        dashboardViewModel.getStats().observe(getViewLifecycleOwner(), stats -> {
             if (stats != null) renderStats(stats);
         });
 
         // Lắng nghe danh sách nhà hàng chờ duyệt để hiển thị card Alert
-        viewModel.getPendingRestaurantList().observe(getViewLifecycleOwner(), pendingList -> {
+        restaurantsViewModel.getPending().observe(getViewLifecycleOwner(), pendingList -> {
             if (pendingList != null && !pendingList.isEmpty()) {
                 currentPendingRestaurant = pendingList.get(0);
                 if (cardActionAlert != null) cardActionAlert.setVisibility(View.VISIBLE);
@@ -190,7 +189,7 @@ public class DashboardFragment extends Fragment {
         });
 
         // Badge nhà hàng chờ duyệt
-        viewModel.getPendingRestaurantCount().observe(getViewLifecycleOwner(), count -> {
+        restaurantsViewModel.getPendingCount().observe(getViewLifecycleOwner(), count -> {
             int c = (count != null) ? count : 0;
             if (tvPendingBadge != null) {
                 if (c > 0) {
@@ -204,13 +203,13 @@ public class DashboardFragment extends Fragment {
         });
 
         // Thông báo lỗi
-        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), err -> {
+        dashboardViewModel.getError().observe(getViewLifecycleOwner(), err -> {
             if (err != null && !err.isEmpty()) {
                 Toast.makeText(requireContext(), err, Toast.LENGTH_SHORT).show();
             }
         });
 
-        viewModel.getActionSuccess().observe(getViewLifecycleOwner(), ok -> {
+        restaurantsViewModel.getActionSuccess().observe(getViewLifecycleOwner(), ok -> {
             if (Boolean.TRUE.equals(ok)) {
                 Toast.makeText(requireContext(), "Thao tác thành công!", Toast.LENGTH_SHORT).show();
             }
@@ -251,31 +250,17 @@ public class DashboardFragment extends Fragment {
         }
     }
 
-    private void loadRecentOrders() {
-        FirebaseFirestore.getInstance().collection("orders")
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .limit(2)
-                .get()
-                .addOnSuccessListener(snapshot -> {
-                    if (snapshot == null || snapshot.isEmpty()) {
-                        hideRecentOrderCards();
-                        return;
-                    }
-                    List<DocumentSnapshot> docs = snapshot.getDocuments();
-                    if (cardRecentOrder1 != null) cardRecentOrder1.setVisibility(View.GONE);
-                    if (cardRecentOrder2 != null) cardRecentOrder2.setVisibility(View.GONE);
-                    if (!docs.isEmpty()) {
-                        if (cardRecentOrder1 != null) cardRecentOrder1.setVisibility(View.VISIBLE);
-                        bindOrderView(docs.get(0), tvOrder1Code, tvOrder1Time, tvOrder1Desc, tvOrder1Amount, tvOrder1Status);
-                    }
-                    if (docs.size() > 1) {
-                        if (cardRecentOrder2 != null) cardRecentOrder2.setVisibility(View.VISIBLE);
-                        bindOrderView(docs.get(1), tvOrder2Code, tvOrder2Time, tvOrder2Desc, tvOrder2Amount, tvOrder2Status);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    hideRecentOrderCards();
-                });
+    private void observeRecentOrders() {
+        dashboardViewModel.getRecentOrders().observe(getViewLifecycleOwner(), orders -> {
+            hideRecentOrderCards();
+            if (orders == null || orders.isEmpty()) return;
+            if (cardRecentOrder1 != null) cardRecentOrder1.setVisibility(View.VISIBLE);
+            bindOrderView(orders.get(0), tvOrder1Code, tvOrder1Time, tvOrder1Desc, tvOrder1Amount, tvOrder1Status);
+            if (orders.size() > 1) {
+                if (cardRecentOrder2 != null) cardRecentOrder2.setVisibility(View.VISIBLE);
+                bindOrderView(orders.get(1), tvOrder2Code, tvOrder2Time, tvOrder2Desc, tvOrder2Amount, tvOrder2Status);
+            }
+        });
     }
 
     private void hideRecentOrderCards() {
@@ -283,46 +268,39 @@ public class DashboardFragment extends Fragment {
         if (cardRecentOrder2 != null) cardRecentOrder2.setVisibility(View.GONE);
     }
 
-    private void bindOrderView(DocumentSnapshot doc, TextView tvCode, TextView tvTime, TextView tvDesc, TextView tvAmount, TextView tvStatus) {
-        if (doc == null) return;
-        String orderId = doc.getString("orderId");
-        if (orderId == null || orderId.isEmpty()) orderId = doc.getId();
+    private void bindOrderView(Order order, TextView tvCode, TextView tvTime, TextView tvDesc, TextView tvAmount, TextView tvStatus) {
+        if (order == null) return;
+        String orderId = order.getOrderId();
+        if (orderId == null || orderId.isEmpty()) orderId = "—";
         if (tvCode != null) {
             String shortId = orderId.length() > 8 ? orderId.substring(0, 8) : orderId;
             tvCode.setText("Đơn #" + shortId);
         }
 
         if (tvTime != null) {
-            Object createdAt = doc.get("createdAt");
-            if (createdAt instanceof Timestamp) {
-                CharSequence relativeTime = DateUtils.getRelativeTimeSpanString(((Timestamp) createdAt).toDate().getTime());
+            Date createdAt = order.getCreatedAt();
+            if (createdAt != null) {
+                CharSequence relativeTime = DateUtils.getRelativeTimeSpanString(createdAt.getTime());
                 tvTime.setText(relativeTime);
             } else tvTime.setText("Chưa có thời gian");
         }
 
         if (tvDesc != null) {
-            Order order = doc.toObject(Order.class);
-            String address = order == null ? "" : order.getDeliveryAddressText();
-            if (address.isEmpty()) {
-                Object legacyAddress = doc.get("address");
-                address = legacyAddress == null ? "" : String.valueOf(legacyAddress);
-            }
+            String address = order.getDeliveryAddressText();
             if (address == null || address.isEmpty()) address = "Chưa cập nhật địa chỉ";
-            String paymentMethod = doc.getString("paymentMethod");
+            String paymentMethod = order.getPaymentMethod();
             if (paymentMethod == null || paymentMethod.isEmpty()) paymentMethod = "Chưa cập nhật thanh toán";
-            String customerName = doc.getString("customerName");
+            String customerName = order.getCustomerName();
             tvDesc.setText((customerName == null || customerName.isEmpty() ? "Khách hàng" : customerName)
                     + " • " + address + " • " + paymentMethod);
         }
 
         if (tvAmount != null) {
-            Object rawTotal = doc.get("totalAmount");
-            if (rawTotal instanceof Number) tvAmount.setText(formatCurrency(((Number) rawTotal).longValue()));
-            else tvAmount.setText("—");
+            tvAmount.setText(formatCurrency(Math.round(order.getTotalAmount())));
         }
 
         if (tvStatus != null) {
-            String status = doc.getString("status");
+            String status = order.getStatus();
             String normalizedStatus = Order.normalizeStatus(status);
             if (Order.STATUS_COMPLETED.equals(normalizedStatus)) {
                 tvStatus.setText("Đã giao");

@@ -9,18 +9,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Order;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
 import com.example.foodorderapp.ui.RestaurantMainActivity;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -38,8 +37,7 @@ public class RestaurantReportFragment extends Fragment {
     private final NumberFormat money = NumberFormat.getNumberInstance(new Locale("vi", "VN"));
     private final SimpleDateFormat dayFormat = new SimpleDateFormat("dd/MM", Locale.getDefault());
     private final List<Order> orders = new ArrayList<>();
-    private FirebaseFirestore db;
-    private ListenerRegistration registration;
+    private OrdersViewModel ordersViewModel;
     private String restaurantId = "";
     private View root;
     private LinearLayout chart;
@@ -67,7 +65,7 @@ public class RestaurantReportFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle state) {
         root = inflater.inflate(R.layout.activity_restaurant_report, container, false);
-        db = FirebaseFirestore.getInstance();
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
         if (getArguments() != null) restaurantId = value(getArguments().getString(ARG_RESTAURANT_ID));
         prepareEmbeddedLayout();
         todayTab = root.findViewById(R.id.btn_tab_today);
@@ -82,7 +80,7 @@ public class RestaurantReportFragment extends Fragment {
             }
         });
         renderReport();
-        if (!restaurantId.isEmpty()) listenOrders();
+        if (!restaurantId.isEmpty()) observeOrders();
         return root;
     }
 
@@ -140,29 +138,36 @@ public class RestaurantReportFragment extends Fragment {
         String next = value(id);
         if (next.equals(restaurantId)) return;
         restaurantId = next;
-        if (isAdded() && !next.isEmpty()) listenOrders();
+        if (isAdded() && !next.isEmpty()) observeOrders();
     }
 
-    private void listenOrders() {
-        if (registration != null) registration.remove();
-        registration = db.collection("restaurants").document(restaurantId).collection("orders")
-                .addSnapshotListener((snapshot, error) -> {
-                    if (!isAdded()) return;
-                    if (error != null || snapshot == null) {
-                        loaded = false;
-                        renderReport();
-                        setText(R.id.tv_chart_peak_detail, "Không tải được dữ liệu");
-                        Toast.makeText(requireContext(), "Không tải được báo cáo từ Firebase", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    orders.clear();
-                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
-                        Order order = doc.toObject(Order.class);
-                        if (order != null) orders.add(order);
-                    }
-                    loaded = true;
-                    renderReport();
-                });
+    private void observeOrders() {
+        ordersViewModel.getOrders().observe(getViewLifecycleOwner(), value -> {
+            if (Boolean.TRUE.equals(ordersViewModel.getLoading().getValue())) return;
+            renderOrders(value);
+        });
+        ordersViewModel.getError().observe(getViewLifecycleOwner(), message -> {
+            if (message == null) return;
+            loaded = false;
+            renderReport();
+            setText(R.id.tv_chart_peak_detail, "Không tải được dữ liệu");
+        });
+        ordersViewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
+            if (Boolean.TRUE.equals(loading)) {
+                loaded = false;
+                showUnavailableMetrics();
+            } else if (loading != null && ordersViewModel.getError().getValue() == null) {
+                renderOrders(ordersViewModel.getOrders().getValue());
+            }
+        });
+        ordersViewModel.observeRestaurant(restaurantId);
+    }
+
+    private void renderOrders(List<Order> value) {
+        orders.clear();
+        if (value != null) orders.addAll(value);
+        loaded = true;
+        renderReport();
     }
 
     private void renderReport() {
@@ -337,8 +342,6 @@ public class RestaurantReportFragment extends Fragment {
     private static String value(String text) { return text == null ? "" : text.trim(); }
 
     @Override public void onDestroyView() {
-        if (registration != null) registration.remove();
-        registration = null;
         root = null;
         super.onDestroyView();
     }

@@ -8,9 +8,7 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,25 +17,26 @@ import com.example.foodorderapp.ui.MainActivity;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.adapter.CartAdapter;
-import com.example.foodorderapp.data.database.FoodDatabase;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.data.model.User;
+import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
+import com.example.foodorderapp.feature.customer.cart.CartViewModel;
+import com.example.foodorderapp.feature.restaurant.menu.RestaurantMenuViewModel;
+import com.example.foodorderapp.viewmodel.AuthViewModel;
 import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -78,12 +77,20 @@ public class ShoppingcartFragment extends Fragment {
     private CartAdapter cartAdapter;
     private List<Food> mListFoodCart = new ArrayList<>();
 
-    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private OrdersViewModel ordersViewModel;
+    private AuthViewModel authViewModel;
+    private RestaurantMenuViewModel menuViewModel;
+    private CartViewModel cartViewModel;
+    private String restaurantAddressSnapshot = "";
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_shoppingcart, container, false);
+        ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
+        authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
+        menuViewModel = new ViewModelProvider(this).get(RestaurantMenuViewModel.class);
+        cartViewModel = new ViewModelProvider(this).get(CartViewModel.class);
 
         initViews(view);
         prefillCustomerInfo();
@@ -160,20 +167,10 @@ public class ShoppingcartFragment extends Fragment {
             tvCustomerName.setText(currentUser.getDisplayName());
         }
 
-        db.collection("users")
-                .document(currentUser.getUid())
-                .get()
-                .addOnSuccessListener(this::applyUserProfile)
-                .addOnFailureListener(e -> {
-                });
+        authViewModel.getCurrentUserProfile().addOnSuccessListener(this::applyUserProfile);
     }
 
-    private void applyUserProfile(DocumentSnapshot document) {
-        if (document == null || !document.exists()) {
-            return;
-        }
-
-        User profile = document.toObject(User.class);
+    private void applyUserProfile(User profile) {
         if (profile == null) {
             return;
         }
@@ -199,7 +196,7 @@ public class ShoppingcartFragment extends Fragment {
 
     private void displayListFoodCart() {
         if (getContext() == null) return;
-        mListFoodCart = FoodDatabase.getInstance(requireContext()).foodDao().getListFoodCart();
+        mListFoodCart = cartViewModel.getItems();
         if (mListFoodCart == null) {
             mListFoodCart = new ArrayList<>();
         }
@@ -213,7 +210,7 @@ public class ShoppingcartFragment extends Fragment {
                 }
                 int newCount = count - 1;
                 food.setCount(newCount);
-                FoodDatabase.getInstance(requireContext()).foodDao().updateFood(food);
+                cartViewModel.update(food);
                 cartAdapter.notifyItemChanged(position);
                 calculateTotalPrice();
             }
@@ -222,14 +219,14 @@ public class ShoppingcartFragment extends Fragment {
             public void onClickPlusFood(Food food, int position) {
                 int newCount = food.getCount() + 1;
                 food.setCount(newCount);
-                FoodDatabase.getInstance(requireContext()).foodDao().updateFood(food);
+                cartViewModel.update(food);
                 cartAdapter.notifyItemChanged(position);
                 calculateTotalPrice();
             }
 
             @Override
             public void onClickDeleteFood(Food food, int position) {
-                FoodDatabase.getInstance(requireContext()).foodDao().deleteFood(food);
+                cartViewModel.delete(food);
                 mListFoodCart.remove(position);
                 cartAdapter.notifyItemRemoved(position);
                 calculateTotalPrice();
@@ -252,20 +249,15 @@ public class ShoppingcartFragment extends Fragment {
             return;
         }
 
-        db.collection("restaurants")
-                .document(resId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot != null && documentSnapshot.exists()) {
-                        String name = documentSnapshot.getString("name");
-                        if (!TextUtils.isEmpty(name)) {
-                            tvRestaurantName.setText(name);
-                            return;
-                        }
-                    }
-                    tvRestaurantName.setText("Nhà hàng đối tác");
-                })
-                .addOnFailureListener(e -> tvRestaurantName.setText("Nhà hàng đối tác"));
+        menuViewModel.getRestaurant(resId, (restaurant, error) -> {
+            if (restaurant == null) {
+                tvRestaurantName.setText("Chưa cập nhật nhà hàng");
+                restaurantAddressSnapshot = "";
+                return;
+            }
+            tvRestaurantName.setText(TextUtils.isEmpty(restaurant.getName()) ? "Chưa cập nhật nhà hàng" : restaurant.getName());
+            restaurantAddressSnapshot = restaurant.getAddressSnapshotText();
+        });
     }
 
     private void setupActions() {
@@ -293,7 +285,7 @@ public class ShoppingcartFragment extends Fragment {
                 .setTitle("Xóa tất cả")
                 .setMessage("Bạn có chắc muốn xóa tất cả món ăn trong giỏ hàng không?")
                 .setPositiveButton("Xóa tất cả", (dialog, which) -> {
-                    FoodDatabase.getInstance(requireContext()).foodDao().deleteAllFood();
+                    cartViewModel.clear();
                     mListFoodCart.clear();
                     cartAdapter.notifyDataSetChanged();
                     calculateTotalPrice();
@@ -356,7 +348,7 @@ public class ShoppingcartFragment extends Fragment {
                 updates.put("displayName", newName);
                 updates.put("phone", newPhone);
                 updates.put("address", newAddress);
-                db.collection("users").document(currentUser.getUid()).update(updates);
+                authViewModel.updateFields(currentUser.getUid(), updates);
             }
 
             dialog.dismiss();
@@ -391,39 +383,44 @@ public class ShoppingcartFragment extends Fragment {
 
         String restaurantId = mListFoodCart.get(0).getRestaurantId();
         if (TextUtils.isEmpty(restaurantId)) {
-            // Default restaurant ID fallback
-            restaurantId = "default_restaurant";
+            Toast.makeText(getContext(), "Một món trong giỏ hàng chưa được gắn với nhà hàng hợp lệ", Toast.LENGTH_LONG).show();
+            return;
         }
 
         for (Food food : mListFoodCart) {
-            if (!TextUtils.isEmpty(food.getRestaurantId()) && !TextUtils.isEmpty(restaurantId) && !restaurantId.equals(food.getRestaurantId())) {
+            if (TextUtils.isEmpty(food.getRestaurantId())) {
+                Toast.makeText(getContext(), "Một món trong giỏ hàng chưa được gắn với nhà hàng hợp lệ", Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (!restaurantId.equals(food.getRestaurantId())) {
                 Toast.makeText(getContext(), "Chỉ hỗ trợ đặt món trong cùng một nhà hàng", Toast.LENGTH_LONG).show();
                 return;
             }
         }
 
-        Order order = buildOrder(currentUser.getUid(), restaurantId, customerName, customerPhone, customerAddress, orderNote);
-        String orderId = db.collection("orders").document().getId();
-        order.setOrderId(orderId);
-
-        WriteBatch batch = db.batch();
-        batch.set(db.collection("orders").document(orderId), order);
-        batch.set(db.collection("restaurants").document(restaurantId).collection("orders").document(orderId), order);
-
+        String restaurantName = tvRestaurantName.getText() == null ? "" : tvRestaurantName.getText().toString().trim();
+        if (TextUtils.isEmpty(restaurantName) || TextUtils.isEmpty(restaurantAddressSnapshot)) {
+            Toast.makeText(getContext(), "Nhà hàng chưa có đủ tên hoặc địa chỉ để tạo snapshot đơn hàng", Toast.LENGTH_LONG).show();
+            fetchRestaurantNameIfNeeded();
+            return;
+        }
+        Order order = buildOrder(currentUser.getUid(), restaurantId, restaurantName, restaurantAddressSnapshot,
+                customerName, customerPhone, customerAddress, orderNote);
         btnCheckout.setEnabled(false);
-        batch.commit()
-                .addOnSuccessListener(unused -> {
-                    FoodDatabase.getInstance(requireContext()).foodDao().deleteAllFood();
+        ordersViewModel.createOrder(order, error -> {
+            if (!isAdded()) return;
+            if (error == null) {
+                    cartViewModel.clear();
                     mListFoodCart.clear();
                     cartAdapter.notifyDataSetChanged();
                     calculateTotalPrice();
                     btnCheckout.setEnabled(true);
                     showOrderSuccessDialog(order.getTotalAmount(), customerName);
-                })
-                .addOnFailureListener(e -> {
+            } else {
                     btnCheckout.setEnabled(true);
-                    Toast.makeText(getContext(), "Đặt hàng thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                    Toast.makeText(getContext(), "Đặt hàng thất bại: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void showOrderSuccessDialog(double totalAmount, String recipientName) {
@@ -445,7 +442,8 @@ public class ShoppingcartFragment extends Fragment {
                 .show();
     }
 
-    private Order buildOrder(String customerId, String restaurantId, String customerName,
+    private Order buildOrder(String customerId, String restaurantId, String restaurantName, String restaurantAddress,
+                             String customerName,
                              String customerPhone, String customerAddress, String note) {
         List<CartItem> items = new ArrayList<>();
         double total = 0;
@@ -456,6 +454,7 @@ public class ShoppingcartFragment extends Fragment {
             item.setName(food.getName());
             item.setPrice(food.getNewPrice());
             item.setQuantity(food.getCount());
+            item.setImageUrl(food.getImageUrl());
             items.add(item);
 
             total += food.getNewPrice() * food.getCount();
@@ -467,6 +466,8 @@ public class ShoppingcartFragment extends Fragment {
         order.setCustomerPhone(customerPhone);
         order.setCustomerAddress(customerAddress);
         order.setRestaurantId(restaurantId);
+        order.setRestaurantName(restaurantName);
+        order.setRestaurantAddress(restaurantAddress);
         order.setItems(items);
         order.setTotalAmount(total);
         order.setStatus("pending");

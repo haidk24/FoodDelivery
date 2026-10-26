@@ -13,11 +13,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.ui.restaurant.RestaurantMenuFragment;
 import com.example.foodorderapp.ui.restaurant.RestaurantOrdersFragment;
 import com.example.foodorderapp.ui.restaurant.RestaurantReportFragment;
+import com.example.foodorderapp.feature.restaurant.owner.RestaurantOwnerViewModel;
 import com.example.foodorderapp.utils.RestaurantOrderBadge;
 import com.example.foodorderapp.utils.RestaurantOrderNotifier;
 import com.example.foodorderapp.utils.OrderNotificationPanel;
@@ -25,13 +27,8 @@ import com.example.foodorderapp.utils.RestaurantSession;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 public class RestaurantMainActivity extends AppCompatActivity {
@@ -46,9 +43,7 @@ public class RestaurantMainActivity extends AppCompatActivity {
     private Fragment ordersFragment;
     private Fragment reportFragment;
     private Fragment activeFragment;
-    private FirebaseFirestore db;
-    private ListenerRegistration restaurantRegistration;
-    private ListenerRegistration notificationRegistration;
+    private RestaurantOwnerViewModel ownerViewModel;
     private RestaurantOrderBadge orderBadge;
     private RestaurantOrderNotifier orderNotifier;
     private String restaurantId = "";
@@ -61,8 +56,9 @@ public class RestaurantMainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_restaurant_main);
-        db = FirebaseFirestore.getInstance();
+        ownerViewModel = new ViewModelProvider(this).get(RestaurantOwnerViewModel.class);
         bindChrome();
+        observeRestaurantOwner();
         restoreSessionImmediately();
         initFragments(savedInstanceState);
         setupNavigation();
@@ -198,78 +194,46 @@ public class RestaurantMainActivity extends AppCompatActivity {
     }
 
     private void toggleStatus() {
-        if (restaurantId.isEmpty()) return;
-        boolean isOpen = "Mở cửa".contentEquals(restaurantStatus.getText());
-        db.collection("restaurants").document(restaurantId)
-                .update("status", isOpen ? "closed" : "active")
-                .addOnFailureListener(e -> Toast.makeText(this,
-                        "Không cập nhật được trạng thái quán", Toast.LENGTH_SHORT).show());
+        ownerViewModel.toggleStatus();
     }
 
     private void resolveRestaurant() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
-        if (!restaurantId.isEmpty()) {
-            listenRestaurant(user.getUid(), restaurantId);
-            return;
-        }
-        db.collection("users").document(user.getUid()).get().addOnSuccessListener(document -> {
-            String mapped = document.getString("restaurantId");
-            if (mapped != null && !mapped.trim().isEmpty()) {
-                listenRestaurant(user.getUid(), mapped.trim());
-            } else {
-                db.collection("restaurants").whereEqualTo("ownerId", user.getUid()).limit(1).get()
-                        .addOnSuccessListener(snapshot -> {
-                            if (!snapshot.isEmpty()) {
-                                listenRestaurant(user.getUid(), snapshot.getDocuments().get(0).getId());
-                            }
-                        });
+        ownerViewModel.resolveAndObserve(user.getUid(), restaurantId);
+    }
+
+    private void observeRestaurantOwner() {
+        ownerViewModel.getRestaurantId().observe(this, id -> {
+            if (id == null || id.isEmpty()) return;
+            restaurantId = id;
+            orderBadge.listen(id);
+            orderNotifier.start(id);
+            notifyFragments(id);
+        });
+        ownerViewModel.getRestaurant().observe(this, restaurant -> {
+            if (restaurant == null) return;
+            displayName = restaurant.getName();
+            restaurantName.setText(displayName);
+            restaurantStatus.setText("active".equals(restaurant.getStatus()) ? "Mở cửa" : "Tạm đóng");
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null && restaurantId != null && !restaurantId.isEmpty()) {
+                RestaurantSession.saveRestaurant(this, user.getUid(), restaurantId, displayName, restaurant.getStatus());
             }
         });
-    }
-
-    private void listenRestaurant(String uid, String id) {
-        restaurantId = id;
-        orderBadge.listen(id);
-        orderNotifier.start(id);
-        listenNotifications(id);
-        notifyFragments(id);
-        if (restaurantRegistration != null) restaurantRegistration.remove();
-        restaurantRegistration = db.collection("restaurants").document(id).addSnapshotListener((doc, error) -> {
-            if (error != null || doc == null || !doc.exists()) return;
-            String name = doc.getString("name");
-            String status = doc.getString("status");
-            displayName = name == null ? "" : name.trim();
-            restaurantName.setText(displayName);
-            restaurantStatus.setText("active".equals(status) ? "Mở cửa" : "Tạm đóng");
-            RestaurantSession.saveRestaurant(this, uid, id, displayName, status);
+        ownerViewModel.getNotifications().observe(this, orders -> {
+            notifications.clear();
+            if (orders != null) notifications.addAll(orders);
+            int unread = 0;
+            for (com.example.foodorderapp.data.model.Order order : notifications) {
+                if (com.example.foodorderapp.data.model.Order.STATUS_PENDING.equals(
+                        com.example.foodorderapp.data.model.Order.normalizeStatus(order.getStatus()))) unread++;
+            }
+            updateNotificationBadge(unread);
         });
-    }
-
-    private void listenNotifications(String id) {
-        if (notificationRegistration != null) notificationRegistration.remove();
-        notificationRegistration = db.collection("restaurants").document(id).collection("orders")
-                .addSnapshotListener((snapshot, error) -> {
-                    if (error != null || snapshot == null) return;
-                    notifications.clear();
-                    int unread = 0;
-                    for (QueryDocumentSnapshot doc : snapshot) {
-                        com.example.foodorderapp.data.model.Order order = doc.toObject(com.example.foodorderapp.data.model.Order.class);
-                        if (order == null) continue;
-                        order.setOrderId(doc.getId());
-                        notifications.add(order);
-                        if (com.example.foodorderapp.data.model.Order.STATUS_PENDING.equals(
-                                com.example.foodorderapp.data.model.Order.normalizeStatus(order.getStatus()))) unread++;
-                    }
-                    Collections.sort(notifications, (a, b) -> compareNotificationDates(a.getCreatedAt(), b.getCreatedAt()));
-                    updateNotificationBadge(unread);
-                });
-    }
-
-    private int compareNotificationDates(Date first, Date second) {
-        if (first != null && second != null) return second.compareTo(first);
-        if (first != null) return -1;
-        return second != null ? 1 : 0;
+        ownerViewModel.getError().observe(this, message -> {
+            if (message != null && !message.isEmpty()) Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void updateNotificationBadge(int unread) {
@@ -322,8 +286,6 @@ public class RestaurantMainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if (restaurantRegistration != null) restaurantRegistration.remove();
-        if (notificationRegistration != null) notificationRegistration.remove();
         if (orderBadge != null) orderBadge.stop();
         if (orderNotifier != null) orderNotifier.stop();
         super.onDestroy();

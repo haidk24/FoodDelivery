@@ -51,7 +51,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
-                android:text="#LmwW5F6"
+                android:text="#—"
                 android:textColor="@color/colorTextPrimary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -199,7 +199,7 @@
                             android:fontFamily="sans-serif-medium"
                             android:paddingHorizontal="6dp"
                             android:paddingVertical="2dp"
-                            android:text="Tài xế An"
+                            android:text="Tài xế"
                             android:textColor="@color/colorTertiary"
                             android:textSize="10sp"
                             android:textStyle="bold" />
@@ -266,7 +266,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="6dp"
                             android:fontFamily="sans-serif-medium"
-                            android:text="Tài xế cách bạn 1.2 km • ~8 phút nữa"
+                            android:text="Đang cập nhật trạng thái giao hàng"
                             android:textColor="@color/colorTextPrimary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -324,7 +324,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="sans-serif-medium"
-                                android:text="Nguyễn Văn An"
+                                android:text="Chưa có thông tin tài xế"
                                 android:textColor="@color/colorTextPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -335,7 +335,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif"
-                                android:text="29B1 - 884.21 • Honda Vision"
+                                android:text="Thông tin tài xế sẽ hiển thị khi được phân công"
                                 android:textColor="@color/colorTextSecondary"
                                 android:textSize="12sp" />
 
@@ -344,7 +344,8 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif-medium"
-                                android:text="★ 4.9 • 1,240 chuyến giao thành công"
+                                android:visibility="gone"
+                                android:text=""
                                 android:textColor="@color/colorSecondary"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -468,7 +469,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:fontFamily="sans-serif-medium"
-                                    android:text="Đã tiếp nhận đơn hàng"
+                                    android:text="Đang tải trạng thái"
                                     android:textColor="@color/colorTextPrimary"
                                     android:textSize="13sp"
                                     android:textStyle="bold" />
@@ -479,7 +480,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
                                     android:fontFamily="sans-serif"
-                                    android:text="20:05 • Quán đã nhận và duyệt đơn"
+                                    android:text="—"
                                     android:textColor="@color/colorTextSecondary"
                                     android:textSize="11sp" />
                             </LinearLayout>
@@ -523,7 +524,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:fontFamily="sans-serif-medium"
-                                    android:text="Quán đang chế biến món ăn"
+                                    android:text="Đang tải trạng thái"
                                     android:textColor="@color/colorTextPrimary"
                                     android:textSize="13sp"
                                     android:textStyle="bold" />
@@ -534,7 +535,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
                                     android:fontFamily="sans-serif"
-                                    android:text="20:08 • Món ăn được chuẩn bị nóng sốt"
+                                    android:text="—"
                                     android:textColor="@color/colorTextSecondary"
                                     android:textSize="11sp" />
                             </LinearLayout>
@@ -578,7 +579,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:fontFamily="sans-serif-medium"
-                                    android:text="Tài xế đang giao đến bạn"
+                                    android:text="Đang tải trạng thái"
                                     android:textColor="@color/colorPrimary"
                                     android:textSize="13sp"
                                     android:textStyle="bold" />
@@ -589,7 +590,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
                                     android:fontFamily="sans-serif"
-                                    android:text="Dự kiến 20:25 • Đang giao tới Cầu Giấy"
+                                    android:text="—"
                                     android:textColor="@color/colorTextSecondary"
                                     android:textSize="11sp" />
                             </LinearLayout>
@@ -681,7 +682,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="sans-serif-medium"
-                                android:text="Hai's Restaurant"
+                                android:text="Đang tải nhà hàng"
                                 android:textColor="@color/colorTextPrimary"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
@@ -694,7 +695,7 @@
                                 android:ellipsize="end"
                                 android:fontFamily="sans-serif"
                                 android:maxLines="1"
-                                android:text="1x Sashimi Nhật Bản"
+                                android:text="Đang tải món"
                                 android:textColor="@color/colorTextSecondary"
                                 android:textSize="12sp" />
                         </LinearLayout>
@@ -704,7 +705,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="sans-serif-medium"
-                            android:text="69.000 đ"
+                            android:text="—"
                             android:textColor="@color/colorPrimary"
                             android:textSize="15sp"
                             android:textStyle="bold" />

@@ -12,7 +12,6 @@ import android.util.Base64;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,13 +21,14 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.FoodCategory;
+import com.example.foodorderapp.feature.restaurant.menu.RestaurantMenuViewModel;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -82,7 +82,7 @@ public class EditFoodActivity extends AppCompatActivity {
     private ProgressBar progressBarSave;
 
     // State & Data
-    private FirebaseFirestore db;
+    private RestaurantMenuViewModel menuViewModel;
     private String currentRestaurantId;
     private String currentFoodId;
     private String oldImageUrl;
@@ -109,7 +109,7 @@ public class EditFoodActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_food);
 
-        db = FirebaseFirestore.getInstance();
+        menuViewModel = new ViewModelProvider(this).get(RestaurantMenuViewModel.class);
 
         initViews();
         bindDataFromIntent();
@@ -243,17 +243,17 @@ public class EditFoodActivity extends AppCompatActivity {
             return;
         }
 
-        db.collection("restaurants").document(currentRestaurantId)
-                .collection("foods").document(currentFoodId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
+        setSavingState(true, "Đang xóa món...");
+        menuViewModel.delete(currentRestaurantId, currentFoodId, error -> {
+            if (error == null) {
                     Toast.makeText(this, "Đã xoá món ăn thành công!", Toast.LENGTH_SHORT).show();
                     setResult(RESULT_OK);
                     finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Lỗi khi xoá: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+            } else {
+                    Toast.makeText(this, "Lỗi khi xoá: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                    setSavingState(false, "Lưu thay đổi");
+            }
+        });
     }
 
     private void setupImagePicker() {
@@ -438,29 +438,9 @@ public class EditFoodActivity extends AppCompatActivity {
             return;
         }
 
-        String uid = user.getUid();
-        db.collection("users").document(uid).get().addOnSuccessListener(doc -> {
-            String rId = doc.getString("restaurantId");
-            if (rId != null && !rId.trim().isEmpty()) {
-                currentRestaurantId = rId.trim();
-            } else {
-                db.collection("restaurants").whereEqualTo("ownerId", uid).limit(1).get()
-                        .addOnSuccessListener(snap -> {
-                            if (!snap.isEmpty()) {
-                                currentRestaurantId = snap.getDocuments().get(0).getId();
-                            } else {
-                                currentRestaurantId = "";
-                                Toast.makeText(this, "Không tìm thấy nhà hàng của tài khoản này", Toast.LENGTH_LONG).show();
-                            }
-                        })
-                        .addOnFailureListener(e -> {
-                            currentRestaurantId = "";
-                            Toast.makeText(this, "Không tải được thông tin nhà hàng", Toast.LENGTH_LONG).show();
-                        });
-            }
-        }).addOnFailureListener(e -> {
-            currentRestaurantId = "";
-            Toast.makeText(this, "Không tải được tài khoản nhà hàng", Toast.LENGTH_LONG).show();
+        menuViewModel.resolveRestaurantId(user.getUid(), (restaurantId, error) -> {
+            currentRestaurantId = restaurantId;
+            if (error != null) Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
 
@@ -558,18 +538,16 @@ public class EditFoodActivity extends AppCompatActivity {
             updates.put("imageUrl", finalImageUrl);
         }
 
-        db.collection("restaurants").document(currentRestaurantId)
-                .collection("foods").document(currentFoodId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
+        menuViewModel.update(currentRestaurantId, currentFoodId, updates, error -> {
+            if (error == null) {
                     Toast.makeText(this, "Đã cập nhật món \"" + name + "\" thành công!", Toast.LENGTH_SHORT).show();
                     setResult(RESULT_OK);
                     finish();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Lỗi cập nhật: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            } else {
+                    Toast.makeText(this, "Lỗi cập nhật: " + error.getMessage(), Toast.LENGTH_SHORT).show();
                     setSavingState(false, "Lưu thay đổi");
-                });
+            }
+        });
     }
 
     private void setSavingState(boolean isSaving, String message) {

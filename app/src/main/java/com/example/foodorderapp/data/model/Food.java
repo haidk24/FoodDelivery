@@ -1,16 +1,8 @@
 package com.example.foodorderapp.data.model;
 
-import androidx.annotation.NonNull;
-import androidx.room.Entity;
-import androidx.room.Ignore;
-import androidx.room.PrimaryKey;
-
 import java.io.Serializable;
 
-@Entity(tableName = "foods")
 public class Food implements Serializable {
-    @PrimaryKey
-    @NonNull
     private String foodId = "";
     private String name;
     private String description;
@@ -161,19 +153,16 @@ public class Food implements Serializable {
         this.count = Math.max(count, 0);
     }
 
-    @Ignore
     public Food(String foodId, String name, String description, double price, String imageUrl, String category, boolean isAvailable, int orderCount) {
         this(foodId, name, description, price, imageUrl, category, isAvailable, orderCount, price, price, 0, null);
     }
 
-    @Ignore
     public Food(String foodId, String name, String description, double price, String imageUrl,
                 String category, boolean isAvailable, int orderCount,
                 double oldPrice, double newPrice, int discountPercent) {
         this(foodId, name, description, price, imageUrl, category, isAvailable, orderCount, oldPrice, newPrice, discountPercent, null);
     }
 
-    @Ignore
     public Food(String foodId, String name, String description, double price, String imageUrl,
                 String category, boolean isAvailable, int orderCount,
                 double oldPrice, double newPrice, int discountPercent, String restaurantId) {

@@ -6,9 +6,9 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-import com.example.foodorderapp.data.model.Food;
+import com.example.foodorderapp.data.local.entity.CartFoodEntity;
 
-@Database(entities = {Food.class}, version = 3, exportSchema = false)
+@Database(entities = {CartFoodEntity.class}, version = 4, exportSchema = false)
 public abstract class FoodDatabase extends RoomDatabase {
     private static final String DATABASE_NAME = "food.db";
     private static FoodDatabase instance;

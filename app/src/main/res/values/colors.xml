@@ -4,22 +4,17 @@
     <!-- Base -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="transparent">#00000000</color>
 
     <!-- ===== Stitch Brand Primary (Warm Food Terracotta / Orange) ===== -->
     <color name="colorPrimary">#AC2D00</color>
     <color name="colorPrimaryDark">#872100</color>
-    <color name="colorPrimaryLight">#FFB5A0</color>
     <color name="colorPrimaryContainer">#D43F0E</color>
     <color name="colorPrimaryFixed">#FFDBD1</color>
     <color name="colorOnPrimaryFixedVariant">#872100</color>
-    <color name="colorOnPrimary">#FFFFFFFF</color>
-    <color name="colorOnPrimaryContainer">#FFFFFFFF</color>
 
     <!-- ===== Stitch Secondary (Warm Amber / Caramel) ===== -->
     <color name="colorSecondary">#835400</color>
     <color name="colorSecondaryContainer">#FDA600</color>
-    <color name="colorSecondaryFixed">#FFDDB5</color>
     <color name="colorSecondaryBanner">#FFF4EB</color>
     <color name="colorOnSecondaryFixed">#2A1800</color>
     <color name="colorOnSecondaryFixedVariant">#643F00</color>
@@ -32,8 +27,6 @@
 
     <!-- ===== Stitch Canvas & Surface (Clean Light Modern) ===== -->
     <color name="colorBackground">#F9F9FF</color>
-    <color name="colorBackground_90">#F2F9F9FF</color>
-    <color name="colorCardBackground">#FFFFFFFF</color>
     <color name="colorSurfaceLow">#F0F3FF</color>
     <color name="colorSurfaceContainer">#E7EEFF</color>
     <color name="colorSurfaceContainerHigh">#DEE8FF</color>
@@ -44,14 +37,12 @@
     <color name="colorTextPrimary">#111C2D</color>
     <color name="colorTextSecondary">#5B4139</color>
     <color name="colorTextMuted">#8F7068</color>
-    <color name="colorBorder">#E7EEFF</color>
     <color name="border_color">#E7EEFF</color>
     <color name="divider_subtle">#F0F3FF</color>
 
     <!-- ===== Navigation Bar ===== -->
     <color name="colorBottomNav">#FFFFFFFF</color>
     <color name="nav_item_checked_bg">#1AAC2D00</color>
-    <color name="toolbar_title">#111C2D</color>
 
     <!-- ===== Badges & Chips ===== -->
     <color name="badge_amber_bg">#FFDDB5</color>
@@ -61,25 +52,14 @@
     <color name="badge_red_bg">#FFDAD6</color>
     <color name="badge_red_text">#93000A</color>
     <color name="badge_blue_bg">#E7EEFF</color>
-    <color name="badge_blue_text">#111C2D</color>
-    <color name="badge_purple_bg">#EEEDFE</color>
-    <color name="badge_purple_text">#3C3489</color>
 
     <!-- ===== Specific UI Elements ===== -->
     <color name="star_yellow">#FFA800</color>
-    <color name="star_empty">#D8E3FB</color>
     <color name="error">#BA1A1A</color>
     <color name="colorError">#BA1A1A</color>
-    <color name="colorErrorContainer">#FFDAD6</color>
     <color name="colorSurface">#F9F9FF</color>
     <color name="colorOutlineVariant">#E3BEB5</color>
 
-    <!-- ===== Legacy compatibility aliases for Admin and Review screens ===== -->
-    <color name="background_gray">#F5F5F5</color>
-    <color name="text_primary">#212121</color>
-    <color name="color_primary">#FF6200EE</color>
-    <color name="text_secondary">#757575</color>
+    <!-- ===== Shared neutral ===== -->
     <color name="gray">#FF9E9E9E</color>
-    <color name="gray_light">#FFF5F5F5</color>
-    <color name="primary_blue">#1A3C8F</color>
 </resources>
