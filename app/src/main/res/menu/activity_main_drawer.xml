@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@drawable/ic_home"
+            android:title="@string/menu_home" />
+        <item
+            android:id="@+id/nav_cart"
+            android:icon="@drawable/ic_shopping_cart"
+            android:title="@string/menu_cart" />
+        <item
+            android:id="@+id/nav_myorder"
+            android:icon="@drawable/ic_order"
+            android:title="@string/menu_myorder" />
+        <item
+            android:id="@+id/nav_profile"
+            android:icon="@drawable/ic_person"
+            android:title="Thông tin tài khoản" />
+        <item
+            android:id="@+id/nav_replacepassword"
+            android:icon="@drawable/ic_replace_password"
+            android:title="@string/menu_replace_password" />
+        <item
+            android:id="@+id/nav_register_restaurant"
+            android:icon="@android:drawable/ic_menu_add"
+            android:title="Đăng ký nhà hàng" />
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@drawable/ic_logout"
+            android:title="@string/menu_logout" />
+
+    </group>
+</menu>

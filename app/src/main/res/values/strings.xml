@@ -1,3 +1,32 @@
 <resources>
-    <string name="app_name">FoodOrderApp</string>
+    <string name="app_name">Food Order Pro</string>
+    <string name="signup_title">Đăng ký</string>
+    <string name="signup_subtitle">Tạo tài khoản mới để đặt món nhanh hơn</string>
+    <string name="signup_hint_full_name">Họ và tên</string>
+    <string name="signup_hint_email">Email</string>
+    <string name="signup_hint_password">Mật khẩu</string>
+    <string name="signup_hint_confirm_password">Nhập lại mật khẩu</string>
+    <string name="signup_create_account">Tạo tài khoản</string>
+    <string name="signup_with_social">Hoặc đăng ký với</string>
+    <string name="signup_google">Google</string>
+    <string name="signup_facebook">Facebook</string>
+    <string name="signup_login_prompt">Đã có tài khoản? Đăng nhập</string>
+    <string name="signin_title">Đăng nhập</string>
+    <string name="signin_subtitle">Đăng nhập để tiếp tục đặt món nhanh hơn</string>
+    <string name="signin_hint_email">Email</string>
+    <string name="signin_hint_password">Mật khẩu</string>
+    <string name="signin_button">Đăng nhập</string>
+    <string name="signin_with_social">Hoặc đăng nhập với</string>
+    <string name="signin_signup_prompt">Chưa có tài khoản? Đăng ký ngay</string>
+    <string name="navigation_drawer_open">Mở menu điều hướng</string>
+    <string name="navigation_drawer_close">Đóng menu điều hướng</string>
+    <string name="nav_header_title">Food Order Pro</string>
+    <string name="nav_header_subtitle">Xin chào bạn!</string>
+    <string name="menu_home">Trang chủ</string>
+    <string name="menu_cart">Giỏ hàng</string>
+    <string name="menu_myorder">Đơn hàng</string>
+    <string name="menu_logout">Đăng xuất</string>
+    <string name="menu_replace_password">Đổi mật khẩu</string>
+
+    <string name="home_category_all">Tất cả</string>
 </resources>

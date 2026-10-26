@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_dashboard"
+        android:icon="@drawable/ic_dashboard"
+        android:title="Tổng quan" />
+
+    <item
+        android:id="@+id/nav_restaurants"
+        android:icon="@drawable/ic_storefront"
+        android:title="Phê duyệt" />
+
+    <item
+        android:id="@+id/nav_users"
+        android:icon="@drawable/ic_people"
+        android:title="Người dùng" />
+
+    <item
+        android:id="@+id/nav_report"
+        android:icon="@drawable/ic_chart"
+        android:title="Báo cáo" />
+
+</menu>

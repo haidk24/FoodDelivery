@@ -1,5 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- colors.xml — Stitch Warm Culinary Modern palette (Project: App UI Redesign) -->
 <resources>
+    <!-- Base -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- ===== Stitch Brand Primary (Warm Food Terracotta / Orange) ===== -->
+    <color name="colorPrimary">#AC2D00</color>
+    <color name="colorPrimaryDark">#872100</color>
+    <color name="colorPrimaryContainer">#D43F0E</color>
+    <color name="colorPrimaryFixed">#FFDBD1</color>
+    <color name="colorOnPrimaryFixedVariant">#872100</color>
+
+    <!-- ===== Stitch Secondary (Warm Amber / Caramel) ===== -->
+    <color name="colorSecondary">#835400</color>
+    <color name="colorSecondaryContainer">#FDA600</color>
+    <color name="colorSecondaryBanner">#FFF4EB</color>
+    <color name="colorOnSecondaryFixed">#2A1800</color>
+    <color name="colorOnSecondaryFixedVariant">#643F00</color>
+    <color name="colorAccent">#FDA600</color>
+
+    <!-- ===== Stitch Tertiary (Mint / Fresh Herb Green) ===== -->
+    <color name="colorTertiary">#006947</color>
+    <color name="colorTertiaryFixed">#6FFBBE</color>
+    <color name="colorOnTertiaryFixedVariant">#005236</color>
+
+    <!-- ===== Stitch Canvas & Surface (Clean Light Modern) ===== -->
+    <color name="colorBackground">#F9F9FF</color>
+    <color name="colorSurfaceLow">#F0F3FF</color>
+    <color name="colorSurfaceContainer">#E7EEFF</color>
+    <color name="colorSurfaceContainerHigh">#DEE8FF</color>
+    <color name="colorSurfaceContainerHighest">#D8E3FB</color>
+    <color name="surface_elevated">#FFFFFFFF</color>
+
+    <!-- ===== Stitch Typography Colors ===== -->
+    <color name="colorTextPrimary">#111C2D</color>
+    <color name="colorTextSecondary">#5B4139</color>
+    <color name="colorTextMuted">#8F7068</color>
+    <color name="border_color">#E7EEFF</color>
+    <color name="divider_subtle">#F0F3FF</color>
+
+    <!-- ===== Navigation Bar ===== -->
+    <color name="colorBottomNav">#FFFFFFFF</color>
+    <color name="nav_item_checked_bg">#1AAC2D00</color>
+
+    <!-- ===== Badges & Chips ===== -->
+    <color name="badge_amber_bg">#FFDDB5</color>
+    <color name="badge_amber_text">#643F00</color>
+    <color name="badge_green_bg">#6FFBBE</color>
+    <color name="badge_green_text">#005236</color>
+    <color name="badge_red_bg">#FFDAD6</color>
+    <color name="badge_red_text">#93000A</color>
+    <color name="badge_blue_bg">#E7EEFF</color>
+
+    <!-- ===== Specific UI Elements ===== -->
+    <color name="star_yellow">#FFA800</color>
+    <color name="error">#BA1A1A</color>
+    <color name="colorError">#BA1A1A</color>
+    <color name="colorSurface">#F9F9FF</color>
+    <color name="colorOutlineVariant">#E3BEB5</color>
+
+    <!-- ===== Shared neutral ===== -->
+    <color name="gray">#FF9E9E9E</color>
 </resources>

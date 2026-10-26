@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <!-- Màu nền xanh lá (Material Green) -->
+    <solid android:color="#4CAF50" />
+
+    <!-- Nếu bạn muốn có thêm viền trắng cho avatar (không bắt buộc) -->
+    <stroke
+        android:width="2dp"
+        android:color="#FFFFFF" />
+
+    <!-- Kích thước mặc định (sẽ tự co giãn theo View) -->
+    <size
+        android:width="100dp"
+        android:height="100dp" />
+</shape>
