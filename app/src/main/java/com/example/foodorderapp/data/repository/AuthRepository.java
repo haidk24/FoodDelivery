@@ -1,6 +1,6 @@
 package com.example.foodorderapp.data.repository;
 
-import com.example.foodorderapp.data.dataSource.firebase.AuthFirebaseDataSource;
+import com.example.foodorderapp.data.remote.firebase.AuthFirebaseDataSource;
 import com.example.foodorderapp.data.model.User;
 import com.google.android.gms.tasks.Task;
 

@@ -3,7 +3,7 @@ package com.example.foodorderapp.feature.restaurant.menu;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import com.example.foodorderapp.data.dataSource.firebase.FoodFirebaseDataSource;
+import com.example.foodorderapp.data.remote.firebase.FoodFirebaseDataSource;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.data.repository.FoodRepository;
 import com.google.firebase.firestore.ListenerRegistration;

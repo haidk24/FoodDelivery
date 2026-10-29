@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F9F9FF"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:id="@+id/restaurant_screen_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_marginBottom="64dp">
+
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <!-- 1. Top Bar: Restaurant Identity & Actions                     -->
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/restaurant_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="86dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="10dp"
+            android:background="@color/white">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_restaurant_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text=""
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#111C2D" />
+
+                    <!-- Status Pill: Mở cửa -->
+                    <LinearLayout
+                        android:id="@+id/layout_status_pill"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:minWidth="64dp"
+                        android:background="@drawable/bg_pill_restaurant_open"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp">
+
+                        <View
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_badge_dot"
+                            android:backgroundTint="#16A34A"
+                            android:layout_marginEnd="4dp" />
+
+                        <TextView
+                            android:id="@+id/tv_restaurant_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text=""
+                            android:textColor="#16A34A"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_restaurant_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Quản lý đơn hàng"
+                    android:textSize="12sp"
+                    android:textColor="#64748B" />
+            </LinearLayout>
+
+            <!-- Notifications Bell with Red Dot -->
+            <FrameLayout
+                android:id="@+id/btn_notifications"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_notifications"
+                    app:tint="#1E293B" />
+
+                <View
+                    android:id="@+id/view_notification_dot"
+                    android:visibility="gone"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_badge_dot"
+                    android:backgroundTint="#EF4444" />
+            </FrameLayout>
+
+            <!-- User Avatar Circle -->
+            <FrameLayout
+                android:id="@+id/btn_profile"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_circle_avatar_orange"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_person"
+                    app:tint="@color/white" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Divider Line -->
+        <View
+            android:id="@+id/restaurant_top_divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#EAEFF5" />
+
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <!-- 2. Search Bar + Sound Button + Tune Filter Button             -->
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_search_input_gray"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_search"
+                    app:tint="#94A3B8" />
+
+                <EditText
+                    android:id="@+id/et_search_order"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:background="@null"
+                    android:hint="#Mã đơn hoặc tên khách..."
+                    android:textColor="#0F172A"
+                    android:textColorHint="#94A3B8"
+                    android:textSize="13sp"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text" />
+
+                <ImageView
+                    android:id="@+id/btn_clear_search"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_close"
+                    app:tint="#94A3B8"
+                    android:visibility="gone"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </LinearLayout>
+
+
+            <!-- Tune Filter Button -->
+            <FrameLayout
+                android:id="@+id/btn_filter_tune"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_square_icon_tune"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_tune"
+                    app:tint="#475569" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <!-- 3. Status Filter Chips (Horizontal Scroll)                   -->
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            android:paddingVertical="4dp">
+
+            <LinearLayout
+                android:id="@+id/layout_status_chips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <!-- Tất cả -->
+                <TextView
+                    android:id="@+id/chip_all"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_chip_category_selected"
+                    android:gravity="center"
+                    android:paddingHorizontal="16dp"
+                    android:text="Tất cả"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <!-- Chờ xác nhận -->
+                <TextView
+                    android:id="@+id/chip_pending"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_chip_category_unselected"
+                    android:gravity="center"
+                    android:paddingHorizontal="16dp"
+                    android:text="Chờ xác nhận"
+                    android:textColor="#334155"
+                    android:textSize="12sp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <!-- Đang chuẩn bị -->
+                <TextView
+                    android:id="@+id/chip_preparing"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_chip_category_unselected"
+                    android:gravity="center"
+                    android:paddingHorizontal="16dp"
+                    android:text="Đang chuẩn bị"
+                    android:textColor="#334155"
+                    android:textSize="12sp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <!-- Đang giao hàng -->
+                <TextView
+                    android:id="@+id/chip_delivering"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_chip_category_unselected"
+                    android:gravity="center"
+                    android:paddingHorizontal="16dp"
+                    android:text="Đang giao hàng"
+                    android:textColor="#334155"
+                    android:textSize="12sp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <!-- Đã hoàn thành -->
+                <TextView
+                    android:id="@+id/chip_completed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_chip_category_unselected"
+                    android:gravity="center"
+                    android:paddingHorizontal="16dp"
+                    android:text="Đã hoàn thành"
+                    android:textColor="#334155"
+                    android:textSize="12sp"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <!-- 4. Alert / Summary Banner: Cần xử lý ngay                    -->
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/layout_alert_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_alert_orders_summary"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_pill_discount_orange"
+                android:layout_marginEnd="10dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_notifications"
+                    app:tint="#D97706" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cần xử lý ngay"
+                    android:textSize="11sp"
+                    android:textColor="#64748B" />
+
+                <TextView
+                    android:id="@+id/tv_urgent_orders_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 đơn mới"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#0F172A" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <!-- 5. Orders RecyclerView / Empty State / Progress Bar           -->
+        <!-- ════════════════════════════════════════════════════════════ -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvOrders"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp" />
+
+            <!-- Empty State -->
+            <LinearLayout
+                android:id="@+id/layout_empty_orders"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:src="@drawable/ic_receipt_long"
+                    app:tint="#CBD5E1" />
+
+                <TextView
+                    android:id="@+id/tv_empty_orders_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Chưa có đơn hàng nào"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#1E293B" />
+
+                <TextView
+                    android:id="@+id/tv_empty_orders_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Các đơn hàng mới sẽ xuất hiện tại đây"
+                    android:textSize="13sp"
+                    android:textColor="#64748B" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminateTint="#C2410C"
+                android:visibility="gone" />
+        </FrameLayout>
+
+    </LinearLayout>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- 7. Bottom Navigation Bar for Restaurant Role                 -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigationView"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_gravity="bottom"
+        android:background="@color/white"
+        app:elevation="8dp"
+        app:itemActiveIndicatorStyle="@null"
+        app:itemRippleColor="@android:color/transparent"
+        app:itemIconTint="@color/bottom_nav_selector"
+        app:itemTextColor="@color/bottom_nav_selector"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/restaurant_bottom_navigation" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

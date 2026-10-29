@@ -18,8 +18,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.CartItem;
 import com.example.foodorderapp.data.model.Order;
-import com.example.foodorderapp.feature.orders.viewmodel.OrdersViewModel;
-import com.example.foodorderapp.ui.RestaurantMainActivity;
+import com.example.foodorderapp.feature.orders.OrdersViewModel;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -64,7 +63,7 @@ public class RestaurantReportFragment extends Fragment {
     @Nullable @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle state) {
-        root = inflater.inflate(R.layout.activity_restaurant_report, container, false);
+        root = inflater.inflate(R.layout.fragment_restaurant_report, container, false);
         ordersViewModel = new ViewModelProvider(this).get(OrdersViewModel.class);
         if (getArguments() != null) restaurantId = value(getArguments().getString(ARG_RESTAURANT_ID));
         prepareEmbeddedLayout();

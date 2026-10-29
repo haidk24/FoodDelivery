@@ -1,6 +1,6 @@
 package com.example.foodorderapp.data.repository;
 
-import com.example.foodorderapp.data.dataSource.firebase.OrderFirebaseDataSource;
+import com.example.foodorderapp.data.remote.firebase.OrderFirebaseDataSource;
 import com.example.foodorderapp.data.model.Order;
 import com.example.foodorderapp.data.model.User;
 import com.google.firebase.firestore.ListenerRegistration;

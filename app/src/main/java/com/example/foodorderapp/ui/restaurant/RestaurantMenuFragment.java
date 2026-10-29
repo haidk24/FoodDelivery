@@ -26,9 +26,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.foodorderapp.R;
 import com.example.foodorderapp.data.model.Food;
 import com.example.foodorderapp.feature.restaurant.menu.RestaurantMenuViewModel;
-import com.example.foodorderapp.ui.AddFoodActivity;
-import com.example.foodorderapp.ui.EditFoodActivity;
-import com.example.foodorderapp.ui.adapter.FoodAdapter;
+import com.example.foodorderapp.ui.restaurant.AddFoodActivity;
+import com.example.foodorderapp.ui.restaurant.EditFoodActivity;
+import com.example.foodorderapp.ui.restaurant.adapter.FoodAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +60,7 @@ public class RestaurantMenuFragment extends Fragment {
     @Nullable @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle state) {
-        View root = inflater.inflate(R.layout.activity_menu, container, false);
+        View root = inflater.inflate(R.layout.fragment_restaurant_menu, container, false);
         menuViewModel = new ViewModelProvider(this).get(RestaurantMenuViewModel.class);
         if (getArguments() != null) restaurantId = value(getArguments().getString(ARG_RESTAURANT_ID));
         prepareEmbeddedLayout(root);

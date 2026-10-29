@@ -10,7 +10,7 @@
         android:label="Tổng quan"/>
 
     <fragment android:id="@+id/nav_restaurants"
-        android:name="com.example.foodorderapp.ui.fragment.RestaurantApprovalFragment"
+        android:name="com.example.foodorderapp.ui.admin.RestaurantApprovalFragment"
         android:label="Nhà hàng">
         <action
             android:id="@+id/action_restaurants_to_detail"
@@ -29,7 +29,7 @@
 
     <!-- UserDetail — không có trong bottom nav -->
     <fragment android:id="@+id/nav_user_detail"
-        android:name="com.example.foodorderapp.ui.fragment.UserDetailFragment"
+        android:name="com.example.foodorderapp.ui.admin.UserDetailFragment"
         android:label="Chi tiết người dùng">
         <argument
             android:name="uid"
@@ -38,7 +38,7 @@
 
     <!-- RestaurantDetail -->
     <fragment android:id="@+id/nav_restaurant_detail"
-        android:name="com.example.foodorderapp.ui.fragment.RestaurantDetailFragment"
+        android:name="com.example.foodorderapp.ui.admin.RestaurantDetailFragment"
         android:label="Chi tiết nhà hàng">
         <argument
             android:name="restaurantId"
@@ -46,7 +46,7 @@
     </fragment>
 
     <fragment android:id="@+id/nav_report"
-        android:name="com.example.foodorderapp.ui.fragment.ReportFragment"
+        android:name="com.example.foodorderapp.ui.admin.AdminReportFragment"
         android:label="Báo cáo"/>
 
 </navigation>

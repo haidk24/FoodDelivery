@@ -16,10 +16,10 @@
         android:theme="@style/Theme.FoodOrderApp"
         tools:targetApi="31">
 
-        <activity android:name=".ui.RestaurantMainActivity" android:exported="false" />
+        <activity android:name=".ui.restaurant.RestaurantMainActivity" android:exported="false" />
 
         <activity
-            android:name=".ui.SignInActivity"
+            android:name=".ui.auth.SignInActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,15 +27,15 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.SignUpActivity" android:exported="false" />
-        <activity android:name=".ui.MainActivity" android:exported="true" />
-        <activity android:name=".ui.OrderItemsActivity" android:exported="false" />
-        <activity android:name=".ui.OrderTrackingActivity" android:exported="false" />
-        <activity android:name=".ui.ReviewActivity" android:exported="false" />
-        <activity android:name=".ui.EditFoodActivity" android:exported="true" />
-        <activity android:name=".ui.AddFoodActivity" android:exported="true" />
-        <activity android:name=".ui.activity.FoodDetailActivity" android:exported="false" />
-        <activity android:name=".ui.admin.AdminActivity" android:exported="true" />
+        <activity android:name=".ui.auth.SignUpActivity" android:exported="false" />
+        <activity android:name=".ui.customer.CustomerMainActivity" android:exported="true" />
+        <activity android:name=".ui.customer.OrderDetailActivity" android:exported="false" />
+        <activity android:name=".ui.customer.OrderTrackingActivity" android:exported="false" />
+        <activity android:name=".ui.customer.ReviewActivity" android:exported="false" />
+        <activity android:name=".ui.restaurant.EditFoodActivity" android:exported="true" />
+        <activity android:name=".ui.restaurant.AddFoodActivity" android:exported="true" />
+        <activity android:name=".ui.customer.FoodDetailActivity" android:exported="false" />
+        <activity android:name=".ui.admin.AdminMainActivity" android:exported="true" />
 
     </application>
 

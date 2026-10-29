@@ -7,7 +7,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorBackground"
-    tools:context=".ui.fragment.HomeFragment">
+    tools:context=".ui.customer.HomeFragment">
 
     <!-- ===== FIXED APPBAR: Header + Sticky Search ===== -->
     <com.google.android.material.appbar.AppBarLayout

@@ -2,7 +2,7 @@ package com.example.foodorderapp.data.repository;
 
 import android.content.Context;
 
-import com.example.foodorderapp.data.database.FoodDatabase;
+import com.example.foodorderapp.data.local.database.CartDatabase;
 import com.example.foodorderapp.data.local.entity.CartFoodEntity;
 import com.example.foodorderapp.data.model.Food;
 
@@ -11,14 +11,14 @@ import java.util.List;
 
 /** Local cart boundary. Room remains an implementation detail of the repository. */
 public class CartRepository {
-    private final FoodDatabase database;
+    private final CartDatabase database;
 
     public CartRepository(Context context) {
-        database = FoodDatabase.getInstance(context.getApplicationContext());
+        database = CartDatabase.getInstance(context.getApplicationContext());
     }
 
     public List<Food> getItems() {
-        List<CartFoodEntity> items = database.foodDao().getAll();
+        List<CartFoodEntity> items = database.cartDao().getAll();
         List<Food> result = new ArrayList<>();
         if (items != null) for (CartFoodEntity item : items) result.add(toFood(item));
         return result;
@@ -26,23 +26,23 @@ public class CartRepository {
 
     public void update(Food food) {
         if (food == null) return;
-        database.foodDao().update(toEntity(food));
+        database.cartDao().update(toEntity(food));
     }
     public void addOrIncrement(Food food, int quantity) {
         if (food == null || food.getFoodId() == null || quantity <= 0) return;
         String key = cartKey(food);
-        CartFoodEntity existing = database.foodDao().findByKey(key);
+        CartFoodEntity existing = database.cartDao().findByKey(key);
         if (existing != null) {
             existing.quantity += quantity;
-            database.foodDao().update(existing);
+            database.cartDao().update(existing);
             return;
         }
         CartFoodEntity entity = toEntity(food);
         entity.quantity = quantity;
-        database.foodDao().insert(entity);
+        database.cartDao().insert(entity);
     }
-    public void delete(Food food) { if (food != null) database.foodDao().deleteByKey(cartKey(food)); }
-    public void clear() { database.foodDao().clear(); }
+    public void delete(Food food) { if (food != null) database.cartDao().deleteByKey(cartKey(food)); }
+    public void clear() { database.cartDao().clear(); }
 
     private CartFoodEntity toEntity(Food food) {
         CartFoodEntity entity = new CartFoodEntity();

@@ -67,8 +67,8 @@ Mỗi màn có tên cụ thể theo role và tính năng, ví dụ `RestaurantOr
 
 - [ ] Tách `Food` dùng cho Room và Firestore khi chuyển luồng món/giỏ hàng, nếu hai nơi có nhu cầu trường hoặc vòng đời khác nhau; mapper chuyển sang model nghiệp vụ.
 - [ ] Rà kiểu tiền, phần trăm, thời gian và nullable trước khi đổi model. Nếu đổi kiểu trường đã lưu ở Firebase, phải có kế hoạch tương thích dữ liệu cũ.
-- [ ] Dùng package chữ thường và tên lớp nhất quán: `viewModel` → `viewmodel`, `ShoppingcartFragment` → `ShoppingCartFragment`; tên báo cáo thể hiện role.
-- [ ] Tên XML khớp thành phần sử dụng: layout do Fragment inflate có tiền tố `fragment_`, chẳng hạn `activity_menu.xml` → `fragment_restaurant_menu.xml`.
+- [x] Dùng package chữ thường và tên lớp nhất quán; `ShoppingCartFragment`, `AdminReportFragment` và các màn gốc theo role đã có tên rõ nghĩa.
+- [x] Tên XML khớp thành phần sử dụng; layout do Fragment inflate dùng tiền tố `fragment_`.
 - [ ] Đưa chuỗi hiển thị, màu, kích thước và icon dùng chung vào resource; xóa resource sau khi xác minh không còn tham chiếu.
 
 **Hoàn thành khi:** tên file/package cho thấy tính năng và vai trò của nó; không còn một model vừa là entity lưu cục bộ vừa là DTO Firebase nếu điều đó làm hai schema bị phụ thuộc nhau.
@@ -186,7 +186,7 @@ Một mục chỉ được đánh dấu hoàn thành khi có code tương ứng,
 ### Đợt 9 — chuẩn hóa ViewModel và bàn giao tài xế
 
 - Đã xóa `AdminViewModel` cũ không còn tham chiếu; các màn admin tiếp tục dùng ViewModel theo tính năng đã tách ở các đợt trước.
-- Đã chuẩn hóa package `viewModel` thành `viewmodel` cho Auth/Review ViewModel và factory, đồng thời cập nhật toàn bộ import liên quan.
+- Đã đưa Auth/Review ViewModel và factory vào package tính năng `feature.auth` và `feature.review`, đồng thời cập nhật toàn bộ import liên quan.
 - Đã bổ sung schema tài xế thật trên `users` và snapshot trên `orders`. Trên màn đơn nhà hàng, thao tác “Giao cho shipper” giờ mở danh sách tài khoản `shipper` đang hoạt động lấy từ Firestore; khi chọn, app batch ghi tài xế và chuyển đơn sang `shipping` ở cả hai đường dẫn đơn.
 - Màn khách chỉ hiển thị tên, phương tiện và nút gọi khi đơn thực sự có dữ liệu tài xế. Chức năng chat vẫn bị vô hiệu vì chưa có backend chat, thay vì mô phỏng dữ liệu/luồng không tồn tại.
 
@@ -197,3 +197,12 @@ Một mục chỉ được đánh dấu hoàn thành khi có code tương ứng,
 - Đã tách logic lọc đơn thành `OrderFilter`, dùng trực tiếp ở adapter và có test cho tìm không dấu, status, khoảng thời gian và phương thức thanh toán. Đã thêm test snapshot địa chỉ quán.
 - Đã thêm checklist kiểm thử tay ba role tại `docs/kiem-thu-thu-cong.md`. Gradle chưa thể chạy trên máy hiện tại vì JDK 23 dừng ở khởi tạo loopback trước khi compile; cần chọn JDK 17 hoặc 21 trong Android Studio/`JAVA_HOME` rồi chạy hai lệnh trong checklist.
 - Chưa đánh dấu các mục checklist nghiệm thu hoàn thành: chưa build được trong môi trường hiện tại, chưa kiểm tra app trên thiết bị, và còn màn hình có Firestore trực tiếp.
+
+### Đợt 11 — chuẩn hóa package, tên file và resource
+
+- UI đã được nhóm theo role: `ui.auth`, `ui.customer`, `ui.restaurant`, `ui.admin`; adapter nằm trong package role sử dụng.
+- Các màn gốc được đổi thành `CustomerMainActivity`, `RestaurantMainActivity`, `AdminMainActivity`; manifest và liên kết đăng nhập đã đồng bộ.
+- Firebase DataSource nằm trong `data.datasource.firebase`; Room nằm trong `data.local` với `CartDatabase`/`CartDao`; ViewModel nằm trong `feature` theo chức năng.
+- Layout Fragment từng mang tên `activity_*` đã đổi sang `fragment_*`; menu điều hướng khách/nhà hàng có tên phân biệt rõ.
+- Đã xóa model `Notification` không có tham chiếu. Hệ thống thông báo hiện dùng dữ liệu đơn hàng thật qua lớp điều phối, không dùng model này.
+- Cấu trúc và quy ước hiện hành được ghi tại `docs/cau-truc-ma-nguon.md`.

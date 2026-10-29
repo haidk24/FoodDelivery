@@ -1,5 +1,7 @@
 # Phân tích nghiệp vụ FoodOrderApp — nguồn tham chiếu để vẽ sơ đồ
 
+> Lưu ý: đây là bản phân tích được lập trước đợt chuẩn hóa package. Tên package, class và resource hiện hành được mô tả tại `docs/cau-truc-ma-nguon.md`; khi tra mã nguồn hãy ưu tiên tài liệu đó.
+
 > Cập nhật ngày 12/10/2026 theo nhánh **`fix-login-gg`**, commit **`8335b38ab36ab23ccf6917f7e9f48fbe181ded4e`**. Đây là mốc mã nguồn để AGENTS vẽ sơ đồ; `develop`/`manh` ở commit `513a400` có luồng đăng nhập khác. Tài liệu mô tả **hành vi đang được cài đặt**, không tự suy diễn chức năng mong muốn. Khi mã thay đổi, phải đối chiếu lại. Các đường dẫn tính từ gốc repository.
 
 ## Đọc trước: hệ thống này làm gì và vận hành ra sao?
@@ -226,7 +228,7 @@ Mỗi luồng dưới đây nên là một sơ đồ tuần tự riêng nếu c�
 | `Review` | `reviewId`, `orderId`, `customerId`, `restaurantId`, `rating`, `comment`, `tags[]`, `createdAt`. | Gắn với đúng một đơn/khách/nhà hàng theo các ID. |
 | `Address` | `street`, `ward`, `district`, `city`. | Giá trị nhúng, có thể xuất hiện trong Restaurant và model Order; form đặt hàng hiện dùng chuỗi `customerAddress`. |
 
-`Notification`, `Photo`, `AdminStats`, `ReportStats` có lớp Java. `Notification` chưa thấy luồng ghi/đọc; `Photo` phục vụ ảnh slider; hai lớp `*Stats` là đối tượng tổng hợp cho giao diện. Sơ đồ lớp **nghiệp vụ cốt lõi** nên tập trung `User`, `Restaurant`, `Food`, `Order`, `CartItem`, `Review`, `Address`. Sơ đồ lớp **thiết kế** có thể bổ sung `AuthViewModel/AuthRepository/AuthFirebaseDataSource`, `ReviewViewModel/ReviewRepository`, `AdminViewModel`, `ReportRepository`, `FoodDatabase/FoodDao` và các Activity/Fragment đại diện; tránh ghép toàn bộ lớp giao diện vào một hình quá dày.
+`AdminStats` và `ReportStats` là các đối tượng tổng hợp cho giao diện. Model `Notification` không có luồng sử dụng đã được loại bỏ; thông báo hiện được suy ra từ dữ liệu đơn hàng thật. Sơ đồ lớp **nghiệp vụ cốt lõi** nên tập trung `User`, `Restaurant`, `Food`, `Order`, `CartItem`, `Review`, `Address`. Sơ đồ lớp **thiết kế** có thể bổ sung các ViewModel/Repository/DataSource theo tính năng và `CartDatabase/CartDao`; tránh ghép toàn bộ lớp giao diện vào một hình quá dày.
 
 ### 7.2 Lược đồ lưu trữ thực tế
 
@@ -265,16 +267,17 @@ ERD nên biểu diễn **quan hệ logic** `User 1–N Restaurant`, `User 1–N 
 3. `HomeFragment` đọc mọi document `restaurants` có món rồi lọc theo tên/danh mục; đoạn mã được xem không lọc `status=active` hay `Food.isAvailable`. Không ghi quy tắc “khách chỉ thấy nhà hàng hoạt động/món đang bán” như đã được bảo đảm.
 4. `users.status=banned` có thể được admin ghi nhưng đăng nhập hiện không chặn theo trạng thái này.
 5. `restaurant` và `orders` có các trường gợi ý shipper, thanh toán khác COD và đơn hủy, song chưa có quy trình hoàn chỉnh tương ứng.
-6. Nút gửi thông báo và mục đổi mật khẩu chưa có xử lý nghiệp vụ tương ứng; `Notification` là model chưa có luồng sử dụng. Nút Facebook ở đăng nhập/đăng ký cũng mới là thông báo.
+6. Model `Notification` cũ không có luồng sử dụng đã bị loại bỏ. Nút Facebook ở đăng nhập/đăng ký vẫn chỉ là thông báo giao diện.
 7. Báo cáo đếm `MoMo`, `VNPay`, `cancelled` nếu dữ liệu có sẵn; luồng đặt đơn trong app hiện luôn ghi `COD` và không tạo `cancelled`.
 8. Chỉ mã client được khảo sát. Nếu có Firestore Security Rules, Cloud Functions hoặc tài liệu yêu cầu riêng ngoài repository, cần đối chiếu trước khi kết luận về kiểm soát truy cập ở phía server.
 
 ## 10. Điểm tra cứu mã nguồn
 
-- Xác thực/điều hướng: `app/src/main/java/com/example/foodorderapp/ui/SignInActivity.java`, `SignUpActivity.java`, `data/dataSource/firebase/AuthFirebaseDataSource.java`.
-- Duyệt món/giỏ/đặt hàng: `ui/fragment/HomeFragment.java`, `ui/activity/FoodDetailActivity.java`, `ui/fragment/ShoppingcartFragment.java`, `data/database/FoodDao.java`, `FoodDatabase.java`.
-- Đơn và đánh giá: `ui/OrderDashboardActivity.java`, `ui/adapter/OrderAdapter.java`, `ui/fragment/MyOrderFragment.java`, `ui/OrderItemsActivity.java`, `data/repository/ReviewRepository.java`.
-- Nhà hàng và quản trị: `ui/fragment/RegisterRestaurantFragment.java`, `ui/MenuActivity.java`, `ui/AddFoodActivity.java`, `ui/EditFoodActivity.java`, `viewModel/AdminViewModel.java`, `ui/fragment/UserDetailFragment.java`.
-- Báo cáo/dữ liệu: `data/repository/ReportRepository.java`, `data/model/*.java`, `app/src/main/AndroidManifest.xml`.
+- Xác thực/điều hướng: `ui/auth`, `feature/auth`, `data/datasource/firebase/AuthFirebaseDataSource.java`.
+- Khách hàng: `ui/customer`, `ui/customer/adapter`, `feature/customer`, `feature/orders`.
+- Nhà hàng: `ui/restaurant`, `ui/restaurant/adapter`, `feature/restaurant`.
+- Quản trị: `ui/admin`, `ui/admin/adapter`, `feature/admin`.
+- Dữ liệu: `data/model`, `data/repository`, `data/datasource`, `data/local`.
+- Quy ước đầy đủ: `docs/cau-truc-ma-nguon.md`.
 
 Khi một AGENT tạo sơ đồ, hãy ghi tên sơ đồ, phạm vi use case, các lớp/thực thể đã chọn và commit mã nguồn đối chiếu (`8335b38` cho tài liệu này). Nếu một chi tiết không có trong mã, đánh dấu rõ là **đề xuất mở rộng** thay vì trình bày như hiện trạng.
