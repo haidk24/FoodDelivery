@@ -167,7 +167,9 @@ public class OrderFirebaseDataSource {
         Map<String, Object> updates = new HashMap<>();
         updates.put("status", normalized);
         Date now = new Date();
-        if (Order.STATUS_PREPARING.equals(normalized)) updates.put("confirmedAt", now);
+        if (Order.STATUS_PREPARING.equals(normalized) || Order.STATUS_CONFIRMED.equals(normalized)) {
+            updates.put("confirmedAt", now);
+        }
         else if (Order.STATUS_SHIPPING.equals(normalized)) updates.put("shippingAt", now);
         else if (Order.STATUS_COMPLETED.equals(normalized)) updates.put("deliveredAt", now);
 

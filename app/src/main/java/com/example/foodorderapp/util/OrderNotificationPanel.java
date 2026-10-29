@@ -66,6 +66,12 @@ public final class OrderNotificationPanel {
     }
     private static String shortId(Order order) { String id = order.getOrderId(); return id == null ? "" : id.length() > 8 ? id.substring(0, 8) : id; }
     private static String money(double amount) { return String.format(Locale.getDefault(), "%,.0f đ", amount); }
-    private static String statusText(String status) { if (Order.STATUS_PENDING.equals(status)) return "Đang chờ quán xác nhận"; if (Order.STATUS_PREPARING.equals(status)) return "Quán đang chuẩn bị"; if (Order.STATUS_SHIPPING.equals(status)) return "Đang giao"; if (Order.STATUS_COMPLETED.equals(status)) return "Đã hoàn thành"; return "Đã hủy"; }
+    private static String statusText(String status) {
+        if (Order.STATUS_PENDING.equals(status)) return "Đang chờ quán xác nhận";
+        if (Order.STATUS_PREPARING.equals(status) || Order.STATUS_CONFIRMED.equals(status)) return "Đã xác nhận";
+        if (Order.STATUS_SHIPPING.equals(status)) return "Đang giao";
+        if (Order.STATUS_COMPLETED.equals(status)) return "Đã hoàn thành";
+        return "Đã hủy";
+    }
     private static int dp(Context c, int value) { return Math.round(value * c.getResources().getDisplayMetrics().density); }
 }

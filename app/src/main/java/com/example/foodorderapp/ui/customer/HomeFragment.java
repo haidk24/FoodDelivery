@@ -172,7 +172,7 @@ public class HomeFragment extends Fragment {
                 orderNotifications.add(order);
                 String status = Order.normalizeStatus(order.getStatus());
                 if (Order.STATUS_PENDING.equals(status) || Order.STATUS_PREPARING.equals(status)
-                        || Order.STATUS_SHIPPING.equals(status)) unread++;
+                        || Order.STATUS_CONFIRMED.equals(status) || Order.STATUS_SHIPPING.equals(status)) unread++;
             }
             if (badgeNotification != null) {
                 badgeNotification.setVisibility(unread > 0 ? View.VISIBLE : View.GONE);

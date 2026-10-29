@@ -56,7 +56,9 @@ public final class OrderFilter {
         if (filter.isEmpty() || "Tất cả".equalsIgnoreCase(filter)) return true;
         String status = Order.normalizeStatus(order.getStatus());
         if ("Chờ xác nhận".equalsIgnoreCase(filter)) return Order.STATUS_PENDING.equals(status);
-        if ("Đang chuẩn bị".equalsIgnoreCase(filter)) return Order.STATUS_PREPARING.equals(status);
+        if ("Đã xác nhận".equalsIgnoreCase(filter) || "Đang chuẩn bị".equalsIgnoreCase(filter)) {
+            return Order.STATUS_CONFIRMED.equals(status) || Order.STATUS_PREPARING.equals(status);
+        }
         if ("Đang giao hàng".equalsIgnoreCase(filter)) return Order.STATUS_SHIPPING.equals(status);
         if ("Đã hoàn thành".equalsIgnoreCase(filter)) return Order.STATUS_COMPLETED.equals(status);
         return false;

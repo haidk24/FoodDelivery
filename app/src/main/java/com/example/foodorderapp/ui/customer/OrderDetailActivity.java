@@ -177,7 +177,7 @@ public class OrderDetailActivity extends AppCompatActivity {
         tvOrderCodeBadge.setText("#" + (order.getOrderId() != null && order.getOrderId().length() > 8 
                 ? order.getOrderId().substring(0, 8) : order.getOrderId()));
 
-        bindStatusUI(order.getStatus(), order.getCreatedAt());
+        bindStatusUI(order.getStatus(), getStatusTimestamp(order));
 
         if (!TextUtils.isEmpty(order.getRestaurantId())) {
             loadRestaurantInfo(order.getRestaurantId());
@@ -273,9 +273,9 @@ public class OrderDetailActivity extends AppCompatActivity {
                 ivStatusIcon.setImageResource(R.drawable.ic_restaurant);
                 ivStatusIcon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.colorPrimary)));
                 iconStatusBg.setBackgroundResource(R.drawable.bg_pill_status_pending);
-                tvOrderStatus.setText("Đang chuẩn bị món");
-                tvOrderTime.setText(timeStr + " • Quán đang chế biến");
-                tvStatusPill.setText("Đang nấu");
+                tvOrderStatus.setText("Đã xác nhận");
+                tvOrderTime.setText(timeStr + " • Quán đã xác nhận và đang chuẩn bị món");
+                tvStatusPill.setText("Đã xác nhận");
                 tvStatusPill.setBackgroundResource(R.drawable.bg_pill_status_pending);
                 tvStatusPill.setTextColor(ContextCompat.getColor(this, R.color.colorPrimary));
                 break;
@@ -340,7 +340,8 @@ public class OrderDetailActivity extends AppCompatActivity {
 
             btnPrimaryAction.setText("Theo dõi đơn hàng");
             btnPrimaryAction.setOnClickListener(v -> openTrackingActivity(order));
-        } else if (Order.STATUS_PREPARING.equals(safe) || Order.STATUS_SHIPPING.equals(safe)) {
+        } else if (Order.STATUS_PREPARING.equals(safe) || Order.STATUS_CONFIRMED.equals(safe)
+                || Order.STATUS_SHIPPING.equals(safe)) {
             btnCancelOrder.setVisibility(View.GONE);
             btnPrimaryAction.setText("Theo dõi đơn hàng");
             btnPrimaryAction.setOnClickListener(v -> openTrackingActivity(order));
@@ -365,6 +366,21 @@ public class OrderDetailActivity extends AppCompatActivity {
         intent.putExtra("EXTRA_CUSTOMER_ADDRESS", order.getDeliveryAddressText());
         intent.putExtra("EXTRA_RESTAURANT_ID", order.getRestaurantId());
         startActivity(intent);
+    }
+
+    private Date getStatusTimestamp(Order order) {
+        String status = Order.normalizeStatus(order.getStatus());
+        if (Order.STATUS_COMPLETED.equals(status) && order.getDeliveredAt() != null) {
+            return order.getDeliveredAt();
+        }
+        if (Order.STATUS_SHIPPING.equals(status) && order.getShippingAt() != null) {
+            return order.getShippingAt();
+        }
+        if ((Order.STATUS_CONFIRMED.equals(status) || Order.STATUS_PREPARING.equals(status))
+                && order.getConfirmedAt() != null) {
+            return order.getConfirmedAt();
+        }
+        return order.getCreatedAt();
     }
 
     private void confirmCancelOrder(Order order) {

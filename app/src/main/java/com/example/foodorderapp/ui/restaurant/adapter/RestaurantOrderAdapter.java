@@ -124,7 +124,7 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
                 String st = Order.normalizeStatus(o.getStatus());
                 if (Order.STATUS_PENDING.equals(st)) {
                     pending++;
-                } else if (Order.STATUS_PREPARING.equals(st)) {
+                } else if (Order.STATUS_PREPARING.equals(st) || Order.STATUS_CONFIRMED.equals(st)) {
                     preparing++;
                 } else if (Order.STATUS_SHIPPING.equals(st)) {
                     delivering++;
@@ -191,7 +191,7 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
             holder.btnActionPrimary.setBackgroundResource(R.drawable.bg_btn_confirm_order);
             holder.btnActionPrimary.setOnClickListener(v -> requestStatusUpdate(order, Order.STATUS_PREPARING));
 
-        } else if (Order.STATUS_PREPARING.equals(status)) {
+        } else if (Order.STATUS_PREPARING.equals(status) || Order.STATUS_CONFIRMED.equals(status)) {
             holder.viewStatusAccentLine.setBackgroundColor(Color.parseColor("#EA580C"));
             holder.tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_preparing);
             holder.tvStatusBadge.setText("● ĐANG CHUẨN BỊ");
@@ -311,7 +311,9 @@ public class RestaurantOrderAdapter extends RecyclerView.Adapter<RestaurantOrder
     }
 
     private String getStatusDisplayText(String status) {
-        if (Order.STATUS_PREPARING.equals(status)) return "Đang chuẩn bị";
+        if (Order.STATUS_PREPARING.equals(status) || Order.STATUS_CONFIRMED.equals(status)) {
+            return "Đã xác nhận";
+        }
         if (Order.STATUS_SHIPPING.equals(status)) return "Đang giao hàng";
         if (Order.STATUS_COMPLETED.equals(status)) return "Đã hoàn thành";
         if (Order.STATUS_CANCELLED.equals(status)) return "Đã hủy đơn";

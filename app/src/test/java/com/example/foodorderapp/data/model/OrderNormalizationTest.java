@@ -8,6 +8,8 @@ public class OrderNormalizationTest {
     @Test public void normalizesLegacyOrderStatuses() {
         assertEquals(Order.STATUS_PENDING, Order.normalizeStatus("Chờ xác nhận"));
         assertEquals(Order.STATUS_PREPARING, Order.normalizeStatus("Đang chuẩn bị"));
+        assertEquals(Order.STATUS_CONFIRMED, Order.normalizeStatus("Đã xác nhận"));
+        assertEquals(Order.STATUS_CONFIRMED, Order.normalizeStatus("confirmed"));
         assertEquals(Order.STATUS_SHIPPING, Order.normalizeStatus("Đang giao hàng"));
         assertEquals(Order.STATUS_COMPLETED, Order.normalizeStatus("Đã giao thành công"));
         assertEquals(Order.STATUS_CANCELLED, Order.normalizeStatus("Đã hủy"));

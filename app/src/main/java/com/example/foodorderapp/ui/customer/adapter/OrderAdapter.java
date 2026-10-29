@@ -164,9 +164,9 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             holder.layoutReviewDelight.setVisibility(View.GONE);
             holder.btnCallShipper.setVisibility(View.GONE);
             holder.tvShipperName.setText(TextUtils.isEmpty(order.getShipperName())
-                    ? "Chưa có thông tin tài xế" : order.getShipperName());
+                    ? "Tài xế đang giao đơn" : order.getShipperName());
             holder.tvShipperEta.setText(TextUtils.isEmpty(order.getShipperVehicle())
-                    ? "Xem thông tin liên hệ khi theo dõi đơn" : order.getShipperVehicle());
+                    ? "Đơn đã được bàn giao cho tài xế" : order.getShipperVehicle());
             if (!TextUtils.isEmpty(order.getDeliveryAddressText())) {
                 holder.tvDeliveryDest.setText("Đang tới: " + order.getDeliveryAddressText());
             }
@@ -302,9 +302,9 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             });
 
         } else if (Order.STATUS_PREPARING.equals(status) || Order.STATUS_CONFIRMED.equals(status)) {
-            // ĐANG CHUẨN BỊ MÓN
+            // ĐÃ ĐƯỢC NHÀ HÀNG XÁC NHẬN
             holder.indicatorActiveShipping.setVisibility(View.GONE);
-            holder.tvOrderStatus.setText("Đang chuẩn bị");
+            holder.tvOrderStatus.setText("Đã xác nhận");
             holder.tvOrderStatus.setBackgroundResource(R.drawable.bg_pill_status_pending);
             holder.tvOrderStatus.setTextColor(ContextCompat.getColor(context, R.color.colorPrimary));
             holder.tvOrderRatingBadge.setVisibility(View.GONE);

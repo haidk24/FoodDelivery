@@ -47,9 +47,11 @@ public class MyOrderFragment extends Fragment {
     private EditText etSearchOrder;
 
     // Filter Tabs
-    private View tabAll, tabShipping, tabPending, tabDelivered, tabCancelled;
-    private TextView tvTabAllTitle, tvTabShippingTitle, tvTabPendingTitle, tvTabDeliveredTitle, tvTabCancelledTitle;
-    private TextView tvBadgeAll, tvBadgeShipping, tvBadgePending, tvBadgeDelivered, tvBadgeCancelled;
+    private View tabAll, tabShipping, tabPending, tabConfirmed, tabDelivered, tabCancelled;
+    private TextView tvTabAllTitle, tvTabShippingTitle, tvTabPendingTitle, tvTabConfirmedTitle,
+            tvTabDeliveredTitle, tvTabCancelledTitle;
+    private TextView tvBadgeAll, tvBadgeShipping, tvBadgePending, tvBadgeConfirmed,
+            tvBadgeDelivered, tvBadgeCancelled;
 
     private View cardCustomerSupport;
     private View btnContactSupport;
@@ -123,18 +125,21 @@ public class MyOrderFragment extends Fragment {
         tabAll = view.findViewById(R.id.tab_all);
         tabShipping = view.findViewById(R.id.tab_shipping);
         tabPending = view.findViewById(R.id.tab_pending);
+        tabConfirmed = view.findViewById(R.id.tab_confirmed);
         tabDelivered = view.findViewById(R.id.tab_delivered);
         tabCancelled = view.findViewById(R.id.tab_cancelled);
 
         tvTabAllTitle = view.findViewById(R.id.tv_tab_all_title);
         tvTabShippingTitle = view.findViewById(R.id.tv_tab_shipping_title);
         tvTabPendingTitle = view.findViewById(R.id.tv_tab_pending_title);
+        tvTabConfirmedTitle = view.findViewById(R.id.tv_tab_confirmed_title);
         tvTabDeliveredTitle = view.findViewById(R.id.tv_tab_delivered_title);
         tvTabCancelledTitle = view.findViewById(R.id.tv_tab_cancelled_title);
 
         tvBadgeAll = view.findViewById(R.id.tv_badge_all);
         tvBadgeShipping = view.findViewById(R.id.tv_badge_shipping);
         tvBadgePending = view.findViewById(R.id.tv_badge_pending);
+        tvBadgeConfirmed = view.findViewById(R.id.tv_badge_confirmed);
         tvBadgeDelivered = view.findViewById(R.id.tv_badge_delivered);
         tvBadgeCancelled = view.findViewById(R.id.tv_badge_cancelled);
 
@@ -164,6 +169,7 @@ public class MyOrderFragment extends Fragment {
         tabAll.setOnClickListener(v -> selectFilter("all"));
         tabShipping.setOnClickListener(v -> selectFilter("shipping"));
         tabPending.setOnClickListener(v -> selectFilter("pending"));
+        tabConfirmed.setOnClickListener(v -> selectFilter("confirmed"));
         tabDelivered.setOnClickListener(v -> selectFilter("delivered"));
         tabCancelled.setOnClickListener(v -> selectFilter("cancelled"));
     }
@@ -181,6 +187,7 @@ public class MyOrderFragment extends Fragment {
         setTabInactive(tabAll, tvTabAllTitle, tvBadgeAll);
         setTabInactive(tabShipping, tvTabShippingTitle, tvBadgeShipping);
         setTabInactive(tabPending, tvTabPendingTitle, tvBadgePending);
+        setTabInactive(tabConfirmed, tvTabConfirmedTitle, tvBadgeConfirmed);
         setTabInactive(tabDelivered, tvTabDeliveredTitle, tvBadgeDelivered);
         setTabInactive(tabCancelled, tvTabCancelledTitle, tvBadgeCancelled);
 
@@ -194,6 +201,9 @@ public class MyOrderFragment extends Fragment {
                 break;
             case "pending":
                 setTabActive(tabPending, tvTabPendingTitle, tvBadgePending);
+                break;
+            case "confirmed":
+                setTabActive(tabConfirmed, tvTabConfirmedTitle, tvBadgeConfirmed);
                 break;
             case "delivered":
                 setTabActive(tabDelivered, tvTabDeliveredTitle, tvBadgeDelivered);
@@ -293,6 +303,7 @@ public class MyOrderFragment extends Fragment {
         int countAll = allOrders.size();
         int countShipping = 0;
         int countPending = 0;
+        int countConfirmed = 0;
         int countDelivered = 0;
         int countCancelled = 0;
 
@@ -300,8 +311,10 @@ public class MyOrderFragment extends Fragment {
             String s = Order.normalizeStatus(o.getStatus());
             if (Order.STATUS_SHIPPING.equals(s)) {
                 countShipping++;
-            } else if (Order.STATUS_PENDING.equals(s) || Order.STATUS_PREPARING.equals(s) || Order.STATUS_CONFIRMED.equals(s)) {
+            } else if (Order.STATUS_PENDING.equals(s)) {
                 countPending++;
+            } else if (Order.STATUS_PREPARING.equals(s) || Order.STATUS_CONFIRMED.equals(s)) {
+                countConfirmed++;
             } else if (Order.STATUS_COMPLETED.equals(s)) {
                 countDelivered++;
             } else if (Order.STATUS_CANCELLED.equals(s)) {
@@ -312,6 +325,7 @@ public class MyOrderFragment extends Fragment {
         tvBadgeAll.setText(String.valueOf(countAll));
         tvBadgeShipping.setText(String.valueOf(countShipping));
         tvBadgePending.setText(String.valueOf(countPending));
+        tvBadgeConfirmed.setText(String.valueOf(countConfirmed));
         tvBadgeDelivered.setText(String.valueOf(countDelivered));
         tvBadgeCancelled.setText(String.valueOf(countCancelled));
     }
@@ -332,7 +346,10 @@ public class MyOrderFragment extends Fragment {
                     matchesCategory = Order.STATUS_SHIPPING.equals(s);
                     break;
                 case "pending":
-                    matchesCategory = Order.STATUS_PENDING.equals(s) || Order.STATUS_PREPARING.equals(s) || Order.STATUS_CONFIRMED.equals(s);
+                    matchesCategory = Order.STATUS_PENDING.equals(s);
+                    break;
+                case "confirmed":
+                    matchesCategory = Order.STATUS_PREPARING.equals(s) || Order.STATUS_CONFIRMED.equals(s);
                     break;
                 case "delivered":
                     matchesCategory = Order.STATUS_COMPLETED.equals(s);

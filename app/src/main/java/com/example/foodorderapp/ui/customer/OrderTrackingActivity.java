@@ -35,8 +35,9 @@ public class OrderTrackingActivity extends AppCompatActivity {
     private TextView tvMapRestaurantLabel;
     private TextView tvTrackingEta;
 
+    private View layoutShipperMarker, cardShipperInfo;
     private TextView tvShipperName, tvShipperBike;
-    private MaterialButton btnChatShipper, btnCallShipper;
+    private MaterialButton btnCallShipper;
 
     // Stepper views
     private ImageView ivStep1Dot, ivStep2Dot, ivStep3Dot, ivStep4Dot;
@@ -75,9 +76,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
         tvOrderCodeBadge.setText("#" + (orderId.length() > 8 ? orderId.substring(0, 8) : orderId));
 
         // Prepopulate from Intent
-        String status = getIntent().getStringExtra("EXTRA_STATUS");
         double total = getIntent().getDoubleExtra("EXTRA_TOTAL", 0);
-        String customerAddress = getIntent().getStringExtra("EXTRA_CUSTOMER_ADDRESS");
         String restaurantId = getIntent().getStringExtra("EXTRA_RESTAURANT_ID");
 
         if (total > 0) {
@@ -90,10 +89,6 @@ public class OrderTrackingActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> onBackPressed());
 
         btnCallShipper.setOnClickListener(v -> callAssignedShipper());
-
-        btnChatShipper.setOnClickListener(v -> {
-            Toast.makeText(this, "Đơn hàng chưa có kênh nhắn tin với tài xế", Toast.LENGTH_SHORT).show();
-        });
 
         btnViewOrderDetails.setOnClickListener(v -> {
             Intent intent = new Intent(this, OrderDetailActivity.class);
@@ -126,9 +121,10 @@ public class OrderTrackingActivity extends AppCompatActivity {
         tvMapRestaurantLabel = findViewById(R.id.tv_map_restaurant_label);
         tvTrackingEta = findViewById(R.id.tv_tracking_eta);
 
+        layoutShipperMarker = findViewById(R.id.layout_shipper_marker);
+        cardShipperInfo = findViewById(R.id.card_shipper_info);
         tvShipperName = findViewById(R.id.tv_shipper_name);
         tvShipperBike = findViewById(R.id.tv_shipper_bike);
-        btnChatShipper = findViewById(R.id.btn_chat_shipper);
         btnCallShipper = findViewById(R.id.btn_call_shipper);
 
         ivStep1Dot = findViewById(R.id.iv_step1_dot);
@@ -192,19 +188,25 @@ public class OrderTrackingActivity extends AppCompatActivity {
     }
 
     private void bindShipper(Order order) {
-        boolean assigned = !TextUtils.isEmpty(order.getShipperId());
+        String status = Order.normalizeStatus(order.getStatus());
+        boolean shipping = Order.STATUS_SHIPPING.equals(status);
+        boolean completed = Order.STATUS_COMPLETED.equals(status);
+        boolean assigned = order.hasAssignedShipper();
+
+        layoutShipperMarker.setVisibility(shipping ? View.VISIBLE : View.GONE);
+        cardShipperInfo.setVisibility(shipping || (completed && assigned) ? View.VISIBLE : View.GONE);
+        if (cardShipperInfo.getVisibility() != View.VISIBLE) return;
+
         String name = order.getShipperName();
         String vehicle = order.getShipperVehicle();
         String phone = order.getShipperPhone();
         tvShipperName.setText(!TextUtils.isEmpty(name) ? name
-                : assigned ? "Tài xế đã được phân công" : "Chưa có tài xế được phân công");
+                : "Tài xế đang giao đơn");
         tvShipperBike.setText(!TextUtils.isEmpty(vehicle) ? vehicle
-                : assigned ? "Chưa cập nhật phương tiện" : "Quán sẽ cập nhật khi bàn giao đơn");
+                : assigned ? "Chưa cập nhật phương tiện" : "Đơn đã được bàn giao cho tài xế");
         boolean canCall = !TextUtils.isEmpty(phone);
+        btnCallShipper.setVisibility(canCall ? View.VISIBLE : View.GONE);
         btnCallShipper.setEnabled(canCall);
-        btnCallShipper.setAlpha(canCall ? 1f : 0.5f);
-        btnChatShipper.setEnabled(false);
-        btnChatShipper.setAlpha(0.5f);
     }
 
     private void callAssignedShipper() {
@@ -230,15 +232,34 @@ public class OrderTrackingActivity extends AppCompatActivity {
         int colorTextPrimary = ContextCompat.getColor(this, R.color.colorTextPrimary);
         int colorTextSecondary = ContextCompat.getColor(this, R.color.colorTextSecondary);
 
-        // Step 1: Placed
-        tvStep1Title.setText("Đã tiếp nhận đơn hàng");
-        tvStep1Time.setText(createdTime + " • Quán đã duyệt và bắt đầu chuẩn bị");
-        ivStep1Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
+        // Reset every view because the same screen receives realtime status changes.
+        lineStep1To2.setBackgroundColor(colorInactive);
+        lineStep2To3.setBackgroundColor(colorInactive);
+        lineStep3To4.setBackgroundColor(colorInactive);
+        ivStep1Dot.setImageTintList(ColorStateList.valueOf(colorPrimary));
+        ivStep2Dot.setImageTintList(ColorStateList.valueOf(colorInactive));
+        ivStep3Dot.setImageTintList(ColorStateList.valueOf(colorInactive));
+        ivStep4Dot.setImageTintList(ColorStateList.valueOf(colorInactive));
+        tvStep1Title.setText("Đã đặt đơn hàng");
+        tvStep2Title.setText("Nhà hàng xác nhận");
+        tvStep3Title.setText("Đang giao đến bạn");
+        tvStep4Title.setText("Giao hàng thành công");
+        tvStep1Title.setTextColor(colorPrimary);
+        tvStep2Title.setTextColor(colorTextSecondary);
+        tvStep3Title.setTextColor(colorTextSecondary);
+        tvStep4Title.setTextColor(colorTextSecondary);
+        tvStep1Time.setText(createdTime);
+        tvStep2Time.setText("Chờ nhà hàng xác nhận");
+        tvStep3Time.setText("Chờ bàn giao tài xế");
+        tvStep4Time.setText("Chờ hoàn tất");
 
         switch (status) {
             case Order.STATUS_PREPARING:
             case Order.STATUS_CONFIRMED:
                 // Step 1 done, Step 2 active
+                ivStep1Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
+                tvStep1Title.setTextColor(colorTextPrimary);
+                tvStep1Time.setText(createdTime + " • Quán đã xác nhận đơn hàng");
                 lineStep1To2.setBackgroundColor(colorTertiary);
                 ivStep2Dot.setImageTintList(ColorStateList.valueOf(colorPrimary));
                 tvStep2Title.setText("Quán đang chế biến món ăn");
@@ -255,11 +276,13 @@ public class OrderTrackingActivity extends AppCompatActivity {
                 tvStep4Title.setTextColor(colorTextSecondary);
                 tvStep4Time.setText("Chờ hoàn tất");
 
-                tvTrackingEta.setText("Quán đang chế biến món ăn");
+                tvTrackingEta.setText("Đơn hàng đã được xác nhận");
                 break;
 
             case Order.STATUS_SHIPPING:
                 // Step 1 done, Step 2 done, Step 3 active (Shipping)
+                ivStep1Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
+                tvStep1Title.setTextColor(colorTextPrimary);
                 lineStep1To2.setBackgroundColor(colorTertiary);
                 ivStep2Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
                 tvStep2Title.setText("Tài xế đã nhận món từ quán");
@@ -284,6 +307,8 @@ public class OrderTrackingActivity extends AppCompatActivity {
 
             case Order.STATUS_COMPLETED:
                 // All steps done
+                ivStep1Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
+                tvStep1Title.setTextColor(colorTextPrimary);
                 lineStep1To2.setBackgroundColor(colorTertiary);
                 ivStep2Dot.setImageTintList(ColorStateList.valueOf(colorTertiary));
                 tvStep2Title.setTextColor(colorTextPrimary);
@@ -317,6 +342,7 @@ public class OrderTrackingActivity extends AppCompatActivity {
             case Order.STATUS_PENDING:
             default:
                 // Step 1 in progress
+                tvStep1Time.setText(createdTime + " • Đang chờ quán xác nhận");
                 lineStep1To2.setBackgroundColor(colorInactive);
                 ivStep2Dot.setImageTintList(ColorStateList.valueOf(colorInactive));
                 tvStep2Title.setTextColor(colorTextSecondary);

@@ -38,6 +38,9 @@ public class Order {
             return STATUS_PENDING;
         }
         String s = status.trim().toLowerCase(java.util.Locale.ROOT);
+        if (STATUS_CONFIRMED.equals(s) || s.contains("đã xác nhận") || s.contains("da xac nhan")) {
+            return STATUS_CONFIRMED;
+        }
         if (s.contains("hủy") || s.contains("huy") || s.contains("cancel")) {
             return STATUS_CANCELLED;
         }
@@ -47,7 +50,7 @@ public class Order {
         if (s.contains("giao") || s.contains("ship")) {
             return STATUS_SHIPPING;
         }
-        if (s.contains("chuẩn bị") || s.contains("chuan bi") || s.contains("nấu") || s.contains("nau") || s.contains("prepar") || s.contains("confirm")) {
+        if (s.contains("chuẩn bị") || s.contains("chuan bi") || s.contains("nấu") || s.contains("nau") || s.contains("prepar")) {
             return STATUS_PREPARING;
         }
         if (s.contains("chờ") || s.contains("cho") || s.contains("pend")) {
@@ -58,6 +61,27 @@ public class Order {
 
     public String getNormalizedStatus() {
         return normalizeStatus(this.status);
+    }
+
+    @Exclude
+    public boolean isAwaitingConfirmation() {
+        return STATUS_PENDING.equals(getNormalizedStatus());
+    }
+
+    @Exclude
+    public boolean isConfirmed() {
+        String normalized = getNormalizedStatus();
+        return STATUS_CONFIRMED.equals(normalized) || STATUS_PREPARING.equals(normalized);
+    }
+
+    @Exclude
+    public boolean isShipping() {
+        return STATUS_SHIPPING.equals(getNormalizedStatus());
+    }
+
+    @Exclude
+    public boolean hasAssignedShipper() {
+        return !cleanText(shipperId).isEmpty();
     }
 
     public String getCustomerId() {

@@ -342,6 +342,41 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
+                <!-- Tab: Đã xác nhận -->
+                <LinearLayout
+                    android:id="@+id/tab_confirmed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_filter_chip_inactive"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="12dp">
+
+                    <TextView
+                        android:id="@+id/tv_tab_confirmed_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Đã xác nhận"
+                        android:textColor="@color/colorTextSecondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_badge_confirmed"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_badge_filter_inactive"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="1dp"
+                        android:text="0"
+                        android:textColor="@color/colorTextSecondary"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
                 <!-- Tab: Đã giao -->
                 <LinearLayout
                     android:id="@+id/tab_delivered"
